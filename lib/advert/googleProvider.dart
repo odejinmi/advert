@@ -60,7 +60,7 @@ class GoogleProvider extends GetxController {
 
   void showRewardedAd(reward){
     // if (rewardedinterstitialad.rewardedInterstitialAd.isEmpty ) {
-    if (interstitiaad.rewardedAd.isEmpty ) {
+    if (rewardedad.rewardedAd.isEmpty ) {
       rewardedad.showRewardedAd(reward);
     }else{
       rewardedinterstitialad.showad(reward);
