@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../model/advertresponse.dart';
 import '../device.dart';
 
-import '../networks.dart';
 
 class Interstitialad extends GetxController {
   var screenUnitId;
@@ -25,8 +25,6 @@ class Interstitialad extends GetxController {
 
   bool showAds = false;
 
-
-  var network = Get.put(Networks());
   void createInterstitialAd() {
     for(int i =0;i < (screenUnitId.length - intersAd1.length); i++ ) {
       var adunitid = screenUnitId[i];
@@ -72,17 +70,18 @@ class Interstitialad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       createInterstitialAd();
     }
   }
 
-  void showAd1() async {
+  Advertresponse showAd(){
     if (intersAd1.isNotEmpty) {
       intersAd1.first.show();
+      return Advertresponse.showing();
     } else {
       createInterstitialAd();
-      print("kindly check your network");
+      return Advertresponse.defaults();
     }
   }
 

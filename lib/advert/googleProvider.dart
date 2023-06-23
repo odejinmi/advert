@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../model/advertresponse.dart';
 import '../model/google.dart';
 import 'googleads/bannerad.dart';
 import 'googleads/interstitialad.dart';
@@ -54,21 +55,23 @@ class GoogleProvider extends GetxController {
     nativead.showad();
   }
 
- void showAd1(){
-   interstitiaad.showAd1();
+  Advertresponse showAd1(){
+   return interstitiaad.showAd();
   }
 
-  void showRewardedAd(reward){
+  Advertresponse showRewardedAd(reward){
     // if (rewardedinterstitialad.rewardedInterstitialAd.isEmpty ) {
-    if (rewardedad.rewardedAd.isEmpty ) {
-      rewardedad.showRewardedAd(reward);
+    if (rewardedad.rewardedAd.isNotEmpty ) {
+     return rewardedad.showRewardedAd(reward);
+    }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
+     return rewardedinterstitialad.showad(reward);
     }else{
-      rewardedinterstitialad.showad(reward);
+      return Advertresponse.defaults();
     }
   }
 
-  void showRewardedinstertitialAd(reward){
-    rewardedinterstitialad.showad(reward);
+  Advertresponse showRewardedinstertitialAd(reward){
+   return rewardedinterstitialad.showad(reward);
   }
 
   Widget googlebanner(){

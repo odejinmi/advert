@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../model/adsmodel.dart';
+import '../model/advertresponse.dart';
 import 'adcolonyProvider.dart';
 import 'googleProvider.dart';
 import 'googleads/banner_admob.dart';
-import 'networks.dart';
 import 'unityprovider.dart';
 import 'device.dart';
 
@@ -42,9 +42,7 @@ class AdsProv extends GetxController {
     }
   }
 
-  var network = Get.put(Networks());
-  showads() async {
-    if(deviceallow.allow() && network.isonline.isTrue) {
+  Advertresponse showads() {
       // if (unity.placements[AdManager.rewardedVideoAdPlacementId] == true &&
       //     unityplayed.isFalse) {
       //   unity.showAd(AdManager.rewardedVideoAdPlacementId, null);
@@ -59,11 +57,11 @@ class AdsProv extends GetxController {
       //   googleplayed.value = false;
       //   adcolonyplayed.value = true;
       // } else if (googleadvert.intersAd1 && googleplayed.isFalse) {
-        googleadvert.showAd1();
         advertshow.value = 0;
         adcolonyplayed.value = false;
         unityplayed.value = false;
         googleplayed.value = true;
+        return googleadvert.showAd1();
       // } else {
       //   adcolonyplayed.value = false;
       //   unityplayed.value = false;
@@ -71,17 +69,15 @@ class AdsProv extends GetxController {
       //   advertshow.value = 0;
       //   showads();
       // }
-    }
   }
 
   Future<void> shownativeads() async {
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       googleadvert.shownative();
     }
   }
 
-  Future<void> showreawardads(Function reward) async {
-    if(deviceallow.allow() && network.isonline.isTrue) {
+  Advertresponse  showreawardads(Function reward) {
       // if (unity.placements[AdManager.rewardedVideoAdPlacementId] == true &&
       //     unityplayed.isFalse) {
       //   unity.showAd(AdManager.rewardedVideoAdPlacementId, reward);
@@ -90,11 +86,11 @@ class AdsProv extends GetxController {
       //   unityplayed.value = true;
       //   googleplayed.value = false;
       // } else if (googleadvert.rewardedAd && googleplayed.isFalse) {
-        googleadvert.showRewardedAd(reward);
         advertrewardshow.value = 2;
         adcolonyplayed.value = false;
         unityplayed.value = false;
         googleplayed.value = true;
+        return googleadvert.showRewardedAd(reward);
       // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
       //   adcolony.show(reward);
       //   advertrewardshow.value = 3;
@@ -108,7 +104,7 @@ class AdsProv extends GetxController {
       //   advertrewardshow.value = 0;
       //   showreawardads(reward);
       // }
-    }
+
   }
 
   get isvideoready => googleadvert.rewardedAd ||unity.rewardvideoloaded;
@@ -116,7 +112,7 @@ class AdsProv extends GetxController {
       // return adcolony.banner();
       switch (slideIndex.value) {
         case 0:
-          if(deviceallow.allow() && network.isonline.isTrue) {
+          if(deviceallow.allow()) {
           return unity.adWidget();
           }else{
             return const SizedBox.shrink();
@@ -128,7 +124,7 @@ class AdsProv extends GetxController {
       //       return SizedBox.shrink();
       //     }
         case 1:
-        if(deviceallow.allow() && network.isonline.isTrue) {
+        if(deviceallow.allow()) {
           return BannerAdmob();
         }else{
           return const SizedBox.shrink();

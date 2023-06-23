@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../device.dart';
-import '../networks.dart';
 
 class Bannerad extends GetxController {
   var adUnitId;
@@ -25,12 +22,11 @@ class Bannerad extends GetxController {
   set bannerReady(value) => _bannerReady.value = value;
   get bannerReady => _bannerReady.value;
 
-  var network = Get.put(Networks());
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       loadAd();
     }
   }

@@ -2,7 +2,6 @@
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../networks.dart';
 import '../device.dart';
 
 class Nativead extends GetxController {
@@ -17,12 +16,11 @@ Nativead(this.nativeadUnitId);
   //     : 'ca-app-pub-6117361441866120/5123378631';
 
 
-  var network = Get.put(Networks());
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       loadAd();
     }
   }

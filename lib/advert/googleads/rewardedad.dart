@@ -3,15 +3,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../model/advertresponse.dart';
 import '../device.dart';
 
-import '../networks.dart';
 
 class Rewardedad extends GetxController {
   var videoUnitId;
   Rewardedad(this.videoUnitId);
 
-  // RewardedAd? rewardedAd;
+  RewardedAd? rewardedAde;
   RxList<RewardedAd> _rewardedAd = <RewardedAd>[].obs;
   set rewardedAd(value)=> _rewardedAd.value = value;
   List<RewardedAd> get rewardedAd => _rewardedAd.value;
@@ -31,12 +31,11 @@ class Rewardedad extends GetxController {
   set givereward(value)=> _givereward.value = value;
   get givereward => _givereward.value;
 
-  var network = Get.put(Networks());
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       _createRewardedAd();
     }
   }
@@ -72,10 +71,10 @@ class Rewardedad extends GetxController {
     _createRewardedAd();
   }
 
-  void showRewardedAd(Function? rewarded) {
+  Advertresponse showRewardedAd(Function? rewarded) {
     if (rewardedAd.isEmpty) {
       debugPrint('Warning: attempt to show rewarded before loaded.');
-      return;
+      return Advertresponse.defaults();
     }
     var rewarded0 = rewardedAd.first;
     rewarded0.fullScreenContentCallback = FullScreenContentCallback(
@@ -100,8 +99,8 @@ class Rewardedad extends GetxController {
     rewarded0.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
       debugPrint('$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
       givereward = true;
-
     });
+    return Advertresponse.showing();
   }
 
 

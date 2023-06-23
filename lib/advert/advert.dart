@@ -11,11 +11,6 @@ import '../advert_platform_interface.dart';
 class Advert {
 
   bool _sdkInitialized = false;
-  List _screenUnitId = [];
-  List _videoUnitId = [];
-  List _adUnitId = [];
-  List _nativeadUnitId = [];
-  List _banneradadUnitId = [];
   // static late PlatformInfo platformInfo;
   Adsmodel _adsmodel = Adsmodel();
   Future<String?> getPlatformVersion() {
@@ -62,52 +57,6 @@ class Advert {
   }
 
   bool get sdkInitialized => _sdkInitialized;
-
-  List get screenUnitId {
-    // Validate that the sdk has been initialized
-    validateSdkInitialized();
-    return _screenUnitId;
-  }
-
-  set screenUnitId (value) {
-    // Validate that the sdk has been initialized
-    _screenUnitId = value;
-  }
-
-  List get videoUnitId {
-    // Validate that the sdk has been initialized
-    validateSdkInitialized();
-    return _videoUnitId;
-  }
-
-  set videoUnitId (value) {
-    // Validate that the sdk has been initialized
-    _videoUnitId = value;
-  }
-
-  List get adUnitId {
-    // Validate that the sdk has been initialized
-    validateSdkInitialized();
-    return _adUnitId;
-  }
-
-
-  set adUnitId (value) {
-    // Validate that the sdk has been initialized
-    _adUnitId = value;
-  }
-
-  List get nativeadUnitId {
-    // Validate that the sdk has been initialized
-    validateSdkInitialized();
-    return _nativeadUnitId;
-  }
-
-  List get banneradadUnitId {
-    // Validate that the sdk has been initialized
-    validateSdkInitialized();
-    return _banneradadUnitId;
-  }
 
 
   validateSdkInitialized() {

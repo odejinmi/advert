@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../networks.dart';
+import '../../model/advertresponse.dart';
 import '../device.dart';
 
 class Rewardedinterstitialad extends GetxController {
@@ -39,11 +39,10 @@ class Rewardedinterstitialad extends GetxController {
   //   'ca-app-pub-6117361441866120/7437063663','ca-app-pub-6117361441866120/7254581909',
   //   'ca-app-pub-6117361441866120/8558573648'];
 
-  var network = Get.put(Networks());
   @override
   void onInit() {
     super.onInit();
-    if(deviceallow.allow() && network.isonline.isTrue) {
+    if(deviceallow.allow()) {
       loadAd();
     }
   }
@@ -80,8 +79,8 @@ class Rewardedinterstitialad extends GetxController {
                     },
                     // Called when the ad dismissed full screen content.
                     onAdDismissedFullScreenContent: (ad) {
-                      // Dispose the ad here to free resources.
-                      addispose(ad);
+                      // // Dispose the ad here to free resources.
+                      // addispose(ad);
                     });
                 debugPrint('$ad loaded.');
                 // Keep a reference to the ad so you can show it later.
@@ -107,7 +106,7 @@ class Rewardedinterstitialad extends GetxController {
     loadAd();
   }
 
-  void showad(Function? rewarded){
+  Advertresponse showad(Function? rewarded){
     if (rewardedInterstitialAd.isNotEmpty) {
        var rewarded0 = rewardedInterstitialAd.first;
        print("rewardedinterstitialadmpose");
@@ -132,9 +131,11 @@ class Rewardedinterstitialad extends GetxController {
                 rewarded();
               }
             });
+       return Advertresponse.showing();
     }else{
       loadAd();
-      print("kindly check your network");
+      debugPrint("kindly check your network");
+      return Advertresponse.defaults();
     }
   }
 }
