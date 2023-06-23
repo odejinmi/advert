@@ -71,10 +71,8 @@ class AdsProv extends GetxController {
       // }
   }
 
-  Future<void> shownativeads() async {
-    if(deviceallow.allow()) {
-      googleadvert.shownative();
-    }
+  Widget shownativeads(){
+      return googleadvert.shownative();
   }
 
   Advertresponse  showreawardads(Function reward) {

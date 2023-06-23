@@ -1,4 +1,5 @@
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -70,40 +71,15 @@ Nativead(this.nativeadUnitId);
     _nativeAd!.dispose();
     loadAd();
   }
-  void showad(){
-    print("native advert");
+
+  Widget showad(){
     if (_nativeAd != null) {
       Future.delayed(const Duration(seconds: 20)).then((value) {
         closead();
       });
-      // CustomAlertDialogWidgetloader(
-      //     color: Colors.transparent,
-      //     widget: ConstrainedBox(
-      //       constraints: const BoxConstraints(
-      //         minWidth: 300,
-      //         minHeight: 350,
-      //         maxHeight: 400,
-      //         maxWidth: 450,
-      //       ),
-      //       child: Row(
-      //         crossAxisAlignment: CrossAxisAlignment.start,
-      //         children: [
-      //           Expanded(child: AdWidget(ad: _nativeAd!)),
-      //           Container(
-      //             decoration: const BoxDecoration(
-      //                 color: Colors.white,
-      //                 shape: BoxShape.circle
-      //             ),
-      //             child: IconButton(
-      //                 onPressed: () {
-      //                   closead();
-      //                 },
-      //                 icon: const Icon(Icons.close)
-      //             ),
-      //           )
-      //         ],
-      //       ),
-      //     ));
+      return AdWidget(ad: _nativeAd!);
+    } else {
+      return SizedBox.shrink();
     }
   }
 }

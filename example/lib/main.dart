@@ -42,6 +42,8 @@ class _MyAppState extends State<MyApp> {
       ? ['ca-app-pub-3940256099942544/5354046379']
       : ['ca-app-pub-3940256099942544/6978759866'];
 
+  bool native = false;
+  bool banner = false;
   @override
   void initState() {
     super.initState();
@@ -80,6 +82,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Your App Title',
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Plugin example app'),
@@ -93,16 +96,75 @@ class _MyAppState extends State<MyApp> {
                 _advertPlugin.adsProv.showads();
               }, child: const Text("show advert")),
               TextButton(onPressed: (){
-                _advertPlugin.adsProv.shownativeads();
+                setState(() {
+                  native = !native;
+                });
               }, child: const Text("show native advert")),
+              Visibility(
+                visible: native,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 320, // minimum recommended width
+                    minHeight: 90, // minimum recommended height
+                    maxWidth: 400,
+                    maxHeight: 200,
+                  ),
+                  child: _advertPlugin.adsProv.shownativeads(),
+                ),
+              ),
               TextButton(onPressed: (){
                 _advertPlugin.adsProv.showreawardads((){});
               }, child: const Text("show reward advert")),
-              _advertPlugin.adsProv.banner(),
+              TextButton(onPressed: (){
+                setState(() {
+                  banner = !banner;
+                });
+              }, child: const Text("show banner advert")),
+              Visibility(
+                visible: banner,
+                  child: _advertPlugin.adsProv.banner()),
             ],
           ),
         ),
       ),
     );
+  }
+  void showad(){
+    print("native advert");
+
+    // Small template
+    final adContainer = ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 320, // minimum recommended width
+        minHeight: 90, // minimum recommended height
+        maxWidth: 400,
+        maxHeight: 200,
+      ),
+      child: _advertPlugin.adsProv.shownativeads(),
+    );
+
+    // set up the button
+    Widget okButton = TextButton(
+      child: const Text("OK"),
+      onPressed: () { },
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: const Text("My Advert"),
+      content: adContainer,
+      actions: [
+        okButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+
   }
 }

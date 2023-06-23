@@ -51,8 +51,8 @@ class GoogleProvider extends GetxController {
     }
   }
 
-  void shownative(){
-    nativead.showad();
+  Widget shownative(){
+    return nativead.showad();
   }
 
   Advertresponse showAd1(){
