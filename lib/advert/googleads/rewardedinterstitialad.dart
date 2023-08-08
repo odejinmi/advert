@@ -30,14 +30,6 @@ class Rewardedinterstitialad extends GetxController {
   set isshowed(value)=> _isshowed.value = value;
   get isshowed => _isshowed.value;
 
-  // TODO: replace this test ad unit with your own ad unit.
-  // final adUnitId = Platform.isAndroid
-  //     ? ['ca-app-pub-6117361441866120/4577116553','ca-app-pub-6117361441866120/8484737245',
-  //   'ca-app-pub-6117361441866120/6343473849','ca-app-pub-6117361441866120/9711555987',
-  //   'ca-app-pub-6117361441866120/1829513768']
-  //     : ['ca-app-pub-6117361441866120/6040874481','ca-app-pub-6117361441866120/6516215303',
-  //   'ca-app-pub-6117361441866120/7437063663','ca-app-pub-6117361441866120/7254581909',
-  //   'ca-app-pub-6117361441866120/8558573648'];
 
   @override
   void onInit() {
@@ -122,7 +114,6 @@ class Rewardedinterstitialad extends GetxController {
             },
             // Called when a click is recorded for an ad.
             onAdClicked: (ad) {});
-        print(rewardedInterstitialAd.length);
        rewarded0.show(
             onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
               // Reward the user for watching an ad.
