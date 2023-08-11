@@ -42,6 +42,11 @@ class _MyAppState extends State<MyApp> {
       ? ['ca-app-pub-3940256099942544/5354046379']
       : ['ca-app-pub-3940256099942544/6978759866'];
 
+  final gameid = Platform.isAndroid ? "3717787" : '3717786';
+  final bannerAdPlacementId = Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
+  final interstitialVideoAdPlacementId = Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
+  final rewardedVideoAdPlacementId = Platform.isAndroid ? ['Android_Rewarded',"rewardedVideo"] : ['iOS_Rewarded'];
+
   bool native = false;
   bool banner = false;
   @override
@@ -53,7 +58,12 @@ class _MyAppState extends State<MyApp> {
     ..adUnitId = adUnitId
     ..videoUnitId = videoUnitId
     ..screenUnitId = screenUnitId;
-    _advertPlugin.initialize(Adsmodel(googlemodel: googlemodel));
+    Unitymodel unitymodel = Unitymodel()
+    ..gameId = gameid
+    ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
+    ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
+    ..bannerAdPlacementId = bannerAdPlacementId;
+    _advertPlugin.initialize(Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel));
     // initPlatformState();
   }
 

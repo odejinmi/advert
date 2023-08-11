@@ -28,7 +28,14 @@ class AdsProv extends GetxController {
   var unitybannerplayed = false.obs;
   var googlebannerplayed = false.obs;
   var adcolonybannerplayed = false.obs;
-  
+  var maxfail = 3;
+  var _instertialattempt = 0.obs;
+  set instertialattempt(value) => _instertialattempt.value = value;
+  get instertialattempt => _instertialattempt.value;
+   var _rewardvideoattempt = 0.obs;
+  set rewardvideoattempt(value) => _rewardvideoattempt.value = value;
+  get rewardvideoattempt => _rewardvideoattempt.value;
+
   @override
   void onInit() {
     // TODO: implement onInit
@@ -43,47 +50,52 @@ class AdsProv extends GetxController {
   }
 
   Advertresponse showads() {
-      // if (unity.placements[AdManager.rewardedVideoAdPlacementId] == true &&
-      //     unityplayed.isFalse) {
-      //   unity.showAd(AdManager.rewardedVideoAdPlacementId, null);
-      //   advertshow.value = 1;
-      //   unityplayed.value = true;
-      //   googleplayed.value = false;
-      //   adcolonyplayed.value = false;
+      if (unity!= null && unity.unityintersAd1 && unityplayed.isFalse) {
+        advertshow.value = 1;
+        unityplayed.value = true;
+        googleplayed.value = false;
+        adcolonyplayed.value = false;
+        return unity.showAd1();
       // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
       //   adcolony.show(null);
       //   advertshow.value = 2;
       //   unityplayed.value = false;
       //   googleplayed.value = false;
       //   adcolonyplayed.value = true;
-      // } else if (googleadvert.intersAd1 && googleplayed.isFalse) {
+      } else if (googleadvert!= null && googleadvert.intersAd1 && googleplayed.isFalse) {
         advertshow.value = 0;
         adcolonyplayed.value = false;
         unityplayed.value = false;
         googleplayed.value = true;
         return googleadvert.showAd1();
-      // } else {
-      //   adcolonyplayed.value = false;
-      //   unityplayed.value = false;
-      //   googleplayed.value = false;
-      //   advertshow.value = 0;
-      //   showads();
-      // }
+      } else {
+        adcolonyplayed.value = false;
+        unityplayed.value = false;
+        googleplayed.value = false;
+        advertshow.value = 0;
+        if (instertialattempt < maxfail) {
+            instertialattempt += 1;
+          return showads();
+        }  else{
+          instertialattempt = 0;
+          return Advertresponse.defaults();
+        }
+      }
   }
 
   Widget shownativeads(){
+    return Container();
       return googleadvert.shownative();
   }
 
   Advertresponse  showreawardads(Function reward) {
-      // if (unity.placements[AdManager.rewardedVideoAdPlacementId] == true &&
-      //     unityplayed.isFalse) {
-      //   unity.showAd(AdManager.rewardedVideoAdPlacementId, reward);
-      //   advertrewardshow.value = 1;
-      //   adcolonyplayed.value = false;
-      //   unityplayed.value = true;
-      //   googleplayed.value = false;
-      // } else if (googleadvert.rewardedAd && googleplayed.isFalse) {
+      if (unity != null && unity.unityrewardedAd && unityplayed.isFalse) {
+        advertrewardshow.value = 1;
+        adcolonyplayed.value = false;
+        unityplayed.value = true;
+        googleplayed.value = false;
+        return unity.showRewardedAd(reward);
+      } else if (googleadvert != null && googleadvert.rewardedAd && googleplayed.isFalse) {
         advertrewardshow.value = 2;
         adcolonyplayed.value = false;
         unityplayed.value = false;
@@ -95,23 +107,29 @@ class AdsProv extends GetxController {
       //   adcolonyplayed.value = true;
       //   unityplayed.value = false;
       //   googleplayed.value = false;
-      // } else {
-      //   adcolonyplayed.value = false;
-      //   unityplayed.value = false;
-      //   googleplayed.value = false;
-      //   advertrewardshow.value = 0;
-      //   showreawardads(reward);
-      // }
+      } else {
+        adcolonyplayed.value = false;
+        unityplayed.value = false;
+        googleplayed.value = false;
+        advertrewardshow.value = 0;
+        if (instertialattempt < maxfail) {
+          instertialattempt += 1;
+        return showreawardads(reward);
+        }  else{
+          instertialattempt = 0;
+          return Advertresponse.defaults();
+        }
+      }
 
   }
 
-  get isvideoready => googleadvert.rewardedAd ||unity.rewardvideoloaded;
+  get isvideoready => googleadvert.rewardedAd ||unity?.rewardvideoloaded;
   Widget banner() {
       // return adcolony.banner();
       switch (slideIndex.value) {
         case 0:
           if(deviceallow.allow()) {
-          return unity.adWidget();
+          return unity!.adWidget();
           }else{
             return const SizedBox.shrink();
           }

@@ -39,7 +39,7 @@ class Rewardedad extends GetxController {
       _createRewardedAd();
     }
   }
-  void _createRewardedAd() {
+  void _createRewardedAd({Function? show}) {
     for(int i =0; i < (videoUnitId.length - rewardedAd.length); i++ ) {
       var adunitid = videoUnitId[i];
       if (rewardedAd.length != videoUnitId.length) {
@@ -52,6 +52,9 @@ class Rewardedad extends GetxController {
                 print("your rewardedad has been loaded");
                 rewardedAd.add(ad);
                 numRewardedLoadAttempts = 0;
+                if (show != null) {
+                  show();
+                }
               },
               onAdFailedToLoad: (LoadAdError error) {
                 numRewardedLoadAttempts += 1;
@@ -73,6 +76,7 @@ class Rewardedad extends GetxController {
 
   Advertresponse showRewardedAd(Function? rewarded) {
     if (rewardedAd.isEmpty) {
+      _createRewardedAd(show: showRewardedAd);
       debugPrint('Warning: attempt to show rewarded before loaded.');
       return Advertresponse.defaults();
     }
@@ -83,7 +87,6 @@ class Rewardedad extends GetxController {
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('$ad onAdDismissedFullScreenContent.');
         addispose(ad);
-        _createRewardedAd();
         if (rewarded != null && givereward) {
           rewarded();
         }
@@ -91,7 +94,6 @@ class Rewardedad extends GetxController {
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('$ad onAdFailedToShowFullScreenContent: $error');
         addispose(ad);
-        _createRewardedAd();
       },
     );
 
