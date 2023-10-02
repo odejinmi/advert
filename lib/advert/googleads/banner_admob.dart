@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -15,13 +16,13 @@ class BannerAdmob extends StatefulWidget {
 class BannerAdmobState extends State<BannerAdmob> {
 
 
-  var _bannerAd = [].obs;
+  final _bannerAd = [].obs;
   set bannerAd(value) => _bannerAd.value = value;
   get bannerAd => _bannerAd.value;
 
   var adUnitId;
 
-  var _bannerReady = false.obs;
+  final _bannerReady = false.obs;
   set bannerReady(value) => _bannerReady.value = value;
   get bannerReady => _bannerReady.value;
   @override
@@ -34,12 +35,12 @@ class BannerAdmobState extends State<BannerAdmob> {
     }
   }
 
-  @override
-  void didUpdateWidget(covariant BannerAdmob oldWidget) {
-    // TODO: implement didUpdateWidget
-    super.didUpdateWidget(oldWidget);
-    addispose();
-  }
+  // @override
+  // void didUpdateWidget(covariant BannerAdmob oldWidget) {
+  //   // TODO: implement didUpdateWidget
+  //   super.didUpdateWidget(oldWidget);
+  //   addispose();
+  // }
 
 
   void loadAd() {
@@ -53,12 +54,16 @@ class BannerAdmobState extends State<BannerAdmob> {
           listener: BannerAdListener(
               onAdLoaded: (_) {
 
-                print("your bannerad has been loaded");
+                if (kDebugMode) {
+                  print("your bannerad has been loaded");
+                }
                 bannerReady = true;
+                setState((){});
               },
               onAdFailedToLoad: (ad, err) {
                 bannerReady = false;
                 loadAd();
+                setState((){});
               },
               onAdWillDismissScreen: (ad){
                 addispose();
@@ -75,7 +80,9 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   void addispose(){
     if(bannerAd.isNotEmpty) {
-      print("dispose here");
+      if (kDebugMode) {
+        print("dispose here");
+      }
       bannerAd.first.dispose();
       bannerAd.removeAt(0);
       loadAd();

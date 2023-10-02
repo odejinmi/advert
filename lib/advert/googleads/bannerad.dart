@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -7,7 +8,7 @@ import '../device.dart';
 class Bannerad extends GetxController {
   var adUnitId;
   Bannerad(this.adUnitId);
-  var _bannerAd = [].obs;
+  final _bannerAd = [].obs;
   set bannerAd(value) => _bannerAd.value = value;
   get bannerAd => _bannerAd.value;
 
@@ -18,7 +19,7 @@ class Bannerad extends GetxController {
   //     : ['ca-app-pub-6117361441866120/1488443500','ca-app-pub-6117361441866120/8620500430',
   //   'ca-app-pub-6117361441866120/3444195379','ca-app-pub-6117361441866120/7191868699',
   //   'ca-app-pub-6117361441866120/7445706489'];
-  var _bannerReady = false.obs;
+  final _bannerReady = false.obs;
   set bannerReady(value) => _bannerReady.value = value;
   get bannerReady => _bannerReady.value;
 
@@ -42,7 +43,9 @@ class Bannerad extends GetxController {
           listener: BannerAdListener(
             onAdLoaded: (_) {
 
-              print("your bannerad has been loaded");
+              if (kDebugMode) {
+                print("your bannerad has been loaded");
+              }
                 bannerReady = true;
             },
             onAdFailedToLoad: (ad, err) {
@@ -64,7 +67,9 @@ class Bannerad extends GetxController {
 
   void addispose(){
     if(bannerAd.isNotEmpty) {
-      print("dispose here");
+      if (kDebugMode) {
+        print("dispose here");
+      }
       bannerAd.first.dispose();
       bannerAd.removeAt(0);
       loadAd();
