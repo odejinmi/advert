@@ -141,7 +141,8 @@ class AdsProv extends GetxController {
       //     }
         case 1:
         if(deviceallow.allow()) {
-          return BannerAdmob(adUnitId: adsmodel.googlemodel!.banneradadUnitId,);
+          // return BannerAdmob(adUnitId: adsmodel.googlemodel!.banneradadUnitId,);
+          return googleadvert.googlebanner();
         }else{
           return const SizedBox.shrink();
         }

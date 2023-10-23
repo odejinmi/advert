@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 
 import '../model/advertresponse.dart';
 import '../model/google.dart';
-// import 'googleads/bannerad.dart';
+import 'googleads/bannerad.dart';
 import 'googleads/interstitialad.dart';
 import 'googleads/nativead.dart';
 import 'googleads/rewardedad.dart';
@@ -18,7 +18,7 @@ class GoogleProvider extends GetxController {
   var interstitiaad;
   var rewardedad;
   var nativead;
-  // var banner;
+  var banner;
   var rewardedinterstitialad;
   var _reward = 0.obs;
   set reward(value)=> _reward.value = value;
@@ -31,7 +31,7 @@ class GoogleProvider extends GetxController {
     interstitiaad = Get.put(Interstitialad(googlemodel.screenUnitId), permanent: true);
     rewardedad = Get.put(Rewardedad(googlemodel.videoUnitId), permanent: true);
     nativead = Get.put(Nativead(googlemodel.nativeadUnitId), permanent: true);
-    // banner = Get.put(Bannerad(googlemodel.banneradadUnitId), permanent: true);
+    banner = Get.put(Bannerad(googlemodel.banneradadUnitId), permanent: true);
     rewardedinterstitialad = Get.put(Rewardedinterstitialad(googlemodel.adUnitId), permanent: true);
     // counting();
   }
@@ -77,9 +77,9 @@ class GoogleProvider extends GetxController {
    return rewardedinterstitialad.showad(reward);
   }
 
-  // Widget googlebanner(){
-  //   return banner.adWidget();
-  // }
+  Widget googlebanner(){
+    return banner.bannerAds();
+  }
 
   bool showAds = false;
   bool _footerBannerShow = false;
