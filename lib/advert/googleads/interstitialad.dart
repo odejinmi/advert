@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
@@ -85,34 +86,4 @@ class Interstitialad extends GetxController {
     }
   }
 
-  static const AdRequest request = AdRequest(
-    keywords: <String>['foo', 'bar'],
-    contentUrl: 'http://foo.com/bar.html',
-    nonPersonalizedAds: true,
-  );
-
-  // static AdsProvider instance(BuildContext context) =>
-  //     Provider.of(context, listen: false);
-
-  static String get appId => Platform.isAndroid
-  // old
-  // ? 'ca-app-pub-6117361441866120~5829948546'
-  // ? 'ca-app-pub-1598206053668309~2044155939'
-      ? 'ca-app-pub-6117361441866120~5829948546'
-  // : 'ca-app-pub-3940256099942544~1458002511';
-  // : 'ca-app-pub-1598206053668309~7710581439';
-      : 'ca-app-pub-6117361441866120~7211527566';
-
-  // get screenUnitId => Platform.isAndroid
-  // // test
-  // // ? 'ca-app-pub-3940256099942544/1033173712'
-  // // ? 'ca-app-pub-1598206053668309/2841398135'
-  //     ? ['ca-app-pub-6117361441866120/8563923098','ca-app-pub-6117361441866120/2544949196',
-  //        'ca-app-pub-6117361441866120/8918785857','ca-app-pub-6117361441866120/7605704182',
-  //        'ca-app-pub-6117361441866120/8727214165']
-  // // : 'ca-app-pub-3940256099942544/4411468910';
-  // // : 'ca-app-pub-1598206053668309/3579764737';
-  //     : ['ca-app-pub-6117361441866120/8759030065','ca-app-pub-6117361441866120/2980063466',
-  //        'ca-app-pub-6117361441866120/9050647790', 'ca-app-pub-6117361441866120/6424484457',
-  //        'ca-app-pub-6117361441866120/8779185051'];
 }

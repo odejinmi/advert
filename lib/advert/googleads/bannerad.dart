@@ -89,4 +89,31 @@ class Bannerad extends GetxController {
       }
     });
   }
+
+  Widget bannerAds({AdSize adsize = AdSize.banner}) {
+    var adunitid = adUnitId[0];
+    var banner = BannerAd(
+      adUnitId: adunitid,
+      size: adsize,
+      listener: BannerAdListener(
+        onAdImpression: (ad) {
+          // FirebaseAnalytics.instance.logAdImpression();
+        },
+      ),
+      request: const AdRequest(),
+    );
+    return FutureBuilder(
+      future: banner.load(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          adUnitId.removeat(0);
+          adUnitId.add(adunitid);
+          return AdWidget(ad: banner);
+        } else {
+          return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
 }
