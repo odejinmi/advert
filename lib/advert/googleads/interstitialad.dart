@@ -27,10 +27,9 @@ class Interstitialad extends GetxController {
   bool showAds = false;
 
   void createInterstitialAd() {
-    for(int i =0;i < (screenUnitId.length - intersAd1.length); i++ ) {
-      var adunitid = screenUnitId[i];
-      if (screenUnitId.length != intersAd1.length) {
-        InterstitialAd.load(
+    // for(int i =0;i < 1; i++ ) {
+      var adunitid = screenUnitId[0];
+      InterstitialAd.load(
             adUnitId: adunitid,
             request: const AdRequest(),
             adLoadCallback: InterstitialAdLoadCallback(
@@ -40,7 +39,8 @@ class Interstitialad extends GetxController {
                 ad.fullScreenContentCallback = FullScreenContentCallback(
                   onAdShowedFullScreenContent: (InterstitialAd ad) {},
                   onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                    addispose(ad);
+                    intersAd1.remove(ad);
+                    ad.dispose();
                   },
                   onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
                     addispose(ad);
@@ -56,8 +56,7 @@ class Interstitialad extends GetxController {
                 }
               },
             ));
-      }
-    }
+    // }
   }
 
   void addispose(InterstitialAd ad){
@@ -71,9 +70,9 @@ class Interstitialad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      createInterstitialAd();
-    }
+    // if(deviceallow.allow()) {
+    //   createInterstitialAd();
+    // }
   }
 
   Advertresponse showAd(){

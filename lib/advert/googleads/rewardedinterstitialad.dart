@@ -34,15 +34,15 @@ class Rewardedinterstitialad extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if(deviceallow.allow()) {
-      loadAd();
-    }
+    // if(deviceallow.allow()) {
+    //   loadAd();
+    // }
   }
 
   void loadAd() {
-    for(int i =0; i < (adUnitId.length - rewardedInterstitialAd.length); i++ ) {
-      var adunitid = adUnitId[i];
-      if (rewardedInterstitialAd.length != adUnitId.length) {
+    // for(int i =0; i < (adUnitId.length - rewardedInterstitialAd.length); i++ ) {
+      var adunitid = adUnitId[0];
+      // if (rewardedInterstitialAd.length != adUnitId.length) {
         RewardedInterstitialAd.load(
             adUnitId: adunitid,
             request: const AdRequest(),
@@ -55,7 +55,7 @@ class Rewardedinterstitialad extends GetxController {
                     onAdShowedFullScreenContent: (ad) {
                       debugPrint('RewardedInterstitialAd had a show: ${ad
                           .onUserEarnedRewardCallback}');
-                      loadAd();
+                      // loadAd();
                     },
                     // Called when an impression occurs on the ad.
                     onAdImpression: (ad) {
@@ -87,8 +87,8 @@ class Rewardedinterstitialad extends GetxController {
                 }
               },
             ));
-      }
-    }
+    //   }
+    // }
   }
 
 

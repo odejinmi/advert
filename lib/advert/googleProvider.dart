@@ -36,6 +36,15 @@ class GoogleProvider extends GetxController {
     // counting();
   }
 
+  loadinterrtitialad(){
+    interstitiaad.createInterstitialAd();
+  }
+  loadrewardedad(){
+    rewardedad.createRewardedAd();
+  }
+  loadrewardedinterstitialad(){
+    rewardedinterstitialad.loadAd();
+  }
   get rewardedInterstitialAd{
     return rewardedinterstitialad.rewardedInterstitialAd;
   }

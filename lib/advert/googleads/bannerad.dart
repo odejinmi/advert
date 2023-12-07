@@ -106,7 +106,7 @@ class Bannerad extends GetxController {
       future: banner.load(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          adUnitId.removeat(0);
+          adUnitId.removeAt(0);
           adUnitId.add(adunitid);
           return AdWidget(ad: banner);
         } else {

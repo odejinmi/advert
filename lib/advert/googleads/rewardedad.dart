@@ -35,14 +35,14 @@ class Rewardedad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      _createRewardedAd();
-    }
+    // if(deviceallow.allow()) {
+    //   _createRewardedAd();
+    // }
   }
-  void _createRewardedAd({Function? show}) {
-    for(int i =0; i < (videoUnitId.length - rewardedAd.length); i++ ) {
-      var adunitid = videoUnitId[i];
-      if (rewardedAd.length != videoUnitId.length) {
+  void createRewardedAd({Function? show}) {
+    // for(int i =0; i < (videoUnitId.length - rewardedAd.length); i++ ) {
+      var adunitid = videoUnitId[0];
+    //   if (rewardedAd.length != videoUnitId.length) {
         RewardedAd.load(
             adUnitId: adunitid,
             // request: request,
@@ -59,24 +59,24 @@ class Rewardedad extends GetxController {
               onAdFailedToLoad: (LoadAdError error) {
                 numRewardedLoadAttempts += 1;
                 if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-                  _createRewardedAd();
+                  createRewardedAd();
                 }
               },
             ));
-      }
-    }
+    //   }
+    // }
 
   }
 
   void addispose(RewardedAd ad){
     rewardedAd.remove(ad);
     ad.dispose();
-    _createRewardedAd();
+    createRewardedAd();
   }
 
   Advertresponse showRewardedAd(Function? rewarded) {
     if (rewardedAd.isEmpty) {
-      _createRewardedAd(show: showRewardedAd);
+      createRewardedAd(show: showRewardedAd);
       debugPrint('Warning: attempt to show rewarded before loaded.');
       return Advertresponse.defaults();
     }
@@ -86,7 +86,8 @@ class Rewardedad extends GetxController {
           debugPrint('ad onAdShowedFullScreenContent.'),
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('$ad onAdDismissedFullScreenContent.');
-        addispose(ad);
+        rewardedAd.remove(ad);
+        ad.dispose();
         if (rewarded != null && givereward) {
           rewarded();
         }

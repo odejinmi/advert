@@ -62,7 +62,7 @@ class Advert {
   validateSdkInitialized() {
     if (!sdkInitialized) {
       throw DuploSdkNotInitializedException(
-          'Duplo SDK has not been initialized. The SDK has'
+          'Advert SDK has not been initialized. The SDK has'
               ' to be initialized before use');
     }
   }

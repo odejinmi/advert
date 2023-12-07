@@ -49,6 +49,15 @@ class AdsProv extends GetxController {
     }
   }
 
+  loadinterrtitialad(){
+    googleadvert.loadinterrtitialad();
+  }
+  loadrewardedad(){
+    googleadvert.loadrewardedad();
+  }
+  loadrewardedinterstitialad(){
+    googleadvert.loadrewardedinterstitialad();
+  }
   Advertresponse showads() {
       if (unity!= null && unity.unityintersAd1 && unityplayed.isFalse) {
         advertshow.value = 1;
