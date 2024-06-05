@@ -12,16 +12,16 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
-  plugin_platform_interface: ^2.1.6
-  get: ^4.6.5
-  unity_ads_plugin: ^0.3.8
+  plugin_platform_interface: ^2.1.8
+  get: ^4.6.6
+  unity_ads_plugin: ^0.3.17
   #  adcolony_flutter: ^1.7.1
-  google_mobile_ads: ^3.0.0
+  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.3
+  flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

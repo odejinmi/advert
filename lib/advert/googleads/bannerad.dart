@@ -108,7 +108,9 @@ class Bannerad extends GetxController {
         if (snapshot.connectionState == ConnectionState.done) {
           adUnitId.removeAt(0);
           adUnitId.add(adunitid);
-          return AdWidget(ad: banner);
+          return SizedBox(
+              height: banner.size.height.toDouble(),
+              child: AdWidget(ad: banner));
         } else {
           return const SizedBox.shrink();
         }
