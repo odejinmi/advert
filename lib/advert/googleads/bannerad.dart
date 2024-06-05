@@ -110,6 +110,7 @@ class Bannerad extends GetxController {
           adUnitId.add(adunitid);
           return SizedBox(
               height: banner.size.height.toDouble(),
+              width: banner.size.width.toDouble(),
               child: AdWidget(ad: banner));
         } else {
           return const SizedBox.shrink();
