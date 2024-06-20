@@ -27,8 +27,8 @@ class Interstitialad extends GetxController {
   bool showAds = false;
 
   void createInterstitialAd() {
-    // for(int i =0;i < 1; i++ ) {
-      var adunitid = screenUnitId[0];
+    for(int i =0;i < 1; i++ ) {
+      var adunitid = screenUnitId[i];
       InterstitialAd.load(
             adUnitId: adunitid,
             request: const AdRequest(),
@@ -56,7 +56,7 @@ class Interstitialad extends GetxController {
                 }
               },
             ));
-    // }
+    }
   }
 
   void addispose(InterstitialAd ad){
@@ -70,9 +70,9 @@ class Interstitialad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    // if(deviceallow.allow()) {
-    //   createInterstitialAd();
-    // }
+    if(deviceallow.allow()) {
+      createInterstitialAd();
+    }
   }
 
   Advertresponse showAd(){

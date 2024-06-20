@@ -28,42 +28,42 @@ Nativead(this.nativeadUnitId);
 
   /// Loads a native ad.
   void loadAd() {
-    _nativeAd = NativeAd(
-        adUnitId: nativeadUnitId[0],
-        // Factory ID registered by your native ad factory implementation.
-        factoryId: 'adFactoryExample',
-        listener: NativeAdListener(
-          onAdLoaded: (ad) {
-
-            print("your nativead has been loaded");
-            print('$NativeAd loaded.');
+    if(nativeadUnitId.isNotEmpty) {
+      _nativeAd = NativeAd(
+          adUnitId: nativeadUnitId[0],
+          // Factory ID registered by your native ad factory implementation.
+          factoryId: 'adFactoryExample',
+          listener: NativeAdListener(
+            onAdLoaded: (ad) {
+              print("your nativead has been loaded");
+              print('$NativeAd loaded.');
               nativeAdIsLoaded = true;
-            update();
-          },
-          onAdFailedToLoad: (ad, error) {
-            // Dispose the ad here to free resources.
-            print('$NativeAd failedToLoad: $error');
-            ad.dispose();
-          },
-          // Called when a click is recorded for a NativeAd.
-          onAdClicked: (ad) {},
-          // Called when an impression occurs on the ad.
-          onAdImpression: (ad) {},
-          // Called when an ad removes an overlay that covers the screen.
-          onAdClosed: (ad) {},
-          // Called when an ad opens an overlay that covers the screen.
-          onAdOpened: (ad) {},
-          // For iOS only. Called before dismissing a full screen view
-          onAdWillDismissScreen: (ad) {},
-          // Called when an ad receives revenue value.
-          onPaidEvent: (ad, valueMicros, precision, currencyCode) {},
-        ),
-        request: const AdRequest(),
-        // Optional: Pass custom options to your native ad factory implementation.
-        customOptions: {'custom-option-1':"custom-value-1"}
-    );
-    _nativeAd!.load();
-
+              update();
+            },
+            onAdFailedToLoad: (ad, error) {
+              // Dispose the ad here to free resources.
+              print('$NativeAd failedToLoad: $error');
+              ad.dispose();
+            },
+            // Called when a click is recorded for a NativeAd.
+            onAdClicked: (ad) {},
+            // Called when an impression occurs on the ad.
+            onAdImpression: (ad) {},
+            // Called when an ad removes an overlay that covers the screen.
+            onAdClosed: (ad) {},
+            // Called when an ad opens an overlay that covers the screen.
+            onAdOpened: (ad) {},
+            // For iOS only. Called before dismissing a full screen view
+            onAdWillDismissScreen: (ad) {},
+            // Called when an ad receives revenue value.
+            onPaidEvent: (ad, valueMicros, precision, currencyCode) {},
+          ),
+          request: const AdRequest(),
+          // Optional: Pass custom options to your native ad factory implementation.
+          customOptions: {'custom-option-1': "custom-value-1"}
+      );
+      _nativeAd!.load();
+    }
   }
 
   void closead(){

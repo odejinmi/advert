@@ -3,14 +3,14 @@ class Googlemodel {
 
   List _screenUnitId = [];
   List _videoUnitId = [];
-  List _adUnitId = [];
+  List _rewardedinterstitialad = [];
   List _nativeadUnitId = [];
   List _banneradadUnitId = [];
 
   Googlemodel();
 
   bool get googleempty {
-    return _screenUnitId.isEmpty && _videoUnitId.isEmpty && _adUnitId.isEmpty && _nativeadUnitId.isEmpty && _banneradadUnitId.isEmpty;
+    return _screenUnitId.isEmpty && _videoUnitId.isEmpty && _rewardedinterstitialad.isEmpty && _nativeadUnitId.isEmpty && _banneradadUnitId.isEmpty;
   }
 
   List get screenUnitId {
@@ -30,13 +30,13 @@ class Googlemodel {
     _videoUnitId = value;
   }
 
-  List get adUnitId {
-    return _adUnitId;
+  List get rewardedinterstitialad {
+    return _rewardedinterstitialad;
   }
 
 
-  set adUnitId (value) {
-    _adUnitId = value;
+  set rewardedinterstitialad (value) {
+    _rewardedinterstitialad = value;
   }
 
   List get nativeadUnitId {

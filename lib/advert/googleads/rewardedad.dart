@@ -11,88 +11,110 @@ class Rewardedad extends GetxController {
   var videoUnitId;
   Rewardedad(this.videoUnitId);
 
-  RewardedAd? rewardedAde;
   RxList<RewardedAd> _rewardedAd = <RewardedAd>[].obs;
-  set rewardedAd(value)=> _rewardedAd.value = value;
+  set rewardedAd(value) => _rewardedAd.value = value;
   List<RewardedAd> get rewardedAd => _rewardedAd.value;
 
-
   var _numRewardedLoadAttempts = 0.obs;
-  set numRewardedLoadAttempts(value)=> _numRewardedLoadAttempts.value = value;
+  set numRewardedLoadAttempts(value) => _numRewardedLoadAttempts.value = value;
   get numRewardedLoadAttempts => _numRewardedLoadAttempts.value;
 
   var _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value)=> _maxFailedLoadAttempts.value = value;
+  set maxFailedLoadAttempts(value) => _maxFailedLoadAttempts.value = value;
   get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
 
-  bool showAds = false;
-
   final _givereward = false.obs;
-  set givereward(value)=> _givereward.value = value;
+  set givereward(value) => _givereward.value = value;
   get givereward => _givereward.value;
+
+  final _isloading = false.obs;
+  set isloading(value) => _isloading.value = value;
+  get isloading => _isloading.value;
+
+  final _currentIndex = 0.obs;
+  set currentIndex(value) => _currentIndex.value = value;
+  get currentIndex => _currentIndex.value;
+
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    // if(deviceallow.allow()) {
-    //   _createRewardedAd();
-    // }
+    if (deviceallow.allow()) {
+      createRewardedAd();
+    }
   }
+
   void createRewardedAd({Function? show}) {
-    // for(int i =0; i < (videoUnitId.length - rewardedAd.length); i++ ) {
-      var adunitid = videoUnitId[0];
-    //   if (rewardedAd.length != videoUnitId.length) {
-        RewardedAd.load(
-            adUnitId: adunitid,
-            // request: request,
-            request: AdRequest(),
-            rewardedAdLoadCallback: RewardedAdLoadCallback(
-              onAdLoaded: (RewardedAd ad) {
-                print("your rewardedad has been loaded");
-                rewardedAd.add(ad);
-                numRewardedLoadAttempts = 0;
-                if (show != null) {
-                  show();
-                }
-              },
-              onAdFailedToLoad: (LoadAdError error) {
-                numRewardedLoadAttempts += 1;
-                if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-                  createRewardedAd();
-                }
-              },
-            ));
-    //   }
-    // }
-
+    print("Start Loading rewardedAd");
+    if (currentIndex >= videoUnitId.length || isloading) {
+      if(show != null){
+        show();
+      }
+      return; // All ads have been loaded
+    }
+    isloading = true;
+    print("Loading rewardedAd $currentIndex");
+    var adUnitId = videoUnitId[currentIndex];
+    RewardedAd.load(
+      adUnitId: adUnitId,
+      request: AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          isloading = false;
+          print("Rewarded ad loaded: $adUnitId");
+          rewardedAd.add(ad);
+          numRewardedLoadAttempts = 0;
+          currentIndex++;
+          if (currentIndex < videoUnitId.length) {
+            createRewardedAd(); // Load the next ad
+          }
+          if (show != null) {
+            show();
+          }
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          isloading = false;
+          print("Failed to load rewarded ad: $adUnitId, error: $error");
+          numRewardedLoadAttempts += 1;
+          if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+            // Retry loading the specific ad unit
+            createRewardedAd();
+          } else {
+            currentIndex++;
+            if (currentIndex < videoUnitId.length) {
+              createRewardedAd(); // Load the next ad
+            }
+          }
+        },
+      ),
+    );
   }
 
-  void addispose(RewardedAd ad){
-    rewardedAd.remove(ad);
-    ad.dispose();
-    createRewardedAd();
+  void addispose(RewardedAd ad) {
+    rewardedAd.removeAt(0);
+    currentIndex--;
+    createRewardedAd(); // Load a new ad when one is disposed
   }
 
   Advertresponse showRewardedAd(Function? rewarded) {
     if (rewardedAd.isEmpty) {
       createRewardedAd(show: showRewardedAd);
-      debugPrint('Warning: attempt to show rewarded before loaded.');
+      debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
-    var rewarded0 = rewardedAd.first;
+    var rewarded0 = rewardedAd[0];
     rewarded0.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) =>
-          debugPrint('ad onAdShowedFullScreenContent.'),
+          debugPrint('Ad onAdShowedFullScreenContent.'),
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('$ad onAdDismissedFullScreenContent.');
-        rewardedAd.remove(ad);
-        ad.dispose();
         if (rewarded != null && givereward) {
           rewarded();
         }
+        addispose(ad);
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+        showRewardedAd(rewarded);
         debugPrint('$ad onAdFailedToShowFullScreenContent: $error');
         addispose(ad);
       },
@@ -106,20 +128,7 @@ class Rewardedad extends GetxController {
     return Advertresponse.showing();
   }
 
-
   static String get appId => Platform.isAndroid
-  // old
-  // ? 'ca-app-pub-6117361441866120~5829948546'
-  // ? 'ca-app-pub-1598206053668309~2044155939'
       ? 'ca-app-pub-6117361441866120~5829948546'
-  // : 'ca-app-pub-3940256099942544~1458002511';
-  // : 'ca-app-pub-1598206053668309~7710581439';
       : 'ca-app-pub-6117361441866120~7211527566';
-
-  // static String get videoUnitId => Platform.isAndroid
-  // // ? 'ca-app-pub-3940256099942544/5224354917'
-  // // ? 'ca-app-pub-1598206053668309/5275989781'
-  //     ? 'ca-app-pub-6117361441866120/4412338366'
-  // // : 'ca-app-pub-1598206053668309/3667378733';
-  //     : 'ca-app-pub-6117361441866120/2609953488';
 }

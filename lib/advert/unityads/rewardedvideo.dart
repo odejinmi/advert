@@ -73,6 +73,7 @@ class Rewardedvideo extends GetxController {
           return Advertresponse.defaults();
         },
         onStart: (placementId) {
+          intersAd1.remove(placementId);
           debugPrint('Video Ad $placementId started');
           return Advertresponse.defaults();
         },

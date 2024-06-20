@@ -20,9 +20,30 @@ class GoogleProvider extends GetxController {
   var nativead;
   var banner;
   var rewardedinterstitialad;
-  var _reward = 0.obs;
-  set reward(value)=> _reward.value = value;
-  get reward => _reward.value;
+  // var _reward = 0.obs;
+  // set reward(value)=> _reward.value = value;
+  // get reward => _reward.value;
+
+
+  var maxfail = 3;
+
+  var advertprovider = 2;
+
+  var _instertialshowposition = 1.obs;
+  set instertialshowposition(value) => _instertialshowposition.value = value;
+  get instertialshowposition => _instertialshowposition.value;
+
+  var _rewardshowposition = 1.obs;
+  set rewardshowposition(value) => _rewardshowposition.value = value;
+  get rewardshowposition => _rewardshowposition.value;
+
+  var _instertialattempt = 0.obs;
+  set instertialattempt(value) => _instertialattempt.value = value;
+  get instertialattempt => _instertialattempt.value;
+
+  var _rewardvideoattempt = 0.obs;
+  set rewardvideoattempt(value) => _rewardvideoattempt.value = value;
+  get rewardvideoattempt => _rewardvideoattempt.value;
 
   @override
   void onInit() {
@@ -32,36 +53,17 @@ class GoogleProvider extends GetxController {
     rewardedad = Get.put(Rewardedad(googlemodel.videoUnitId), permanent: true);
     nativead = Get.put(Nativead(googlemodel.nativeadUnitId), permanent: true);
     banner = Get.put(Bannerad(googlemodel.banneradadUnitId), permanent: true);
-    rewardedinterstitialad = Get.put(Rewardedinterstitialad(googlemodel.adUnitId), permanent: true);
+    rewardedinterstitialad = Get.put(Rewardedinterstitialad(googlemodel.rewardedinterstitialad), permanent: true);
     // counting();
   }
 
-  loadinterrtitialad(){
-    interstitiaad.createInterstitialAd();
-  }
-  loadrewardedad(){
-    rewardedad.createRewardedAd();
-  }
-  loadrewardedinterstitialad(){
-    rewardedinterstitialad.loadAd();
-  }
-  get rewardedInterstitialAd{
-    return rewardedinterstitialad.rewardedInterstitialAd;
-  }
 
   get intersAd1{
     return interstitiaad.intersAd1.isNotEmpty;
   }
 
-  get rewardedAd{
-    if (rewardedad.rewardedAd != null) {
-      return true;
-    }  else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty) {
-      return true;
-    }  else {
-      return false;
-    }
-  }
+  get rewardedAd => rewardedad.rewardedAd .isNotEmpty || rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty;
+
 
   Widget shownative(){
     return nativead.showad();
@@ -73,12 +75,30 @@ class GoogleProvider extends GetxController {
 
   Advertresponse showRewardedAd(reward){
     // if (rewardedinterstitialad.rewardedInterstitialAd.isEmpty ) {
-    if (rewardedad.rewardedAd.isNotEmpty ) {
+    if (rewardedad.rewardedAd.isNotEmpty && rewardshowposition == 1) {
+      print("rewardedad.rewardedAd.length");
+      print(rewardedad.rewardedAd.length);
+      rewardshowposition++;
      return rewardedad.showRewardedAd(reward);
     }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
+      print("rewardedinterstitialad.rewardedInterstitialAd.length");
+      print(rewardedinterstitialad.rewardedInterstitialAd.length);
+      rewardshowposition ++;
      return rewardedinterstitialad.showad(reward);
     }else{
-      return Advertresponse.defaults();
+      print("showRewardedAd error");
+      if(rewardshowposition == advertprovider) {
+        rewardshowposition.value = 1;
+      }else{
+        rewardshowposition ++;
+      }
+      if (instertialattempt < maxfail) {
+        instertialattempt += 1;
+        return showRewardedAd(reward);
+      }  else{
+        instertialattempt = 0;
+        return Advertresponse.defaults();
+      }
     }
   }
 

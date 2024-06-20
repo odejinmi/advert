@@ -39,7 +39,7 @@ class UnityProvider extends GetxController {
   bool _footerBannerShow = false;
   dynamic _bannerAd;
 
-  get rewardvideoloaded => placements[unitymodel.rewardedVideoAdPlacementId];
+  get rewardvideoloaded => rewardedvideo.videoUnitId.isNotEmpty;
 
   set footBannerShow(bool value) {
     _footerBannerShow = value;
