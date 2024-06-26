@@ -91,32 +91,36 @@ class Bannerad extends GetxController {
   }
 
   Widget bannerAds({AdSize adsize = AdSize.banner}) {
-    var adunitid = adUnitId[0];
-    var banner = BannerAd(
-      adUnitId: adunitid,
-      size: adsize,
-      listener: BannerAdListener(
-        onAdImpression: (ad) {
-          // FirebaseAnalytics.instance.logAdImpression();
+    if(adUnitId.isNotEmpty) {
+      var adunitid = adUnitId[0];
+      var banner = BannerAd(
+        adUnitId: adunitid,
+        size: adsize,
+        listener: BannerAdListener(
+          onAdImpression: (ad) {
+            // FirebaseAnalytics.instance.logAdImpression();
+          },
+        ),
+        request: const AdRequest(),
+      );
+      return FutureBuilder(
+        future: banner.load(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            adUnitId.removeAt(0);
+            adUnitId.add(adunitid);
+            return SizedBox(
+                height: banner.size.height.toDouble(),
+                width: banner.size.width.toDouble(),
+                child: AdWidget(ad: banner));
+          } else {
+            return const SizedBox.shrink();
+          }
         },
-      ),
-      request: const AdRequest(),
-    );
-    return FutureBuilder(
-      future: banner.load(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          adUnitId.removeAt(0);
-          adUnitId.add(adunitid);
-          return SizedBox(
-              height: banner.size.height.toDouble(),
-              width: banner.size.width.toDouble(),
-              child: AdWidget(ad: banner));
-        } else {
-          return const SizedBox.shrink();
-        }
-      },
-    );
+      );
+    } else{
+      return SizedBox.shrink();
+    }
   }
 
 }

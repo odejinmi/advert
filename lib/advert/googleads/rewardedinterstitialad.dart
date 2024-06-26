@@ -107,7 +107,6 @@ class Rewardedinterstitialad extends GetxController {
       addispose();
       rewarded0.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
           if (rewarded != null && givereward) {
             rewarded();
           }
@@ -115,7 +114,9 @@ class Rewardedinterstitialad extends GetxController {
         },
         onAdFailedToShowFullScreenContent: (ad,aderror) {
           debugPrint("rewardedInterstitialAd fail to show $ad");
-          showad(rewarded);
+          Future.delayed(Duration(seconds: 2), () {
+            return showad(rewarded);
+          });
         },
         onAdClicked: (ad) {},
       );

@@ -114,7 +114,9 @@ class Rewardedad extends GetxController {
         addispose(ad);
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
-        showRewardedAd(rewarded);
+        Future.delayed(Duration(seconds: 2), () {
+          showRewardedAd(rewarded);
+        });
         debugPrint('$ad onAdFailedToShowFullScreenContent: $error');
         addispose(ad);
       },

@@ -79,21 +79,24 @@ class GoogleProvider extends GetxController {
       print("rewardedad.rewardedAd.length");
       print(rewardedad.rewardedAd.length);
       rewardshowposition++;
+      instertialattempt = 0;
      return rewardedad.showRewardedAd(reward);
     }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
       print("rewardedinterstitialad.rewardedInterstitialAd.length");
       print(rewardedinterstitialad.rewardedInterstitialAd.length);
       rewardshowposition ++;
+      instertialattempt = 0;
      return rewardedinterstitialad.showad(reward);
     }else{
       print("showRewardedAd error");
+      print(instertialattempt);
       if(rewardshowposition == advertprovider) {
-        rewardshowposition.value = 1;
+        rewardshowposition = 1;
       }else{
         rewardshowposition ++;
       }
       if (instertialattempt < maxfail) {
-        instertialattempt += 1;
+        instertialattempt ++;
         return showRewardedAd(reward);
       }  else{
         instertialattempt = 0;

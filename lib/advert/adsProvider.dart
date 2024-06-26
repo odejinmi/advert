@@ -111,7 +111,7 @@ class AdsProv extends GetxController {
           }
           rewardvideoattempt ++;
           // Add a delay before retrying
-          Future.delayed(Duration(seconds: 5), () {
+          Future.delayed(Duration(seconds: 3), () {
             showreawardads(reward);
           });
           return Advertresponse.defaults(); // Indicate that an attempt is pending
@@ -126,6 +126,7 @@ class AdsProv extends GetxController {
   get isvideoready => googleadvert.rewardedAd ||unity?.rewardvideoloaded;
   Widget banner() {
       // return adcolony.banner();
+    return googleadvert.googlebanner();
       switch (slideIndex.value) {
         // case 0:
         //   if(deviceallow.allow()) {

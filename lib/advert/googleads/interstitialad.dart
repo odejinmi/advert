@@ -27,7 +27,7 @@ class Interstitialad extends GetxController {
   bool showAds = false;
 
   void createInterstitialAd() {
-    for(int i =0;i < 1; i++ ) {
+    for(int i =0;i < screenUnitId.length; i++ ) {
       var adunitid = screenUnitId[i];
       InterstitialAd.load(
             adUnitId: adunitid,
