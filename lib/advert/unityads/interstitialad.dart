@@ -24,22 +24,61 @@ class Unityinterstitialad extends GetxController {
 
   bool showAds = false;
 
-  void createInterstitialAd() {
-    for(int i =0;i < (screenUnitId.length - intersAd1.length); i++ ) {
-      var adunitid = screenUnitId[i];
-      if (screenUnitId.length != intersAd1.length) {
+  final _isloading = false.obs;
+  set isloading(value) => _isloading.value = value;
+  get isloading => _isloading.value;
+
+  final _currentIndex = 0.obs;
+  set currentIndex(value) => _currentIndex.value = value;
+  get currentIndex => _currentIndex.value;
+
+
+  void createInterstitialAd({Function? show}) {
+    print("Start Loading rewardedAd");
+    if (currentIndex >= screenUnitId.length || isloading) {
+      if(show != null){
+        show();
+      }
+      return; // All ads have been loaded
+    }
+    isloading = true;
+    // for(int i =0;i < (screenUnitId.length - intersAd1.length); i++ ) {
+      var adunitid = screenUnitId[currentIndex];
+      // if (screenUnitId.length != intersAd1.length) {
         UnityAds.load(
           placementId: adunitid,
           onComplete: (placementId) {
             debugPrint('Load Complete $placementId');
+            isloading = false;
             intersAd1.add(placementId);
-            update();
+            numInterstitialLoadAttempts = 0;
+            currentIndex++;
+            if (currentIndex < screenUnitId.length) {
+              createInterstitialAd(); // Load the next ad
+            }
+            if (show != null) {
+              show();
+            }
           },
-          onFailed: (placementId, error, message) =>
-              debugPrint('Load Failed $placementId: $error $message'),
+          onFailed: (placementId, error, message) {
+              debugPrint('Load Failed $placementId: $error $message');
+              isloading = false;
+              print("Failed to load rewarded ad: $placementId, error: $error");
+              numInterstitialLoadAttempts += 1;
+              if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
+                // Retry loading the specific ad unit
+                createInterstitialAd();
+              } else {
+                currentIndex++;
+                if (currentIndex < intersAd1.length) {
+                  createInterstitialAd(); // Load the next ad
+                }
+              }
+          },
+
         );
-      }
-    }
+      // }
+    // }
   }
 
 
@@ -53,37 +92,45 @@ class Unityinterstitialad extends GetxController {
   }
 
   Advertresponse showAd(){
-    if (intersAd1.isNotEmpty) {
-      UnityAds.showVideoAd(
-        placementId: intersAd1.first,
-        onComplete: (placementId) {
-          debugPrint('Video Ad $placementId completed');
-          createInterstitialAd();
-          return Advertresponse.showing();
-        },
-        onFailed: (placementId, error, message) {
-          debugPrint('Video Ad $placementId failed: $error $message');
-          createInterstitialAd();
-          return Advertresponse.defaults();
-        },
-        onStart: (placementId) {
-          debugPrint('Video Ad $placementId started');
-          return Advertresponse.defaults();
-        },
-        onClick: (placementId) {
-          debugPrint('Video Ad $placementId click');
-          return Advertresponse.defaults();
-        },
-        onSkipped: (placementId) {
-          debugPrint('Video Ad $placementId skipped');
-          createInterstitialAd();
-          return Advertresponse.defaults();
-        },
-      );
-      return Advertresponse.showing();
-    } else {
-      createInterstitialAd();
+    if (intersAd1.isEmpty) {
+      createInterstitialAd(show: showAd);
+      debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
+    UnityAds.showVideoAd(
+      placementId: intersAd1[0],
+      onComplete: (placementId) {
+        debugPrint('Video Ad $placementId completed');
+        addispose(placementId);
+        return Advertresponse.showing();
+      },
+      onFailed: (placementId, error, message) {
+        debugPrint('Video Ad $placementId failed: $error $message');
+        addispose(placementId);
+        return Advertresponse.defaults();
+      },
+      onStart: (placementId) {
+        addispose(placementId);
+        debugPrint('Video Ad $placementId started');
+        return Advertresponse.defaults();
+      },
+      onClick: (placementId) {
+        debugPrint('Video Ad $placementId click');
+        return Advertresponse.defaults();
+      },
+      onSkipped: (placementId) {
+        debugPrint('Video Ad $placementId skipped');
+        addispose(placementId);
+        return Advertresponse.defaults();
+      },
+    );
+    return Advertresponse.showing();
+  }
+
+
+  void addispose(String ad) {
+    intersAd1.removeAt(0);
+    currentIndex--;
+    createInterstitialAd(); // Load a new ad when one is disposed
   }
 }

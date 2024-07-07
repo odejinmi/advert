@@ -8,9 +8,18 @@ import '../device.dart';
 class Bannerad extends GetxController {
   var adUnitId;
   Bannerad(this.adUnitId);
+
   final _bannerAd = [].obs;
   set bannerAd(value) => _bannerAd.value = value;
   get bannerAd => _bannerAd.value;
+
+  var _numRewardedLoadAttempts = 0.obs;
+  set numRewardedLoadAttempts(value) => _numRewardedLoadAttempts.value = value;
+  get numRewardedLoadAttempts => _numRewardedLoadAttempts.value;
+
+  var _maxFailedLoadAttempts = 3.obs;
+  set maxFailedLoadAttempts(value) => _maxFailedLoadAttempts.value = value;
+  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
 
   // final adUnitId = Platform.isAndroid
   //     ? ['ca-app-pub-6117361441866120/3287545689','ca-app-pub-6117361441866120/2869480303',
@@ -23,55 +32,95 @@ class Bannerad extends GetxController {
   set bannerReady(value) => _bannerReady.value = value;
   get bannerReady => _bannerReady.value;
 
+  final _isloading = false.obs;
+  set isloading(value) => _isloading.value = value;
+  get isloading => _isloading.value;
+
+  final _currentIndex = 0.obs;
+  set currentIndex(value) => _currentIndex.value = value;
+  get currentIndex => _currentIndex.value;
+
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      loadAd();
-    }
+    listener = BannerAdListener(
+        onAdLoaded: (ad) {
+          isloading = false;
+          print("Rewarded ad loaded: $adUnitId");
+          bannerAd.add(ad);
+          numRewardedLoadAttempts = 0;
+          currentIndex++;
+          if (currentIndex < adUnitId.length) {
+            loadAd(); // Load the next ad
+          }
+
+          if (kDebugMode) {
+            print("your bannerad has been loaded");
+          }
+          bannerReady = true;
+        },
+        onAdOpened: (ad){
+          addispose();
+        },
+        onAdFailedToLoad: (ad, err) {
+          bannerReady = false;
+          isloading = false;
+          print("Failed to load rewarded ad: $adUnitId, error: $err");
+          numRewardedLoadAttempts += 1;
+          if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+            // Retry loading the specific ad unit
+            loadAd();
+          } else {
+            currentIndex++;
+            if (currentIndex < adUnitId.length) {
+              loadAd(); // Load the next ad
+            }
+          }
+        },
+        onAdWillDismissScreen: (ad){
+          addispose();
+        },
+        onAdClosed: (ad){
+          addispose();
+        }
+    );
+    // if(deviceallow.allow()) {
+    //   loadAd();
+    // }
   }
 
   void loadAd() {
-    for(int i =0;i < (adUnitId.length - bannerAd.length); i++ ) {
-      var adunitid = adUnitId[i];
-      if (bannerAd.length != adUnitId.length) {
-        bannerAd.add(BannerAd(
-          adUnitId: adunitid,
-          request: const AdRequest(),
-          size: AdSize.largeBanner,
-          listener: BannerAdListener(
-            onAdLoaded: (_) {
-
-              if (kDebugMode) {
-                print("your bannerad has been loaded");
-              }
-                bannerReady = true;
-            },
-            onAdFailedToLoad: (ad, err) {
-                bannerReady = false;
-                loadAd();
-            },
-            onAdWillDismissScreen: (ad){
-              addispose();
-            },
-            onAdClosed: (ad){
-              addispose();
-        }
-          ),
-        ));
-        bannerAd[i].load();
-      }
-    }///08084490201 my airtel number
+    print("Start Loading rewardedAd");
+    if (currentIndex >= adUnitId.length || isloading) {
+      // if(show != null){
+      //   show();
+      // }
+      return; // All ads have been loaded
+    }
+    isloading = true;
+    print("Loading rewardedAd $currentIndex");
+      var adunitid = adUnitId[currentIndex];
+      BannerAd(
+        adUnitId: adunitid,
+        request: const AdRequest(),
+        size: AdSize.largeBanner,
+        listener: listener,
+      ).load();
   }
+
+  var _listener  = BannerAdListener().obs;
+  set listener(value) => _listener.value = value;
+  get listener => _listener.value;
 
   void addispose(){
     if(bannerAd.isNotEmpty) {
       if (kDebugMode) {
         print("dispose here");
       }
-      bannerAd.first.dispose();
+      // bannerAd.first.dispose();
       bannerAd.removeAt(0);
+      currentIndex--;
       loadAd();
     }
   }
