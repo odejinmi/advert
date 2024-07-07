@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -71,6 +72,15 @@ class Rewardedad extends GetxController {
           if (show != null) {
             show();
           }
+          var customData = {
+            "username": "",
+            "platform": "",
+            "type": ""
+          };
+          ServerSideVerificationOptions options = ServerSideVerificationOptions(
+            customData: jsonEncode(customData),
+          );
+          ad.setServerSideOptions(options);
         },
         onAdFailedToLoad: (LoadAdError error) {
           isloading = false;
