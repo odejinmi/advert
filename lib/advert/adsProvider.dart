@@ -67,7 +67,7 @@ class AdsProv extends GetxController {
         return googleadvert.showAd1();
       } else {
         if(instertialshowposition == advertprovider) {
-          instertialshowposition.value = 1;
+          instertialshowposition = 1;
         }else{
           instertialshowposition ++;
         }

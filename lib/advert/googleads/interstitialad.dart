@@ -114,7 +114,7 @@ class Interstitialad extends GetxController {
     );
 
     intersAd0.setImmersiveMode(true);
-    intersAd0.first.show();
+    intersAd0.show();
 
       return Advertresponse.showing();
   }
