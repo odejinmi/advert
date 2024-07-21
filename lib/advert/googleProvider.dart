@@ -110,7 +110,8 @@ class GoogleProvider extends GetxController {
   }
 
   Widget googlebanner(){
-    return banner.bannerAds();
+    // return banner.bannerAds();
+    return banner.adWidget();
   }
 
   bool showAds = false;

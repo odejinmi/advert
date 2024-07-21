@@ -55,7 +55,7 @@ class _MyAppState extends State<MyApp> {
     Googlemodel googlemodel = Googlemodel()
     ..banneradadUnitId = banneradUnitId
     ..nativeadUnitId = _nativeadUnitId
-    ..adUnitId = adUnitId
+    ..rewardedinterstitialad = adUnitId
     ..videoUnitId = videoUnitId
     ..screenUnitId = screenUnitId;
     Unitymodel unitymodel = Unitymodel()
