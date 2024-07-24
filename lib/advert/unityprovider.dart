@@ -60,6 +60,12 @@ class UnityProvider extends GetxController {
     return rewardedvideo.intersAd1.isNotEmpty;
   }
 
+  loadrewardedad(){
+    rewardedvideo.createInterstitialAd();
+  }
+  loadinterrtitialad(){
+    interstitiaad.createInterstitialAd();
+  }
   Advertresponse showRewardedAd(rewarded){
     return rewardedvideo.showAd(rewarded);
   }

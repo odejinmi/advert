@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -41,53 +43,64 @@ class Rewardedinterstitialad extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (deviceallow.allow()) {
-      loadAd();
-    }
+    // if (deviceallow.allow()) {
+    //   loadAd();
+    // }
   }
 
-  void loadAd({Function? show}) {
+  void loadAd({Function? show}) async {
     print("Start Loading rewardedInterstitialAd");
-    if (currentIndex >= this.adUnitId.length || isloading) {
+    if (currentIndex >= this.adUnitId.length) {
       if(show != null){
         show();
       }
       return; // All ads have been loaded
     }
+    if ( isloading) {
+      return; // All ads have been loaded
+    }
     isloading = true;
     print("Loading rewardedInterstitialAd $currentIndex");
     var adUnitId = this.adUnitId[currentIndex];
-    RewardedInterstitialAd.load(
-      adUnitId: adUnitId,
-      request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (show != null) {
-            show();
-          }
-          isloading = false;
-          print("RewardedInterstitialAd loaded: $adUnitId");
-          rewardedInterstitialAd.add(ad);
-          currentIndex++;
-          if (currentIndex < adUnitId.length) {
-            loadAd();
-          }
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          isloading = false;
-          debugPrint('RewardedInterstitialAd failed to load: $error');
-          numRewardedLoadAttempts += 1;
-          if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-            loadAd(); // Retry loading the ad
-          } else {
+    // Check if an ad already exists for the current ad unit
+    if (rewardedInterstitialAd.any((ad) => ad.adUnitId == adUnitId)) {
+      print("Ad for adUnitId $adUnitId already exists.");
+      isloading = false;
+      return;
+    }
+    await Future(() {
+      RewardedInterstitialAd.load(
+        adUnitId: adUnitId,
+        request: const AdRequest(),
+        rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            if (show != null) {
+              show();
+            }
+            isloading = false;
+            print("RewardedInterstitialAd loaded: $adUnitId");
+            rewardedInterstitialAd.add(ad);
             currentIndex++;
             if (currentIndex < adUnitId.length) {
               loadAd();
             }
-          }
-        },
-      ),
-    );
+          },
+          onAdFailedToLoad: (LoadAdError error) {
+            isloading = false;
+            debugPrint('RewardedInterstitialAd failed to load: $error');
+            numRewardedLoadAttempts += 1;
+            if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+              loadAd(); // Retry loading the ad
+            } else {
+              currentIndex++;
+              if (currentIndex < adUnitId.length) {
+                loadAd();
+              }
+            }
+          },
+        ),
+      );
+    });
   }
 
   void addispose() {
@@ -100,7 +113,7 @@ class Rewardedinterstitialad extends GetxController {
     }
   }
 
-  Advertresponse showad(Function? rewarded) {
+  Advertresponse showad(Function? rewarded, Map<String, String>  customData) {
     if (rewardedInterstitialAd.isNotEmpty) {
       var rewarded0 = rewardedInterstitialAd[0];
       print("Showing rewardedInterstitialAd");
@@ -112,10 +125,21 @@ class Rewardedinterstitialad extends GetxController {
           }
           givereward = false;
         },
+        onAdShowedFullScreenContent: (ad) {
+          // var customData = {
+          //   "username": "",
+          //   "platform": "",
+          //   "type": ""
+          // };
+          ServerSideVerificationOptions options = ServerSideVerificationOptions(
+            customData: jsonEncode(customData),
+          );
+          ad.setServerSideOptions(options);
+        },
         onAdFailedToShowFullScreenContent: (ad,aderror) {
           debugPrint("rewardedInterstitialAd fail to show $ad");
           Future.delayed(Duration(seconds: 2), () {
-            return showad(rewarded);
+            return showad(rewarded,customData);
           });
         },
         onAdClicked: (ad) {},

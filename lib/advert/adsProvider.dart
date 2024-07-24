@@ -52,7 +52,9 @@ class AdsProv extends GetxController {
     }
   }
 
-  Advertresponse showads() {
+  Future<Advertresponse> showads() async {
+    unity.loadinterrtitialad();
+    googleadvert.loadinterrtitialad();
       if (unity!= null && unity.unityintersAd1) {
         instertialshowposition ++;
         return unity.showAd1();
@@ -66,13 +68,14 @@ class AdsProv extends GetxController {
         instertialshowposition ++;
         return googleadvert.showAd1();
       } else {
-        if(instertialshowposition == advertprovider) {
-          instertialshowposition = 1;
-        }else{
-          instertialshowposition ++;
-        }
         if (instertialattempt < maxfail) {
-            instertialattempt += 1;
+          if(instertialshowposition == advertprovider) {
+            instertialshowposition = 1;
+          }else{
+            instertialshowposition ++;
+          }
+            instertialattempt ++;
+            await Future.delayed(Duration(seconds: 3));
           return showads();
         }  else{
           instertialattempt = 0;
@@ -83,10 +86,13 @@ class AdsProv extends GetxController {
 
   Widget shownativeads(){
     return Container();
+    googleadvert.loadnativead();
       return googleadvert.shownative();
   }
 
-  Advertresponse  showreawardads(Function reward) {
+  Future<Advertresponse>  showreawardads(Function reward, Map<String, String>  customData) async {
+    unity.loadrewardedad();
+    googleadvert.loadrewardads();
       if (unity != null && unity.unityrewardedAd && rewardshowposition == 1) {
         rewardvideoattempt = 0;
         rewardshowposition ++;
@@ -94,7 +100,7 @@ class AdsProv extends GetxController {
       } else if (googleadvert != null && googleadvert.rewardedAd && rewardshowposition == 2) {
         rewardvideoattempt = 0;
         rewardshowposition++;
-        return googleadvert.showRewardedAd(reward);
+        return googleadvert.showRewardedAd(reward,customData);
       // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
       //   adcolony.show(reward);
       //   advertrewardshow.value = 3;
@@ -111,10 +117,9 @@ class AdsProv extends GetxController {
           }
           rewardvideoattempt ++;
           // Add a delay before retrying
-          Future.delayed(Duration(seconds: 3), () {
-            showreawardads(reward);
-          });
-          return Advertresponse.defaults(); // Indicate that an attempt is pending
+          await Future.delayed(Duration(seconds: 3));
+          return showreawardads(reward,customData);
+          // return Advertresponse.defaults(); // Indicate that an attempt is pending
         }  else{
           rewardvideoattempt = 0;
           return Advertresponse.defaults();

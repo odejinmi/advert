@@ -36,10 +36,13 @@ class Rewardedvideo extends GetxController {
 
   void createInterstitialAd({Function? show}) {
     print("Start Loading rewardedAd");
-    if (currentIndex >= videoUnitId.length || isloading) {
+    if (currentIndex >= videoUnitId.length) {
       if(show != null){
         show();
       }
+      return; // All ads have been loaded
+    }
+    if (isloading) {
       return; // All ads have been loaded
     }
     isloading = true;
@@ -82,9 +85,9 @@ class Rewardedvideo extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      createInterstitialAd();
-    }
+    // if(deviceallow.allow()) {
+    //   createInterstitialAd();
+    // }
   }
 
   Advertresponse showAd(Function? rewarded){

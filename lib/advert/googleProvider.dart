@@ -57,6 +57,23 @@ class GoogleProvider extends GetxController {
     // counting();
   }
 
+  loadnativead(){
+    nativead.loadAd();
+  }
+  loadinterrtitialad(){
+    interstitiaad.createInterstitialAd();
+  }
+  loadrewardedad(){
+    rewardedad.createRewardedAd();
+  }
+  loadrewardedinterstitialad(){
+    rewardedinterstitialad.loadAd();
+  }
+
+  loadrewardads(){
+    loadrewardedad();
+    loadrewardedinterstitialad();
+  }
 
   get intersAd1{
     return interstitiaad.intersAd1.isNotEmpty;
@@ -73,20 +90,20 @@ class GoogleProvider extends GetxController {
    return interstitiaad.showAd();
   }
 
-  Advertresponse showRewardedAd(reward){
+  Advertresponse showRewardedAd(reward, Map<String, String>  customData){
     // if (rewardedinterstitialad.rewardedInterstitialAd.isEmpty ) {
     if (rewardedad.rewardedAd.isNotEmpty && rewardshowposition == 1) {
       print("rewardedad.rewardedAd.length");
       print(rewardedad.rewardedAd.length);
       rewardshowposition++;
       instertialattempt = 0;
-     return rewardedad.showRewardedAd(reward);
+     return rewardedad.showRewardedAd(reward, customData);
     }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
       print("rewardedinterstitialad.rewardedInterstitialAd.length");
       print(rewardedinterstitialad.rewardedInterstitialAd.length);
       rewardshowposition ++;
       instertialattempt = 0;
-     return rewardedinterstitialad.showad(reward);
+     return rewardedinterstitialad.showad(reward,customData);
     }else{
       print("showRewardedAd error");
       print(instertialattempt);
@@ -97,7 +114,7 @@ class GoogleProvider extends GetxController {
       }
       if (instertialattempt < maxfail) {
         instertialattempt ++;
-        return showRewardedAd(reward);
+        return showRewardedAd(reward,customData);
       }  else{
         instertialattempt = 0;
         return Advertresponse.defaults();

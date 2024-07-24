@@ -123,8 +123,11 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               TextButton(onPressed: (){
-                _advertPlugin.adsProv.showreawardads((){});
+                showreawardads((){});
               }, child: const Text("show reward advert")),
+              TextButton(onPressed: (){
+                mutipleadvert(reward: (){});
+              }, child: const Text("show multiple reward advert")),
               TextButton(onPressed: (){
                 setState(() {
                   banner = !banner;
@@ -175,6 +178,34 @@ class _MyAppState extends State<MyApp> {
         return alert;
       },
     );
+
+  }
+  int gm_advt = 0;
+  Future<Advertresponse> showreawardads(Function reward) async{
+    var customData = {
+      "username": "",
+      "platform": "",
+      "type": ""
+    };
+    return await _advertPlugin.adsProv.showreawardads(reward,customData);
+  }
+  Future<Advertresponse> mutipleadvert({required Function reward, int max = 3}) async {
+    return await showreawardads(() {
+      if (gm_advt < max) {
+        gm_advt += 1;
+        setState(() {
+
+        });
+        return mutipleadvert(reward:reward);
+      } else {
+        gm_advt = 0;
+        setState(() {
+
+        });
+        reward();
+        return Advertresponse(message: "advert finished showing", status: true);
+      }
+    });
 
   }
 }

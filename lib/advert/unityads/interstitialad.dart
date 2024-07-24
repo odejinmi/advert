@@ -35,10 +35,13 @@ class Unityinterstitialad extends GetxController {
 
   void createInterstitialAd({Function? show}) {
     print("Start Loading rewardedAd");
-    if (currentIndex >= screenUnitId.length || isloading) {
+    if (currentIndex >= screenUnitId.length) {
       if(show != null){
         show();
       }
+      return; // All ads have been loaded
+    }
+    if (isloading) {
       return; // All ads have been loaded
     }
     isloading = true;
@@ -86,9 +89,9 @@ class Unityinterstitialad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      createInterstitialAd();
-    }
+    // if(deviceallow.allow()) {
+    //   createInterstitialAd();
+    // }
   }
 
   Advertresponse showAd(){

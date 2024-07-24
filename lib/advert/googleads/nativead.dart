@@ -21,9 +21,9 @@ Nativead(this.nativeadUnitId);
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      loadAd();
-    }
+    // if(deviceallow.allow()) {
+    //   loadAd();
+    // }
   }
 
   /// Loads a native ad.

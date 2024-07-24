@@ -36,10 +36,13 @@ class Interstitialad extends GetxController {
   bool showAds = false;
 
   void createInterstitialAd({Function? show}) {
-    if (currentIndex >= screenUnitId.length || isloading) {
+    if (currentIndex >= screenUnitId.length) {
       if(show != null){
         show();
       }
+      return; // All ads have been loaded
+    }
+    if (isloading) {
       return; // All ads have been loaded
     }
     isloading = true;
@@ -88,15 +91,15 @@ class Interstitialad extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    if(deviceallow.allow()) {
-      createInterstitialAd();
-    }
+    // if(deviceallow.allow()) {
+    //   createInterstitialAd();
+    // }
   }
 
   Advertresponse showAd(){
     if (intersAd1.isEmpty) {
-      createInterstitialAd(show: showAd);
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
+      createInterstitialAd(show: showAd);
       return Advertresponse.defaults();
     }
 

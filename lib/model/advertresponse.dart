@@ -17,6 +17,10 @@ class Advertresponse{
       : message = "advert showing",
         status = true;
 
+  Advertresponse.loading()
+      : message = "advert loading",
+        status = true;
+
   Advertresponse(
       {required this.message,
         required this.status,});
