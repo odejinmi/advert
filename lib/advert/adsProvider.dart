@@ -75,7 +75,7 @@ class AdsProv extends GetxController {
             instertialshowposition ++;
           }
             instertialattempt ++;
-            await Future.delayed(Duration(seconds: 3));
+            await Future.delayed(Duration(seconds: 1));
           return showads();
         }  else{
           instertialattempt = 0;
@@ -131,8 +131,7 @@ class AdsProv extends GetxController {
   get isvideoready => googleadvert.rewardedAd ||unity?.rewardvideoloaded;
   Widget banner() {
       // return adcolony.banner();
-    return googleadvert.googlebanner();
-      switch (slideIndex.value) {
+      // switch (slideIndex.value) {
         // case 0:
         //   if(deviceallow.allow()) {
         //   return unity!.adWidget();
@@ -145,16 +144,16 @@ class AdsProv extends GetxController {
       //     }else{
       //       return SizedBox.shrink();
       //     }
-        case 1:
-        if(deviceallow.allow()) {
-          // return BannerAdmob(adUnitId: adsmodel.googlemodel!.banneradadUnitId,);
-          return googleadvert.googlebanner();
-        }else{
-          return const SizedBox.shrink();
-        }
-        default:
-          return const SizedBox.shrink();
-      }
+      //   case 1:
+      //   if(deviceallow.allow()) {
+          return BannerAdmob(adUnitId: adsmodel.googlemodel!.banneradadUnitId,);
+          // return googleadvert.googlebanner();
+        // }else{
+        //   return const SizedBox.shrink();
+        // }
+        // default:
+        //   return const SizedBox.shrink();
+      // }
 
   }
 

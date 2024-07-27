@@ -47,7 +47,7 @@ class Bannerad extends GetxController {
     listener = BannerAdListener(
         onAdLoaded: (ad) {
           isloading = false;
-          print("Rewarded ad loaded: $adUnitId");
+          print("Rewarded ad loaded: $ad");
           bannerAd.add(ad);
           numRewardedLoadAttempts = 0;
           currentIndex++;
@@ -66,7 +66,7 @@ class Bannerad extends GetxController {
         onAdFailedToLoad: (ad, err) {
           bannerReady = false;
           isloading = false;
-          print("Failed to load rewarded ad: $adUnitId, error: $err");
+          print("Failed to load rewarded ad: $ad, error: $err");
           numRewardedLoadAttempts += 1;
           if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
             // Retry loading the specific ad unit
@@ -145,11 +145,7 @@ class Bannerad extends GetxController {
       var banner = BannerAd(
         adUnitId: adunitid,
         size: adsize,
-        listener: BannerAdListener(
-          onAdImpression: (ad) {
-            // FirebaseAnalytics.instance.logAdImpression();
-          },
-        ),
+        listener: listener,
         request: const AdRequest(),
       );
       return FutureBuilder(
