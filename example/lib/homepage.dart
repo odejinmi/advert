@@ -20,50 +20,13 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   String _platformVersion = 'Unknown';
   final _advertPlugin = Advert();
-  final banneradUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/6300978111']
-      : ['ca-app-pub-3940256099942544/2934735716'];
-
-  get screenUnitId => Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/1033173712']
-      : ['ca-app-pub-3940256099942544/4411468910'];
-
-  final  _nativeadUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/2247696110']
-      : ['ca-app-pub-3940256099942544/3986624511'];
-
-  final videoUnitId = Platform.isAndroid
-  // ? 'ca-app-pub-3940256099942544/5224354917'
-      ? ['ca-app-pub-3940256099942544/5224354917']
-      : ['ca-app-pub-3940256099942544/1712485313'];
-
-  // TODO: replace this test ad unit with your own ad unit.
-  final adUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/5354046379']
-      : ['ca-app-pub-3940256099942544/6978759866'];
-
-  final gameid = Platform.isAndroid ? "3717787" : '3717786';
-  final bannerAdPlacementId = Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
-  final interstitialVideoAdPlacementId = Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
-  final rewardedVideoAdPlacementId = Platform.isAndroid ? ['Android_Rewarded',"rewardedVideo"] : ['iOS_Rewarded'];
 
   bool native = false;
   bool banner = false;
   @override
   void initState() {
     super.initState();
-    Googlemodel googlemodel = Googlemodel()
-      ..banneradadUnitId = banneradUnitId
-      ..nativeadUnitId = _nativeadUnitId
-      ..rewardedinterstitialad = adUnitId
-      ..videoUnitId = videoUnitId
-      ..screenUnitId = screenUnitId;
-    Unitymodel unitymodel = Unitymodel()
-      ..gameId = gameid
-      ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
-      ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
-      ..bannerAdPlacementId = bannerAdPlacementId;
-    _advertPlugin.initialize(Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel));
+    _advertPlugin.initialize(testmode: true);
     // initPlatformState();
   }
 

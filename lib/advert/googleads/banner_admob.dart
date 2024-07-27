@@ -24,9 +24,6 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   var adUnitId;
 
-  final _bannerloading = false.obs;
-  set bannerloading(value) => _bannerloading.value = value;
-  get bannerloading => _bannerloading.value;
 
 
 
@@ -35,6 +32,7 @@ class BannerAdmobState extends State<BannerAdmob> {
     // TODO: implement initState
     super.initState();
     adUnitId = widget.adUnitId;
+    currentIndex = 0;
     // if(deviceallow.allow()) {
     //   loadAd();
     // }
@@ -73,12 +71,17 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   void loadAd() {
     print("start loading banner");
-    if (currentIndex >= adUnitId.length || isLoading) {
+    if (currentIndex >= adUnitId.length) {
       print("some banner has been loaded");
+      return; // Exit if all ads have been loaded
+    }
+    if ( isLoading) {
+      print("some banner still loading");
       return; // Exit if all ads have been loaded
     }
 
     isLoading = true;
+    print("currentIndex   $currentIndex");
     var adUnitI = adUnitId[currentIndex];
 
     // Check if an ad already exists for the current ad unit
@@ -88,10 +91,9 @@ class BannerAdmobState extends State<BannerAdmob> {
       return;
     }
       print("banner has started loading");
-      var adunitid = adUnitI;
-        bannerloading = true;
+        isLoading = true;
         BannerAd(
-          adUnitId: adunitid,
+          adUnitId: adUnitI,
           request: const AdRequest(),
           size: AdSize.largeBanner,
           listener: BannerAdListener(
@@ -100,7 +102,7 @@ class BannerAdmobState extends State<BannerAdmob> {
                   print("your bannerad has been loaded");
                 }
                 bannerAd.add(_);
-                bannerloading = false;
+                isLoading = false;
                 currentIndex++;
                 setState((){});
                 // Check if there are more ads to load
@@ -108,21 +110,22 @@ class BannerAdmobState extends State<BannerAdmob> {
                   loadAd(); // Load the next ad
                 }
               },
-              onAdFailedToLoad: (ad, err) {
-                bannerloading = false;
+              onAdFailedToLoad: (ad, err) async {
+                isLoading = false;
                 numRewardedLoadAttempts += 1;
+                setState((){});
                 // Retry loading the ad if the max attempts have not been reached
-                if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+                // if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+                await Future.delayed(Duration(seconds: 3));
                   loadAd();
-                } else {
-                  currentIndex++;
+                // } else {
+                //   currentIndex++;
 
                   // Check if there are more ads to load
-                  if (currentIndex < adUnitId.length) {
-                    loadAd(); // Load the next ad
-                  }
-                }
-
+                  // if (currentIndex < adUnitId.length) {
+                  //   loadAd(); // Load the next ad
+                  // }
+                // }
                 setState((){});
               },
               onAdWillDismissScreen: (ad){
@@ -172,5 +175,6 @@ class BannerAdmobState extends State<BannerAdmob> {
   void dispose() {
     super.dispose();
     addispose();
+    currentIndex = 0;
   }
 }

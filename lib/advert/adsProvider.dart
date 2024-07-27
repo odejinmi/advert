@@ -117,7 +117,7 @@ class AdsProv extends GetxController {
           }
           rewardvideoattempt ++;
           // Add a delay before retrying
-          await Future.delayed(Duration(seconds: 3));
+          await Future.delayed(Duration(seconds: 1));
           return showreawardads(reward,customData);
           // return Advertresponse.defaults(); // Indicate that an attempt is pending
         }  else{
