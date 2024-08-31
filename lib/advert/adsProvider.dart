@@ -90,7 +90,7 @@ class AdsProv extends GetxController {
       return googleadvert.shownative();
   }
 
-  Future<Advertresponse>  showreawardads(Function reward, Map<String, String>  customData) async {
+  Future<Advertresponse>  showreawardads(Function reward, Map<String, String>  customData, int interver) async {
     unity.loadrewardedad();
     googleadvert.loadrewardads();
       if (unity != null && unity.unityrewardedAd && rewardshowposition == 1) {
@@ -117,8 +117,8 @@ class AdsProv extends GetxController {
           }
           rewardvideoattempt ++;
           // Add a delay before retrying
-          await Future.delayed(Duration(seconds: 1));
-          return showreawardads(reward,customData);
+          await Future.delayed(Duration(seconds: interver));
+          return showreawardads(reward,customData, interver);
           // return Advertresponse.defaults(); // Indicate that an attempt is pending
         }  else{
           rewardvideoattempt = 0;
