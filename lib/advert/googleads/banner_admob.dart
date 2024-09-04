@@ -119,11 +119,16 @@ class BannerAdmobState extends State<BannerAdmob> {
                 await Future.delayed(Duration(seconds: 3));
                   loadAd();
                 } else {
-                //   currentIndex++;
-
-                  // Check if there are more ads to load
+                  // currentIndex++;
+                  // setState((){});
+                  // // Check if there are more ads to load
                   // if (currentIndex < adUnitId.length) {
                   //   loadAd(); // Load the next ad
+                  // }else{
+                  //   currentIndex= 0;
+                  //   setState((){});
+                  //   await Future.delayed(Duration(seconds: 60));
+                  //   loadAd();
                   // }
                 }
                 setState((){});
