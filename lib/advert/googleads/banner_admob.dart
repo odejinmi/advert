@@ -115,17 +115,17 @@ class BannerAdmobState extends State<BannerAdmob> {
                 numRewardedLoadAttempts += 1;
                 setState((){});
                 // Retry loading the ad if the max attempts have not been reached
-                // if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+                if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
                 await Future.delayed(Duration(seconds: 3));
                   loadAd();
-                // } else {
+                } else {
                 //   currentIndex++;
 
                   // Check if there are more ads to load
                   // if (currentIndex < adUnitId.length) {
                   //   loadAd(); // Load the next ad
                   // }
-                // }
+                }
                 setState((){});
               },
               onAdWillDismissScreen: (ad){

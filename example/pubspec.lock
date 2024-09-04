@@ -279,10 +279,10 @@ packages:
     dependency: transitive
     description:
       name: unity_ads_plugin
-      sha256: "025f9f2b9102c5b026f57496257e78f8cf7541a6181a675c8f30e5ee90377fef"
+      sha256: fc012dc67884b0813f095907779d88c8c39ccee48900f3e6d6bed4d2e3e4aae4
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.19"
+    version: "0.3.20"
   vector_math:
     dependency: transitive
     description:
