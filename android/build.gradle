@@ -32,6 +32,8 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    namespace "com.a5starcompany.advert"
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
