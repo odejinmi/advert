@@ -33,9 +33,9 @@ class BannerAdmobState extends State<BannerAdmob> {
     super.initState();
     adUnitId = widget.adUnitId;
     currentIndex = 0;
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
+    if(deviceallow.allow()) {
+      loadAd();
+    }
   }
 
   @override
@@ -115,17 +115,22 @@ class BannerAdmobState extends State<BannerAdmob> {
                 numRewardedLoadAttempts += 1;
                 setState((){});
                 // Retry loading the ad if the max attempts have not been reached
-                // if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
+                if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
                 await Future.delayed(Duration(seconds: 3));
                   loadAd();
-                // } else {
-                //   currentIndex++;
-
-                  // Check if there are more ads to load
+                } else {
+                  // currentIndex++;
+                  // setState((){});
+                  // // Check if there are more ads to load
                   // if (currentIndex < adUnitId.length) {
                   //   loadAd(); // Load the next ad
+                  // }else{
+                  //   currentIndex= 0;
+                  //   setState((){});
+                  //   await Future.delayed(Duration(seconds: 60));
+                  //   loadAd();
                   // }
-                // }
+                }
                 setState((){});
               },
               onAdWillDismissScreen: (ad){
@@ -151,9 +156,9 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   @override
   Widget build(BuildContext context) {
-    if(deviceallow.allow()) {
-      loadAd();
-    }
+    // if(deviceallow.allow()) {
+    //   loadAd();
+    // }
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width,

@@ -81,9 +81,9 @@ class Rewardedinterstitialad extends GetxController {
             print("RewardedInterstitialAd loaded: $adUnitId");
             rewardedInterstitialAd.add(ad);
             currentIndex++;
-            if (currentIndex < adUnitId.length) {
-              loadAd();
-            }
+            // if (currentIndex < adUnitId.length) {
+            //   loadAd(show: showad);
+            // }
           },
           onAdFailedToLoad: (LoadAdError error) {
             isloading = false;
@@ -117,13 +117,13 @@ class Rewardedinterstitialad extends GetxController {
     if (rewardedInterstitialAd.isNotEmpty) {
       var rewarded0 = rewardedInterstitialAd[0];
       print("Showing rewardedInterstitialAd");
-      addispose();
+      // addispose();
       rewarded0.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
-          if (rewarded != null && givereward) {
-            rewarded();
-          }
-          givereward = false;
+          // if (rewarded != null && givereward) {
+          //   rewarded();
+          // }
+          // givereward = false;
         },
         onAdShowedFullScreenContent: (ad) {
           // var customData = {
@@ -147,9 +147,9 @@ class Rewardedinterstitialad extends GetxController {
       rewarded0.show(
         onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
           givereward = true;
-          // if (rewarded != null && givereward) {
-          //   rewarded();
-          // }
+          if (rewarded != null && givereward) {
+            rewarded();
+          }
         },
       );
       return Advertresponse.showing();

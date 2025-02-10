@@ -79,7 +79,8 @@ class GoogleProvider extends GetxController {
     return interstitiaad.intersAd1.isNotEmpty;
   }
 
-  get rewardedAd => rewardedad.rewardedAd .isNotEmpty || rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty;
+  get rewardedAd => rewardedad.rewardedAd.isNotEmpty;
+  get rewardedinterstitialAd => rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty;
 
 
   Widget shownative(){
@@ -98,12 +99,12 @@ class GoogleProvider extends GetxController {
       rewardshowposition++;
       instertialattempt = 0;
      return rewardedad.showRewardedAd(reward, customData);
-    }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
-      print("rewardedinterstitialad.rewardedInterstitialAd.length");
-      print(rewardedinterstitialad.rewardedInterstitialAd.length);
-      rewardshowposition ++;
-      instertialattempt = 0;
-     return rewardedinterstitialad.showad(reward,customData);
+    // }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
+    //   print("rewardedinterstitialad.rewardedInterstitialAd.length");
+    //   print(rewardedinterstitialad.rewardedInterstitialAd.length);
+    //   rewardshowposition ++;
+    //   instertialattempt = 0;
+    //  return rewardedinterstitialad.showad(reward,customData);
     }else{
       print("showRewardedAd error");
       print(instertialattempt);
@@ -122,8 +123,25 @@ class GoogleProvider extends GetxController {
     }
   }
 
-  Advertresponse showRewardedinstertitialAd(reward){
-   return rewardedinterstitialad.showad(reward);
+  Advertresponse showRewardedinstertitialAd(reward, Map<String, String>  customData){
+    if (rewardedad.rewardedAd.isNotEmpty) {
+      return rewardedinterstitialad.showad(reward, customData);
+    }else{
+      print("showRewardedAd error");
+      print(instertialattempt);
+      if(rewardshowposition == advertprovider) {
+        rewardshowposition = 1;
+      }else{
+        rewardshowposition ++;
+      }
+      if (instertialattempt < maxfail) {
+        instertialattempt ++;
+        return showRewardedinstertitialAd(reward,customData);
+      }  else{
+        instertialattempt = 0;
+        return Advertresponse.defaults();
+      }
+    }
   }
 
   Widget googlebanner(){
