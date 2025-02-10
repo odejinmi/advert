@@ -43,7 +43,10 @@ android {
 
     defaultConfig {
         minSdkVersion 16
+        group 'com.a5starcompany.advert'
     }
+
+    namespace 'com.a5starcompany.advert'
 
     dependencies {
         testImplementation 'org.jetbrains.kotlin:kotlin-test'
