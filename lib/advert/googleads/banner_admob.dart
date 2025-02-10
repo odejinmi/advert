@@ -33,9 +33,9 @@ class BannerAdmobState extends State<BannerAdmob> {
     super.initState();
     adUnitId = widget.adUnitId;
     currentIndex = 0;
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
+    if(deviceallow.allow()) {
+      loadAd();
+    }
   }
 
   @override
@@ -156,9 +156,9 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   @override
   Widget build(BuildContext context) {
-    if(deviceallow.allow()) {
-      loadAd();
-    }
+    // if(deviceallow.allow()) {
+    //   loadAd();
+    // }
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width,

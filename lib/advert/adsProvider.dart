@@ -6,6 +6,7 @@ import '../model/advertresponse.dart';
 import 'adcolonyProvider.dart';
 import 'googleProvider.dart';
 import 'googleads/banner_admob.dart';
+import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
 import 'device.dart';
 
@@ -127,6 +128,43 @@ class AdsProv extends GetxController {
       }
 
   }
+  Future<Advertresponse>  showRewardedinstertitial(Function reward, Map<String, String>  customData, int interver) async {
+    unity.loadrewardedad();
+    googleadvert.loadrewardads();
+      if (unity != null && unity.unityrewardedAd && rewardshowposition == 1) {
+        rewardvideoattempt = 0;
+        rewardshowposition ++;
+        return unity.showRewardedAd(reward);
+      } else if (googleadvert != null && googleadvert.rewardedinterstitialAd && rewardshowposition == 2) {
+        rewardvideoattempt = 0;
+        rewardshowposition++;
+        return googleadvert.showRewardedinstertitialAd(reward,customData);
+      // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
+      //   adcolony.show(reward);
+      //   advertrewardshow.value = 3;
+      //   adcolonyplayed.value = true;
+      //   unityplayed.value = false;
+      //   googleplayed.value = false;
+      } else {
+        if (rewardvideoattempt <= maxfail) {
+          print("instertialattempt $rewardvideoattempt");
+          if(rewardshowposition == advertprovider) {
+            rewardshowposition = 1;
+          }else{
+            rewardshowposition ++;
+          }
+          rewardvideoattempt ++;
+          // Add a delay before retrying
+          await Future.delayed(Duration(seconds: interver));
+          return showreawardads(reward,customData, interver);
+          // return Advertresponse.defaults(); // Indicate that an attempt is pending
+        }  else{
+          rewardvideoattempt = 0;
+          return Advertresponse.defaults();
+        }
+      }
+
+  }
 
   get isvideoready => googleadvert.rewardedAd ||unity?.rewardvideoloaded;
   Widget banner() {
@@ -155,6 +193,9 @@ class AdsProv extends GetxController {
         //   return const SizedBox.shrink();
       // }
 
+  }
+  Widget bannerlist(int advtno) {
+    return Bannerlist(adUnitId: adsmodel.googlemodel!.banneradadUnitId,advtno:advtno);
   }
 
   var slideIndex = 1.obs;

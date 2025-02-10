@@ -153,7 +153,7 @@ class _HomepageState extends State<Homepage> {
       "platform": "",
       "type": ""
     };
-    return await _advertPlugin.adsProv.showreawardads(reward,customData);
+    return await _advertPlugin.adsProv.showreawardads(reward,customData,3);
   }
 
   Future<Advertresponse> mutipleadvert({required Function reward, int max = 3}) async {
