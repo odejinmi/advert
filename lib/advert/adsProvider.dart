@@ -8,224 +8,294 @@ import 'googleProvider.dart';
 import 'googleads/banner_admob.dart';
 import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
-import 'device.dart';
 
-class AdsProv extends GetxController {
-  Adsmodel adsmodel;
-  AdsProv(this.adsmodel);
-  // Future<InitializationStatus> initialization;
-  // AdsProvider(this.initialization);
-  // static var initFuture = MobileAds.instance.initialize();
-  // static var adstate = AdsProvider(initFuture);
+class AdManager extends GetxController {
+  // Constants
+  static const int MAX_RETRY_ATTEMPTS = 3;
+  static const Duration DEFAULT_RETRY_DELAY = Duration(seconds: 1);
 
-  var unity;
-  var adcolony = Get.put(AdcolonyProvider(), permanent: true);
-  var googleadvert;
-  var _instertialshowposition = 1.obs;
-  set instertialshowposition(value) => _instertialshowposition.value = value;
-  get instertialshowposition => _instertialshowposition.value;
+  // Configuration
+  final Adsmodel _adsConfig;
 
-  var _rewardshowposition = 1.obs;
-  set rewardshowposition(value) => _rewardshowposition.value = value;
-  get rewardshowposition => _rewardshowposition.value;
+  // Ad providers
+  UnityProvider? _unityProvider;
+  GoogleAdProvider? _googleProvider;
+  final AdcolonyProvider _adcolonyProvider =
+      Get.put(AdcolonyProvider(), permanent: true);
 
-  var maxfail = 3;
-  var advertprovider = 3;
+  // State variables
+  final RxInt _interstitialProviderIndex = 1.obs;
+  final RxInt _rewardedProviderIndex = 1.obs;
+  final RxInt _interstitialRetryAttempts = 0.obs;
+  final RxInt _rewardedRetryAttempts = 0.obs;
+  final RxInt _bannerProviderIndex = 1.obs;
 
-  var _instertialattempt = 0.obs;
-  set instertialattempt(value) => _instertialattempt.value = value;
-  get instertialattempt => _instertialattempt.value;
+  // Constructor
+  AdManager(this._adsConfig);
 
-   var _rewardvideoattempt = 0.obs;
-  set rewardvideoattempt(value) => _rewardvideoattempt.value = value;
-  get rewardvideoattempt => _rewardvideoattempt.value;
+  // Getters
+  int get providerCount => _getAvailableProviderCount();
+  bool get isRewardedAdReady => _isAnyRewardedAdReady();
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    if (adsmodel.googlemodel != null) {
-      googleadvert =
-          Get.put(GoogleProvider(adsmodel.googlemodel!), permanent: true);
+    _initializeAdProviders();
+    _startBannerRotation();
+  }
+
+  /// Initializes all available ad providers
+  void _initializeAdProviders() {
+    // Initialize Google provider if config exists
+    if (_adsConfig.googlemodel != null) {
+      _googleProvider =
+          Get.put(GoogleAdProvider(_adsConfig.googlemodel!), permanent: true);
     }
-    if (adsmodel.unitymodel!=null) {
-      unity = Get.put(UnityProvider(adsmodel.unitymodel!), permanent: true);
+
+    // Initialize Unity provider if config exists
+    if (_adsConfig.unitymodel != null) {
+      _unityProvider =
+          Get.put(UnityProvider(_adsConfig.unitymodel!), permanent: true);
     }
   }
 
-  Future<Advertresponse> showads() async {
-    unity.loadinterrtitialad();
-    googleadvert.loadinterrtitialad();
-      if (unity!= null && unity.unityintersAd1) {
-        instertialshowposition ++;
-        return unity.showAd1();
-      // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
-      //   adcolony.show(null);
-      //   advertshow.value = 2;
-      //   unityplayed.value = false;
-      //   googleplayed.value = false;
-      //   adcolonyplayed.value = true;
-      } else if (googleadvert!= null && googleadvert.intersAd1 ) {
-        instertialshowposition ++;
-        return googleadvert.showAd1();
-      } else {
-        if (instertialattempt < maxfail) {
-          if(instertialshowposition == advertprovider) {
-            instertialshowposition = 1;
-          }else{
-            instertialshowposition ++;
-          }
-            instertialattempt ++;
-            await Future.delayed(Duration(seconds: 1));
-          return showads();
-        }  else{
-          instertialattempt = 0;
-          return Advertresponse.defaults();
-        }
-      }
+  /// Returns the number of available ad providers
+  int _getAvailableProviderCount() {
+    int count = 0;
+    if (_unityProvider != null) count++;
+    if (_googleProvider != null) count++;
+    if (_adcolonyProvider != null) count++;
+    return count > 0 ? count : 1; // At least 1 to avoid division by zero
   }
 
-  Widget shownativeads(){
+  /// Checks if any rewarded ad is ready
+  bool _isAnyRewardedAdReady() {
+    return (_unityProvider?.unityrewardedAd == true) ||
+        (_googleProvider?.hasRewardedAd == true);
+  }
+
+  /// Preloads all ad types across all providers
+  void preloadAllAds() {
+    _preloadInterstitialAds();
+    _preloadRewardedAds();
+  }
+
+  /// Preloads interstitial ads from all providers
+  void _preloadInterstitialAds() {
+    if (_unityProvider != null) _unityProvider!.loadinterrtitialad();
+    if (_googleProvider != null) _googleProvider!.loadInterstitialAd();
+  }
+
+  /// Preloads rewarded ads from all providers
+  void _preloadRewardedAds() {
+    if (_unityProvider != null) _unityProvider!.loadrewardedad();
+    if (_googleProvider != null) _googleProvider!.loadRewardAds();
+  }
+
+  /// Shows an interstitial ad, cycling through available providers
+  Future<Advertresponse> showInterstitialAd() async {
+    // Ensure ads are preloaded
+    _preloadInterstitialAds();
+
+    // Try Unity provider
+    if (_unityProvider != null &&
+        _unityProvider!.unityintersAd1 &&
+        _interstitialProviderIndex.value == 1) {
+      _advanceInterstitialProvider();
+      _interstitialRetryAttempts.value = 0;
+      return _unityProvider!.showAd1();
+    }
+
+    // Try Google provider
+    else if (_googleProvider != null &&
+        _googleProvider!.hasInterstitialAd &&
+        _interstitialProviderIndex.value == 2) {
+      _advanceInterstitialProvider();
+      _interstitialRetryAttempts.value = 0;
+      return _googleProvider!.showInterstitialAd();
+    }
+
+    // Try AdColony provider (if implemented)
+    // else if (_adcolonyProvider.isloaded() && _interstitialProviderIndex.value == 3) {
+    //   _advanceInterstitialProvider();
+    //   _interstitialRetryAttempts.value = 0;
+    //   return _adcolonyProvider.show(null);
+    // }
+
+    // No ad available, try next provider
+    else {
+      return await _handleInterstitialRetry();
+    }
+  }
+
+  /// Handles retry logic for interstitial ads
+  Future<Advertresponse> _handleInterstitialRetry() async {
+    if (_interstitialRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+      _advanceInterstitialProvider();
+      _interstitialRetryAttempts.value++;
+      debugPrint(
+          'Retrying interstitial ad with provider ${_interstitialProviderIndex.value} (attempt ${_interstitialRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
+      await Future.delayed(DEFAULT_RETRY_DELAY);
+      return showInterstitialAd();
+    } else {
+      _interstitialRetryAttempts.value = 0;
+      return Advertresponse.defaults();
+    }
+  }
+
+  /// Advances to the next interstitial ad provider
+  void _advanceInterstitialProvider() {
+    _interstitialProviderIndex.value =
+        _interstitialProviderIndex.value % providerCount + 1;
+  }
+
+  /// Shows a rewarded ad, cycling through available providers
+  Future<Advertresponse> showRewardedAd(
+      Function? onRewarded, Map<String, String> customData,
+      [int retryDelaySeconds = 1]) async {
+    // Ensure ads are preloaded
+    _preloadRewardedAds();
+
+    // Try Unity provider
+    if (_unityProvider != null &&
+        _unityProvider!.unityrewardedAd &&
+        _rewardedProviderIndex.value == 1) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value = 0;
+      return _unityProvider!.showRewardedAd(onRewarded);
+    }
+
+    // Try Google provider
+    else if (_googleProvider != null &&
+        _googleProvider!.hasRewardedAd &&
+        _rewardedProviderIndex.value == 2) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value = 0;
+      return _googleProvider!.showRewardedAd(onRewarded, customData);
+    }
+
+    // Try AdColony provider (if implemented)
+    // else if (_adcolonyProvider.isloaded() && _rewardedProviderIndex.value == 3) {
+    //   _advanceRewardedProvider();
+    //   _rewardedRetryAttempts.value = 0;
+    //   return _adcolonyProvider.show(onRewarded);
+    // }
+
+    // No ad available, try next provider or check if any provider has an ad
+    else {
+      return await _handleRewardedRetry(
+          onRewarded, customData, retryDelaySeconds);
+    }
+  }
+
+  /// Handles retry logic for rewarded ads with smart fallback
+  Future<Advertresponse> _handleRewardedRetry(Function? onRewarded,
+      Map<String, String> customData, int retryDelaySeconds) async {
+    // Check if any provider has an ad ready regardless of rotation order
+    if (_unityProvider?.unityrewardedAd == true) {
+      _rewardedRetryAttempts.value = 0;
+      return _unityProvider!.showRewardedAd(onRewarded);
+    }
+
+    if (_googleProvider?.hasRewardedAd == true) {
+      _rewardedRetryAttempts.value = 0;
+      return _googleProvider!.showRewardedAd(onRewarded, customData);
+    }
+
+    // No ads available, try standard rotation retry
+    if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value++;
+      debugPrint(
+          'Retrying rewarded ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
+      await Future.delayed(Duration(seconds: retryDelaySeconds));
+      return showRewardedAd(onRewarded, customData, retryDelaySeconds);
+    } else {
+      _rewardedRetryAttempts.value = 0;
+      return Advertresponse.defaults();
+    }
+  }
+
+  /// Advances to the next rewarded ad provider
+  void _advanceRewardedProvider() {
+    _rewardedProviderIndex.value =
+        _rewardedProviderIndex.value % providerCount + 1;
+  }
+
+  /// Shows a rewarded interstitial ad
+  Future<Advertresponse> showRewardedInterstitialAd(
+      Function? onRewarded, Map<String, String> customData,
+      [int retryDelaySeconds = 1]) async {
+    // Ensure ads are preloaded
+    _preloadRewardedAds();
+
+    // Try Unity provider
+    if (_unityProvider != null &&
+        _unityProvider!.unityrewardedAd &&
+        _rewardedProviderIndex.value == 1) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value = 0;
+      return _unityProvider!.showRewardedAd(onRewarded);
+    }
+
+    // Try Google rewarded interstitial provider
+    else if (_googleProvider != null &&
+        _googleProvider!.hasRewardedInterstitialAd &&
+        _rewardedProviderIndex.value == 2) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value = 0;
+      return _googleProvider!
+          .showRewardedInterstitialAd(onRewarded, customData);
+    }
+
+    // No ad available, try next provider or check if any provider has an ad
+    else {
+      return await _handleRewardedRetry(
+          onRewarded, customData, retryDelaySeconds);
+    }
+  }
+
+  /// Shows a native ad
+  Widget showNativeAd() {
+    if (_googleProvider != null) {
+      _googleProvider!.loadNativeAd();
+      return _googleProvider!.showNativeAd();
+    }
     return Container();
-    googleadvert.loadnativead();
-      return googleadvert.shownative();
   }
 
-  Future<Advertresponse>  showreawardads(Function reward, Map<String, String>  customData, int interver) async {
-    unity.loadrewardedad();
-    googleadvert.loadrewardads();
-      if (unity != null && unity.unityrewardedAd && rewardshowposition == 1) {
-        rewardvideoattempt = 0;
-        rewardshowposition ++;
-        return unity.showRewardedAd(reward);
-      } else if (googleadvert != null && googleadvert.rewardedAd && rewardshowposition == 2) {
-        rewardvideoattempt = 0;
-        rewardshowposition++;
-        return googleadvert.showRewardedAd(reward,customData);
-      // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
-      //   adcolony.show(reward);
-      //   advertrewardshow.value = 3;
-      //   adcolonyplayed.value = true;
-      //   unityplayed.value = false;
-      //   googleplayed.value = false;
-      } else {
-        if (rewardvideoattempt <= maxfail) {
-          print("instertialattempt $rewardvideoattempt");
-          if(rewardshowposition == advertprovider) {
-            rewardshowposition = 1;
-          }else{
-            rewardshowposition ++;
-          }
-          rewardvideoattempt ++;
-          // Add a delay before retrying
-          await Future.delayed(Duration(seconds: interver));
-          return showreawardads(reward,customData, interver);
-          // return Advertresponse.defaults(); // Indicate that an attempt is pending
-        }  else{
-          rewardvideoattempt = 0;
-          return Advertresponse.defaults();
-        }
-      }
-
-  }
-  Future<Advertresponse>  showRewardedinstertitial(Function reward, Map<String, String>  customData, int interver) async {
-    unity.loadrewardedad();
-    googleadvert.loadrewardads();
-      if (unity != null && unity.unityrewardedAd && rewardshowposition == 1) {
-        rewardvideoattempt = 0;
-        rewardshowposition ++;
-        return unity.showRewardedAd(reward);
-      } else if (googleadvert != null && googleadvert.rewardedinterstitialAd && rewardshowposition == 2) {
-        rewardvideoattempt = 0;
-        rewardshowposition++;
-        return googleadvert.showRewardedinstertitialAd(reward,customData);
-      // } else if (await adcolony.isloaded() && adcolonyplayed.isFalse) {
-      //   adcolony.show(reward);
-      //   advertrewardshow.value = 3;
-      //   adcolonyplayed.value = true;
-      //   unityplayed.value = false;
-      //   googleplayed.value = false;
-      } else {
-        if (rewardvideoattempt <= maxfail) {
-          print("instertialattempt $rewardvideoattempt");
-          if(rewardshowposition == advertprovider) {
-            rewardshowposition = 1;
-          }else{
-            rewardshowposition ++;
-          }
-          rewardvideoattempt ++;
-          // Add a delay before retrying
-          await Future.delayed(Duration(seconds: interver));
-          return showreawardads(reward,customData, interver);
-          // return Advertresponse.defaults(); // Indicate that an attempt is pending
-        }  else{
-          rewardvideoattempt = 0;
-          return Advertresponse.defaults();
-        }
-      }
-
+  /// Returns a banner ad widget
+  Widget showBannerAd() {
+    if (_googleProvider != null && _adsConfig.googlemodel != null) {
+      return BannerAdWidget(
+        adUnitIds: _adsConfig.googlemodel!.banneradadUnitId,
+      );
+    }
+    return const SizedBox.shrink();
   }
 
-  get isvideoready => googleadvert.rewardedAd ||unity?.rewardvideoloaded;
-  Widget banner() {
-      // return adcolony.banner();
-      // switch (slideIndex.value) {
-        // case 0:
-        //   if(deviceallow.allow()) {
-        //   return unity!.adWidget();
-        //   }else{
-        //     return const SizedBox.shrink();
-        //   }
-      // case 1:
-      //     if(deviceallow.allow() && network.isonline.isTrue) {
-      //   return adcolony.banner();
-      //     }else{
-      //       return SizedBox.shrink();
-      //     }
-      //   case 1:
-      //   if(deviceallow.allow()) {
-          return BannerAdmob(adUnitId: adsmodel.googlemodel!.banneradadUnitId,);
-          // return googleadvert.googlebanner();
-        // }else{
-        //   return const SizedBox.shrink();
-        // }
-        // default:
-        //   return const SizedBox.shrink();
-      // }
-
-  }
-  Widget bannerlist(int advtno) {
-    return Bannerlist(adUnitId: adsmodel.googlemodel!.banneradadUnitId,advtno:advtno);
+  /// Returns a scrolling banner list widget
+  Widget showBannerListAd(int numberOfAds) {
+    if (_googleProvider != null && _adsConfig.googlemodel != null) {
+      return BannerListWidget(
+        adUnitIds: _adsConfig.googlemodel!.banneradadUnitId,
+        numberOfAdsToShow: numberOfAds,
+      );
+    }
+    return const SizedBox.shrink();
   }
 
-  var slideIndex = 1.obs;
-
-  void counting() {
-    Future.delayed(const Duration(seconds: 30), () async {
-      // if (unity.placements[AdManager.bannerAdPlacementId] == true &&
-      //     unitybannerplayed.isFalse) {
-      //   slideIndex.value = 1;
-      //   adcolonybannerplayed.value = false;
-      //   unitybannerplayed.value = true;
-      //   googlebannerplayed.value = false;
-      //   // } else if (await adcolony.isloaded() && adcolonybannerplayed.isFalse) {
-      //   //   slideIndex.value = 2;
-      //   //   adcolonybannerplayed.value = true;
-      //   //   unitybannerplayed.value = false;
-      //   //   googlebannerplayed.value = false;
-      // } else if (googlebannerplayed.isFalse) {
-      //   slideIndex.value = 0;
-      //   adcolonybannerplayed.value = false;
-      //   unitybannerplayed.value = false;
-      //   googlebannerplayed.value = true;
-      // }
-      if (slideIndex.value == 1) {
-        slideIndex.value = 0;
-      } else {
-        slideIndex.value += 1;
-      }
-      counting();
+  /// Starts the banner rotation timer
+  void _startBannerRotation() {
+    Future.delayed(const Duration(seconds: 30), () {
+      _rotateBannerProvider();
+      _startBannerRotation();
     });
   }
 
+  /// Rotates to the next banner provider
+  void _rotateBannerProvider() {
+    _bannerProviderIndex.value = _bannerProviderIndex.value % providerCount + 1;
+    update(); // Notify listeners to rebuild
+  }
 }

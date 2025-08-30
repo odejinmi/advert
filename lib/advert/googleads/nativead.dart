@@ -1,85 +1,171 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../device.dart';
+class NativeAdManager extends GetxController {
+  // Constants
+  static const int AUTO_CLOSE_DELAY_SECONDS = 20;
+  static const String FACTORY_ID = 'adFactoryExample';
 
-class Nativead extends GetxController {
-var nativeadUnitId;
-Nativead(this.nativeadUnitId);
-  NativeAd? _nativeAd;
-  bool nativeAdIsLoaded = false;
+  // Private variables
+  final List<String> _adUnitIds;
+  final Rx<NativeAd?> _nativeAd = Rx<NativeAd?>(null);
+  final RxBool _isAdLoaded = false.obs;
+  final RxInt _currentAdIndex = 0.obs;
+  final RxInt _failedAttempts = 0.obs;
 
-  // TODO: replace this test ad unit with your own ad unit.
-  // final String _adUnitId = Platform.isAndroid
-  //     ? 'ca-app-pub-6117361441866120/7557970286'
-  //     : 'ca-app-pub-6117361441866120/5123378631';
+  // Constructor
+  NativeAdManager(this._adUnitIds);
 
+  // Getters
+  bool get isAdLoaded => _isAdLoaded.value;
+  NativeAd? get currentAd => _nativeAd.value;
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
-  }
-
-  /// Loads a native ad.
-  void loadAd() {
-    if(nativeadUnitId.isNotEmpty) {
-      _nativeAd = NativeAd(
-          adUnitId: nativeadUnitId[0],
-          // Factory ID registered by your native ad factory implementation.
-          factoryId: 'adFactoryExample',
-          listener: NativeAdListener(
-            onAdLoaded: (ad) {
-              print("your nativead has been loaded");
-              print('$NativeAd loaded.');
-              nativeAdIsLoaded = true;
-              update();
-            },
-            onAdFailedToLoad: (ad, error) {
-              // Dispose the ad here to free resources.
-              print('$NativeAd failedToLoad: $error');
-              ad.dispose();
-            },
-            // Called when a click is recorded for a NativeAd.
-            onAdClicked: (ad) {},
-            // Called when an impression occurs on the ad.
-            onAdImpression: (ad) {},
-            // Called when an ad removes an overlay that covers the screen.
-            onAdClosed: (ad) {},
-            // Called when an ad opens an overlay that covers the screen.
-            onAdOpened: (ad) {},
-            // For iOS only. Called before dismissing a full screen view
-            onAdWillDismissScreen: (ad) {},
-            // Called when an ad receives revenue value.
-            onPaidEvent: (ad, valueMicros, precision, currencyCode) {},
-          ),
-          request: const AdRequest(),
-          // Optional: Pass custom options to your native ad factory implementation.
-          customOptions: {'custom-option-1': "custom-value-1"}
-      );
-      _nativeAd!.load();
+    // Load ad if ad unit IDs are available
+    if (_adUnitIds.isNotEmpty) {
+      loadAd();
     }
   }
 
-  void closead(){
+  @override
+  void onClose() {
+    // Dispose ad when controller is closed
+    _disposeCurrentAd();
+    super.onClose();
+  }
+
+  /// Loads a native ad using the current ad unit ID
+  void loadAd() {
+    // Don't load if we have no ad unit IDs
+    if (_adUnitIds.isEmpty) {
+      debugPrint('No native ad unit IDs provided');
+      return;
+    }
+
+    // Dispose any existing ad before creating a new one
+    _disposeCurrentAd();
+
+    // Reset ad loaded state
+    _isAdLoaded.value = false;
+
+    // Get current ad unit ID (with cycling through available IDs)
+    final adUnitId = _adUnitIds[_currentAdIndex.value % _adUnitIds.length];
+
+    debugPrint('Loading native ad with ID: $adUnitId');
+
+    _nativeAd.value = NativeAd(
+      adUnitId: adUnitId,
+      factoryId: FACTORY_ID,
+      listener: NativeAdListener(
+        onAdLoaded: _onAdLoaded,
+        onAdFailedToLoad: _onAdFailedToLoad,
+        onAdClicked: (ad) => debugPrint('Native ad clicked'),
+        onAdImpression: (ad) => debugPrint('Native ad impression recorded'),
+        onAdClosed: (ad) => debugPrint('Native ad closed'),
+        onAdOpened: (ad) => debugPrint('Native ad opened'),
+        onAdWillDismissScreen: (ad) =>
+            debugPrint('Native ad will dismiss screen'),
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) =>
+            debugPrint('Native ad paid event: $currencyCode $valueMicros'),
+      ),
+      request: const AdRequest(),
+      customOptions: {'custom-option-1': 'custom-value-1'},
+    );
+
+    _nativeAd.value!.load();
+  }
+
+  /// Callback when ad is successfully loaded
+  void _onAdLoaded(Ad ad) {
+    debugPrint('Native ad loaded successfully');
+    _isAdLoaded.value = true;
+    _failedAttempts.value = 0;
+    update();
+  }
+
+  /// Callback when ad fails to load
+  void _onAdFailedToLoad(Ad ad, LoadAdError error) {
+    debugPrint('Native ad failed to load: ${error.message}');
+    ad.dispose();
+    _nativeAd.value = null;
+    _isAdLoaded.value = false;
+
+    _failedAttempts.value++;
+
+    // Try the next ad unit ID after failure
+    if (_failedAttempts.value <= 3 && _adUnitIds.length > 1) {
+      _currentAdIndex.value = (_currentAdIndex.value + 1) % _adUnitIds.length;
+      loadAd();
+    }
+
+    update();
+  }
+
+  /// Disposes the current ad if it exists
+  void _disposeCurrentAd() {
+    if (_nativeAd.value != null) {
+      _nativeAd.value!.dispose();
+      _nativeAd.value = null;
+    }
+  }
+
+  /// Closes the ad dialog and reloads a new ad
+  void closeAd() {
     Get.back();
-    _nativeAd!.dispose();
+    _disposeCurrentAd();
     loadAd();
   }
 
-  Widget showad(){
-    if (_nativeAd != null) {
-      Future.delayed(const Duration(seconds: 20)).then((value) {
-        closead();
-      });
-      return AdWidget(ad: _nativeAd!);
+  /// Returns a widget containing the native ad or an empty container if not loaded
+  Widget buildAdWidget({bool autoClose = true}) {
+    if (_nativeAd.value != null && _isAdLoaded.value) {
+      if (autoClose) {
+        // Set up auto-close timer
+        Future.delayed(Duration(seconds: AUTO_CLOSE_DELAY_SECONDS))
+            .then((_) => closeAd());
+      }
+      return AdWidget(ad: _nativeAd.value!);
     } else {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
+  }
+
+  /// Shows the ad in a dialog
+  void showAdDialog({bool autoClose = true}) {
+    if (!_isAdLoaded.value || _nativeAd.value == null) {
+      debugPrint('Cannot show dialog: Native ad not loaded');
+      return;
+    }
+
+    Get.dialog(
+      Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: closeAd,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 300, // Adjust height as needed
+              padding: const EdgeInsets.all(8.0),
+              child: buildAdWidget(autoClose: autoClose),
+            ),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
   }
 }

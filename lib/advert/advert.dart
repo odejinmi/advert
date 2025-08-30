@@ -1,18 +1,15 @@
-
 import 'dart:io';
 
 import 'package:advert/model/google.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../advert_platform_interface.dart';
 import '../model/adsmodel.dart';
 import '../model/unity.dart';
 import 'adsProvider.dart';
-import '../advert_platform_interface.dart';
 
 class Advert {
-
   bool _sdkInitialized = false;
   // static late PlatformInfo platformInfo;
   Adsmodel _adsmodel = Adsmodel();
@@ -28,12 +25,12 @@ class Advert {
       ? ['ca-app-pub-3940256099942544/1033173712']
       : ['ca-app-pub-3940256099942544/4411468910'];
 
-  final  _nativeadUnitId = Platform.isAndroid
+  final _nativeadUnitId = Platform.isAndroid
       ? ['ca-app-pub-3940256099942544/2247696110']
       : ['ca-app-pub-3940256099942544/3986624511'];
 
   final videoUnitId = Platform.isAndroid
-  // ? 'ca-app-pub-3940256099942544/5224354917'
+      // ? 'ca-app-pub-3940256099942544/5224354917'
       ? ['ca-app-pub-3940256099942544/5224354917']
       : ['ca-app-pub-3940256099942544/1712485313'];
 
@@ -43,10 +40,13 @@ class Advert {
       : ['ca-app-pub-3940256099942544/6978759866'];
 
   final gameid = Platform.isAndroid ? "3717787" : '3717786';
-  final bannerAdPlacementId = Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
-  final interstitialVideoAdPlacementId = Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
-  final rewardedVideoAdPlacementId = Platform.isAndroid ? ['Android_Rewarded',"rewardedVideo"] : ['iOS_Rewarded'];
-
+  final bannerAdPlacementId =
+      Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
+  final interstitialVideoAdPlacementId =
+      Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
+  final rewardedVideoAdPlacementId = Platform.isAndroid
+      ? ['Android_Rewarded', "rewardedVideo"]
+      : ['iOS_Rewarded'];
 
   initialize({Adsmodel? adsmodel, required bool testmode}) async {
     assert(() {
@@ -64,14 +64,14 @@ class Advert {
       if (testmode) {
         adsmodel = Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel);
       }
-      if (adsmodel == null ||adsmodel!.adsempty) {
+      if (adsmodel == null || adsmodel!.adsempty) {
         throw DuploException('you must supply atleast one adunit');
-      // } else if (!publicKey.startsWith("pk_")) {
-      //   throw DuploException(Utils.getKeyErrorMsg('public'));
-      // } else if (secretKey.isEmpty) {
-      //   throw DuploException('secretKey cannot be null or empty');
-      // } else if (!secretKey.startsWith("sk_")) {
-      //   throw DuploException(Utils.getKeyErrorMsg('secret'));
+        // } else if (!publicKey.startsWith("pk_")) {
+        //   throw DuploException(Utils.getKeyErrorMsg('public'));
+        // } else if (secretKey.isEmpty) {
+        //   throw DuploException('secretKey cannot be null or empty');
+        // } else if (!secretKey.startsWith("sk_")) {
+        //   throw DuploException(Utils.getKeyErrorMsg('secret'));
       } else {
         return true;
       }
@@ -96,23 +96,20 @@ class Advert {
     }
   }
 
-  AdsProv get adsProv {
+  AdManager get adsProv {
     validateSdkInitialized();
-      return Get.put(AdsProv(_adsmodel), permanent: true);
+    return Get.put(AdManager(_adsmodel), permanent: true);
   }
 
   bool get sdkInitialized => _sdkInitialized;
-
 
   validateSdkInitialized() {
     if (!sdkInitialized) {
       throw DuploSdkNotInitializedException(
           'Advert SDK has not been initialized. The SDK has'
-              ' to be initialized before use');
+          ' to be initialized before use');
     }
   }
-
-
 }
 
 class DuploException implements Exception {

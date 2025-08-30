@@ -1,171 +1,210 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../device.dart';
 
-class Bannerad extends GetxController {
-  var adUnitId;
-  Bannerad(this.adUnitId);
+class BannerAdManager extends GetxController {
+  // Constants
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
 
-  final _bannerAd = [].obs;
-  set bannerAd(value) => _bannerAd.value = value;
-  get bannerAd => _bannerAd.value;
+  // Private variables
+  final List<String> _adUnitIds;
+  final RxList<BannerAd> _loadedAds = <BannerAd>[].obs;
+  final RxInt _currentLoadingIndex = 0.obs;
+  final RxInt _failedAttempts = 0.obs;
+  final RxBool _isLoading = false.obs;
+  final RxBool _bannerReady = false.obs;
 
-  var _numRewardedLoadAttempts = 0.obs;
-  set numRewardedLoadAttempts(value) => _numRewardedLoadAttempts.value = value;
-  get numRewardedLoadAttempts => _numRewardedLoadAttempts.value;
+  // Constructor
+  BannerAdManager(this._adUnitIds);
 
-  var _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value) => _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
+  // Getters
+  bool get isLoading => _isLoading.value;
+  bool get bannerReady => _bannerReady.value && _loadedAds.isNotEmpty;
+  bool get hasAds => _loadedAds.isNotEmpty;
 
-  // final adUnitId = Platform.isAndroid
-  //     ? ['ca-app-pub-6117361441866120/3287545689','ca-app-pub-6117361441866120/2869480303',
-  //   'ca-app-pub-6117361441866120/1364826947','ca-app-pub-6117361441866120/7738663604',
-  //   'ca-app-pub-6117361441866120/8606427687']
-  //     : ['ca-app-pub-6117361441866120/1488443500','ca-app-pub-6117361441866120/8620500430',
-  //   'ca-app-pub-6117361441866120/3444195379','ca-app-pub-6117361441866120/7191868699',
-  //   'ca-app-pub-6117361441866120/7445706489'];
-  final _bannerReady = false.obs;
-  set bannerReady(value) => _bannerReady.value = value;
-  get bannerReady => _bannerReady.value;
-
-  final _isloading = false.obs;
-  set isloading(value) => _isloading.value = value;
-  get isloading => _isloading.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
+  // Banner ad listener
+  late final BannerAdListener _listener;
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    listener = BannerAdListener(
-        onAdLoaded: (ad) {
-          isloading = false;
-          print("Rewarded ad loaded: $ad");
-          bannerAd.add(ad);
-          numRewardedLoadAttempts = 0;
-          currentIndex++;
-          if (currentIndex < adUnitId.length) {
-            loadAd(); // Load the next ad
-          }
+    _initializeListener();
+  }
 
-          if (kDebugMode) {
-            print("your bannerad has been loaded");
-          }
-          bannerReady = true;
-        },
-        onAdOpened: (ad){
-          addispose();
-        },
-        onAdFailedToLoad: (ad, err) {
-          bannerReady = false;
-          isloading = false;
-          print("Failed to load rewarded ad: $ad, error: $err");
-          numRewardedLoadAttempts += 1;
-          if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-            // Retry loading the specific ad unit
-            loadAd();
-          } else {
-            currentIndex++;
-            if (currentIndex < adUnitId.length) {
-              loadAd(); // Load the next ad
-            }
-          }
-        },
-        onAdWillDismissScreen: (ad){
-          addispose();
-        },
-        onAdClosed: (ad){
-          addispose();
+  @override
+  void onClose() {
+    // Dispose all ads when controller is closed
+    _disposeAllAds();
+    super.onClose();
+  }
+
+  /// Initializes the banner ad listener
+  void _initializeListener() {
+    _listener = BannerAdListener(
+      onAdLoaded: (ad) {
+        debugPrint(
+            'Banner ad loaded successfully: ${(ad as BannerAd).adUnitId}');
+        _loadedAds.add(ad as BannerAd);
+        _bannerReady.value = true;
+        _failedAttempts.value = 0;
+        _isLoading.value = false;
+        _currentLoadingIndex.value++;
+
+        // Continue loading the next ad if there are more ad units
+        if (_currentLoadingIndex.value < _adUnitIds.length) {
+          loadAd();
         }
+      },
+      onAdFailedToLoad: (ad, error) {
+        debugPrint('Banner ad failed to load: ${error.message}');
+        ad.dispose();
+        _failedAttempts.value++;
+        _isLoading.value = false;
+
+        if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+          // Retry loading the same ad
+          loadAd();
+        } else {
+          // Move to next ad unit after max retries
+          _failedAttempts.value = 0;
+          _currentLoadingIndex.value++;
+
+          if (_currentLoadingIndex.value < _adUnitIds.length) {
+            loadAd();
+          }
+        }
+      },
+      onAdOpened: (ad) {
+        debugPrint('Banner ad opened');
+      },
+      onAdClosed: (ad) {
+        debugPrint('Banner ad closed');
+        _refreshAd(ad as BannerAd);
+      },
+      onAdWillDismissScreen: (ad) {
+        debugPrint('Banner ad will dismiss screen');
+        _refreshAd(ad as BannerAd);
+      },
+      onAdImpression: (ad) => debugPrint('Banner ad impression recorded'),
+      onPaidEvent: (ad, valueMicros, precision, currencyCode) =>
+          debugPrint('Banner ad paid event: $currencyCode $valueMicros'),
     );
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
   }
 
+  /// Loads a banner ad using the current ad unit ID
   void loadAd() {
-    print("Start Loading rewardedAd");
-    if (currentIndex >= adUnitId.length || isloading) {
-      // if(show != null){
-      //   show();
-      // }
-      return; // All ads have been loaded
+    // Don't load if we have no ad unit IDs
+    if (_adUnitIds.isEmpty) {
+      debugPrint('No banner ad unit IDs provided');
+      return;
     }
-    isloading = true;
-    print("Loading rewardedAd $currentIndex");
-      var adunitid = adUnitId[currentIndex];
-      BannerAd(
-        adUnitId: adunitid,
-        request: const AdRequest(),
-        size: AdSize.largeBanner,
-        listener: listener,
-      ).load();
+
+    // Don't start a new load if one is in progress
+    if (_isLoading.value) {
+      debugPrint('Banner ad load already in progress');
+      return;
+    }
+
+    // Don't load more ads if we've gone through all ad unit IDs
+    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+      debugPrint('All banner ad units attempted');
+      return;
+    }
+
+    _isLoading.value = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+
+    debugPrint(
+        'Loading banner ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}: $adUnitId');
+
+    // Create and load the banner ad
+    BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: AdSize.largeBanner,
+      listener: _listener,
+    ).load();
   }
 
-  var _listener  = BannerAdListener().obs;
-  set listener(value) => _listener.value = value;
-  get listener => _listener.value;
+  /// Refreshes an ad by disposing it and loading a new one
+  void _refreshAd(BannerAd ad) {
+    final index =
+        _loadedAds.indexWhere((loadedAd) => loadedAd.adUnitId == ad.adUnitId);
+    if (index != -1) {
+      _loadedAds.removeAt(index);
+      ad.dispose();
 
-  void addispose(){
-    if(bannerAd.isNotEmpty) {
-      if (kDebugMode) {
-        print("dispose here");
+      // Adjust the current index to reload this slot
+      if (_currentLoadingIndex.value > 0) {
+        _currentLoadingIndex.value--;
       }
-      // bannerAd.first.dispose();
-      bannerAd.removeAt(0);
-      currentIndex--;
+
       loadAd();
     }
   }
 
+  /// Disposes all loaded ads
+  void _disposeAllAds() {
+    for (final ad in _loadedAds) {
+      ad.dispose();
+    }
+    _loadedAds.clear();
+  }
+
+  /// Returns a widget displaying the banner ad
   Widget adWidget() {
     return Obx(() {
       if (bannerReady && deviceallow.allow()) {
-        return SizedBox(
-          height: bannerAd.first.size.height.toDouble(),
-          child: AdWidget(ad: bannerAd.first),
+        return Container(
+          alignment: Alignment.center,
+          width: _loadedAds.first.size.width.toDouble(),
+          height: _loadedAds.first.size.height.toDouble(),
+          child: AdWidget(ad: _loadedAds.first),
         );
       } else {
-        // return SizedBox.shrink();
         return const SizedBox.shrink();
       }
     });
   }
 
-  Widget bannerAds({AdSize adsize = AdSize.banner}) {
-    if(adUnitId.isNotEmpty) {
-      var adunitid = adUnitId[0];
-      var banner = BannerAd(
-        adUnitId: adunitid,
-        size: adsize,
-        listener: listener,
-        request: const AdRequest(),
-      );
-      return FutureBuilder(
-        future: banner.load(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            adUnitId.removeAt(0);
-            adUnitId.add(adunitid);
-            return SizedBox(
-                height: banner.size.height.toDouble(),
-                width: banner.size.width.toDouble(),
-                child: AdWidget(ad: banner));
-          } else {
-            return const SizedBox.shrink();
-          }
-        },
-      );
-    } else{
-      return SizedBox.shrink();
+  /// Creates and returns a banner ad widget with specified size
+  Widget bannerAdWithSize({AdSize adSize = AdSize.banner}) {
+    if (_adUnitIds.isEmpty) {
+      return const SizedBox.shrink();
     }
-  }
 
+    // Use the first ad unit ID and rotate it to the end of the list
+    final adUnitId = _adUnitIds.first;
+
+    // Create the banner ad
+    final banner = BannerAd(
+      adUnitId: adUnitId,
+      size: adSize,
+      listener: _listener,
+      request: const AdRequest(),
+    );
+
+    // Load the ad and return a widget
+    return FutureBuilder(
+      future: banner.load(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          // Rotate the ad unit ID to the end of the list
+          _adUnitIds.removeAt(0);
+          _adUnitIds.add(adUnitId);
+
+          return Container(
+            alignment: Alignment.center,
+            width: banner.size.width.toDouble(),
+            height: banner.size.height.toDouble(),
+            child: AdWidget(ad: banner),
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
+      },
+    );
+  }
 }

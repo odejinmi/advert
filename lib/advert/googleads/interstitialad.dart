@@ -1,125 +1,153 @@
-import 'dart:async';
-import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import '../../model/advertresponse.dart';
-import '../device.dart';
 
+class InterstitialAdManager extends GetxController {
+  // Constants
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
 
-class Interstitialad extends GetxController {
-  var screenUnitId;
-  Interstitialad(this.screenUnitId);
+  // Private variables
+  final List<String> _adUnitIds;
+  final RxList<InterstitialAd> _loadedAds = <InterstitialAd>[].obs;
+  final RxInt _currentLoadingIndex = 0.obs;
+  final RxInt _failedAttempts = 0.obs;
+  final RxBool _isLoading = false.obs;
 
+  // Constructor
+  InterstitialAdManager(this._adUnitIds);
 
-  var _intersAd1 = [].obs;
-  set intersAd1(value)=> _intersAd1.value = value;
-  get intersAd1 => _intersAd1.value;
-
-  var _numInterstitialLoadAttempts = 0.obs;
-  set numInterstitialLoadAttempts(value)=> _numInterstitialLoadAttempts.value = value;
-  get numInterstitialLoadAttempts => _numInterstitialLoadAttempts.value;
-
-  var _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value)=> _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
-
-  final _isloading = false.obs;
-  set isloading(value) => _isloading.value = value;
-  get isloading => _isloading.value;
-
-  bool showAds = false;
-
-  void createInterstitialAd({Function? show}) {
-    if (currentIndex >= screenUnitId.length) {
-      if(show != null){
-        show();
-      }
-      return; // All ads have been loaded
-    }
-    if (isloading) {
-      return; // All ads have been loaded
-    }
-    isloading = true;
-    print("Loading rewardedAd $currentIndex");
-      var adunitid = screenUnitId[currentIndex];
-      InterstitialAd.load(
-            adUnitId: adunitid,
-            request: const AdRequest(),
-            adLoadCallback: InterstitialAdLoadCallback(
-              onAdLoaded: (InterstitialAd ad) {
-                isloading = false;
-                print("your interstitialad has been loaded");
-                intersAd1.add(ad);
-                numInterstitialLoadAttempts = 0;
-                currentIndex++;
-                if (currentIndex < screenUnitId.length) {
-                  createInterstitialAd(); // Load the next ad
-                }
-              },
-              onAdFailedToLoad: (LoadAdError error) {
-                isloading = false;
-                // googleinstatialfailed = true;
-                numInterstitialLoadAttempts += 1;
-                if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-                  createInterstitialAd();
-                } else {
-                  currentIndex++;
-                  if (currentIndex < screenUnitId.length) {
-                    createInterstitialAd(); // Load the next ad
-                  }
-                }
-              },
-            ));
-
-  }
-
-  void addispose(InterstitialAd ad){
-    // intersAd1.remove(ad);
-    intersAd1.removeAt(0);
-    currentIndex--;
-    ad.dispose();
-    createInterstitialAd();
-  }
+  // Getters
+  bool get isLoading => _isLoading.value;
+  bool get hasAds => _loadedAds.isNotEmpty;
+  int get adsCount => _loadedAds.length;
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    // if(deviceallow.allow()) {
-    //   createInterstitialAd();
-    // }
+    // Start preloading ads
+    preloadAds();
   }
 
-  Advertresponse showAd(){
-    if (intersAd1.isEmpty) {
-      debugPrint('Warning: attempt to show rewarded ad before loaded.');
-      createInterstitialAd(show: showAd);
+  @override
+  void onClose() {
+    // Dispose all ads when controller is closed
+    for (final ad in _loadedAds) {
+      ad.dispose();
+    }
+    _loadedAds.clear();
+    super.onClose();
+  }
+
+  /// Preloads ads up to the number of ad unit IDs available
+  void preloadAds() {
+    // If we're already loading or have loaded all ads, don't start again
+    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
+      return;
+    }
+
+    _loadNextAd();
+  }
+
+  /// Loads the next ad in the sequence
+  void _loadNextAd() {
+    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+      _isLoading.value = false;
+      return;
+    }
+
+    _isLoading.value = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+
+    debugPrint(
+        'Loading interstitial ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}');
+
+    InterstitialAd.load(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: _onAdLoaded,
+        onAdFailedToLoad: _onAdFailedToLoad,
+      ),
+    );
+  }
+
+  /// Callback when ad is successfully loaded
+  void _onAdLoaded(InterstitialAd ad) {
+    debugPrint('Interstitial ad loaded successfully');
+    _loadedAds.add(ad);
+    _failedAttempts.value = 0;
+    _currentLoadingIndex.value++;
+    _isLoading.value = false;
+
+    // Continue loading the next ad if there are more ad units
+    if (_currentLoadingIndex.value < _adUnitIds.length) {
+      _loadNextAd();
+    }
+  }
+
+  /// Callback when ad fails to load
+  void _onAdFailedToLoad(LoadAdError error) {
+    debugPrint('Interstitial ad failed to load: ${error.message}');
+    _failedAttempts.value++;
+    _isLoading.value = false;
+
+    if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+      // Retry loading the same ad
+      _loadNextAd();
+    } else {
+      // Move to next ad unit after max retries
+      _failedAttempts.value = 0;
+      _currentLoadingIndex.value++;
+
+      if (_currentLoadingIndex.value < _adUnitIds.length) {
+        _loadNextAd();
+      }
+    }
+  }
+
+  /// Shows an ad if available, returns the result
+  Advertresponse showAd() {
+    if (_loadedAds.isEmpty) {
+      debugPrint('Warning: attempt to show interstitial ad before loaded.');
+      preloadAds();
       return Advertresponse.defaults();
     }
 
-    var intersAd0 = intersAd1[0];
-    // Keep a reference to the ad so you can show it later.
-    intersAd0.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (InterstitialAd ad) {},
+    final ad = _loadedAds.removeAt(0);
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (InterstitialAd ad) {
+        debugPrint('Interstitial ad showed full screen content');
+      },
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
-        intersAd1.remove(ad);
+        debugPrint('Interstitial ad dismissed');
         ad.dispose();
+        // Preload a replacement ad
+        _loadReplacementAd();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-        addispose(ad);
+        debugPrint('Interstitial ad failed to show: ${error.message}');
+        ad.dispose();
+        // Preload a replacement ad
+        _loadReplacementAd();
       },
     );
 
-    intersAd0.setImmersiveMode(true);
-    intersAd0.show();
+    ad.setImmersiveMode(true);
+    ad.show();
 
-      return Advertresponse.showing();
+    return Advertresponse.showing();
   }
 
+  /// Loads a replacement ad after one is shown or fails
+  void _loadReplacementAd() {
+    // Reset index if we've gone through all ad units
+    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+      _currentLoadingIndex.value = 0;
+    }
+
+    _loadNextAd();
+  }
 }

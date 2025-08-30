@@ -11,169 +11,180 @@ import 'googleads/nativead.dart';
 import 'googleads/rewardedad.dart';
 import 'googleads/rewardedinterstitialad.dart';
 
-class GoogleProvider extends GetxController {
-  Googlemodel googlemodel;
-  GoogleProvider(this.googlemodel);
+class GoogleAdProvider extends GetxController {
+  // Constants
+  static const int MAX_RETRY_ATTEMPTS = 3;
 
-  var interstitiaad;
-  var rewardedad;
-  var nativead;
-  var banner;
-  var rewardedinterstitialad;
-  // var _reward = 0.obs;
-  // set reward(value)=> _reward.value = value;
-  // get reward => _reward.value;
+  // Platform-specific app IDs
+  static String get appId => Platform.isAndroid
+      ? 'ca-app-pub-6117361441866120~5829948546'
+      : 'ca-app-pub-6117361441866120~7211527566';
 
+  // Private variables
+  final Googlemodel _adConfig;
+  final RxInt _interstitialShowPosition = 1.obs;
+  final RxInt _rewardShowPosition = 1.obs;
+  final RxInt _retryAttempts = 0.obs;
 
-  var maxfail = 3;
+  // Ad managers
+  late final InterstitialAdManager _interstitialAdManager;
+  late final RewardedAdManager _rewardedAdManager;
+  late final NativeAdManager _nativeAdManager;
+  late final BannerAdManager _bannerAdManager;
+  late final RewardedInterstitialAdManager _rewardedInterstitialAdManager;
 
-  var advertprovider = 2;
+  // Constructor
+  GoogleAdProvider(this._adConfig);
 
-  var _instertialshowposition = 1.obs;
-  set instertialshowposition(value) => _instertialshowposition.value = value;
-  get instertialshowposition => _instertialshowposition.value;
-
-  var _rewardshowposition = 1.obs;
-  set rewardshowposition(value) => _rewardshowposition.value = value;
-  get rewardshowposition => _rewardshowposition.value;
-
-  var _instertialattempt = 0.obs;
-  set instertialattempt(value) => _instertialattempt.value = value;
-  get instertialattempt => _instertialattempt.value;
-
-  var _rewardvideoattempt = 0.obs;
-  set rewardvideoattempt(value) => _rewardvideoattempt.value = value;
-  get rewardvideoattempt => _rewardvideoattempt.value;
+  // Getters
+  bool get hasInterstitialAd => _interstitialAdManager.hasAds;
+  bool get hasRewardedAd => _rewardedAdManager.hasAds;
+  bool get hasRewardedInterstitialAd => _rewardedInterstitialAdManager.hasAds;
+  int get adProviderCount =>
+      2; // Number of ad providers (rewarded and rewarded interstitial)
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    interstitiaad = Get.put(Interstitialad(googlemodel.screenUnitId), permanent: true);
-    rewardedad = Get.put(Rewardedad(googlemodel.videoUnitId), permanent: true);
-    nativead = Get.put(Nativead(googlemodel.nativeadUnitId), permanent: true);
-    banner = Get.put(Bannerad(googlemodel.banneradadUnitId), permanent: true);
-    rewardedinterstitialad = Get.put(Rewardedinterstitialad(googlemodel.rewardedinterstitialad), permanent: true);
-    // counting();
+    _initializeAdManagers();
   }
 
-  loadnativead(){
-    nativead.loadAd();
-  }
-  loadinterrtitialad(){
-    interstitiaad.createInterstitialAd();
-  }
-  loadrewardedad(){
-    rewardedad.createRewardedAd();
-  }
-  loadrewardedinterstitialad(){
-    rewardedinterstitialad.loadAd();
+  /// Initializes all ad managers
+  void _initializeAdManagers() {
+    _interstitialAdManager =
+        Get.put(InterstitialAdManager(_adConfig.screenUnitId), permanent: true);
+
+    _rewardedAdManager =
+        Get.put(RewardedAdManager(_adConfig.videoUnitId), permanent: true);
+
+    _nativeAdManager =
+        Get.put(NativeAdManager(_adConfig.nativeadUnitId), permanent: true);
+
+    _bannerAdManager =
+        Get.put(BannerAdManager(_adConfig.banneradadUnitId), permanent: true);
+
+    _rewardedInterstitialAdManager = Get.put(
+        RewardedInterstitialAdManager(_adConfig.rewardedinterstitialad),
+        permanent: true);
   }
 
-  loadrewardads(){
-    loadrewardedad();
-    loadrewardedinterstitialad();
+  /// Preloads all ad types
+  void preloadAllAds() {
+    loadInterstitialAd();
+    loadRewardedAd();
+    loadNativeAd();
+    loadRewardedInterstitialAd();
   }
 
-  get intersAd1{
-    return interstitiaad.intersAd1.isNotEmpty;
+  /// Loads a native ad
+  void loadNativeAd() {
+    _nativeAdManager.loadAd();
   }
 
-  get rewardedAd => rewardedad.rewardedAd.isNotEmpty;
-  get rewardedinterstitialAd => rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty;
-
-
-  Widget shownative(){
-    return nativead.showad();
+  /// Loads an interstitial ad
+  void loadInterstitialAd() {
+    _interstitialAdManager.preloadAds();
   }
 
-  Advertresponse showAd1(){
-   return interstitiaad.showAd();
+  /// Loads a rewarded ad
+  void loadRewardedAd() {
+    _rewardedAdManager.preloadAds();
   }
 
-  Advertresponse showRewardedAd(reward, Map<String, String>  customData){
-    // if (rewardedinterstitialad.rewardedInterstitialAd.isEmpty ) {
-    if (rewardedad.rewardedAd.isNotEmpty && rewardshowposition == 1) {
-      print("rewardedad.rewardedAd.length");
-      print(rewardedad.rewardedAd.length);
-      rewardshowposition++;
-      instertialattempt = 0;
-     return rewardedad.showRewardedAd(reward, customData);
-    // }else if (rewardedinterstitialad.rewardedInterstitialAd.isNotEmpty ){
-    //   print("rewardedinterstitialad.rewardedInterstitialAd.length");
-    //   print(rewardedinterstitialad.rewardedInterstitialAd.length);
-    //   rewardshowposition ++;
-    //   instertialattempt = 0;
-    //  return rewardedinterstitialad.showad(reward,customData);
-    }else{
-      print("showRewardedAd error");
-      print(instertialattempt);
-      if(rewardshowposition == advertprovider) {
-        rewardshowposition = 1;
-      }else{
-        rewardshowposition ++;
-      }
-      if (instertialattempt < maxfail) {
-        instertialattempt ++;
-        return showRewardedAd(reward,customData);
-      }  else{
-        instertialattempt = 0;
+  /// Loads a rewarded interstitial ad
+  void loadRewardedInterstitialAd() {
+    _rewardedInterstitialAdManager.preloadAds();
+  }
+
+  /// Loads all rewarded ad types
+  void loadRewardAds() {
+    loadRewardedAd();
+    loadRewardedInterstitialAd();
+  }
+
+  /// Shows a native ad
+  Widget showNativeAd() {
+    return _nativeAdManager.buildAdWidget();
+  }
+
+  /// Shows an interstitial ad
+  Advertresponse showInterstitialAd() {
+    return _interstitialAdManager.showAd();
+  }
+
+  /// Shows a rewarded ad with reward callback
+  Advertresponse showRewardedAd(
+      Function? onRewarded, Map<String, String> customData) {
+    // Reset retry counter if we're switching ad types
+    if (_rewardShowPosition.value != 1) {
+      _retryAttempts.value = 0;
+    }
+
+    // Try to show rewarded ad if available
+    if (_rewardedAdManager.hasAds && _rewardShowPosition.value == 1) {
+      debugPrint(
+          'Showing rewarded ad (${_rewardedAdManager.adsCount} available)');
+      _rewardShowPosition.value = 2; // Move to next ad type for next attempt
+      _retryAttempts.value = 0;
+      return _rewardedAdManager.showRewardedAd(
+        onRewarded: onRewarded,
+        customData: customData,
+      );
+    }
+    // Try rewarded interstitial as fallback
+    else if (_rewardedInterstitialAdManager.hasAds &&
+        _rewardShowPosition.value == 2) {
+      debugPrint(
+          'Showing rewarded interstitial ad (${_rewardedInterstitialAdManager.adsCount} available)');
+      _rewardShowPosition.value = 1; // Reset to first ad type for next attempt
+      _retryAttempts.value = 0;
+      return _rewardedInterstitialAdManager.showAd(
+        onRewarded: onRewarded,
+        customData: customData,
+      );
+    }
+    // Handle case when no ads are available
+    else {
+      debugPrint(
+          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+
+      // Cycle through ad providers
+      _rewardShowPosition.value =
+          _rewardShowPosition.value % adProviderCount + 1;
+
+      // Retry with limited attempts
+      if (_retryAttempts.value < MAX_RETRY_ATTEMPTS) {
+        _retryAttempts.value++;
+        return showRewardedAd(onRewarded, customData);
+      } else {
+        _retryAttempts.value = 0;
         return Advertresponse.defaults();
       }
     }
   }
 
-  Advertresponse showRewardedinstertitialAd(reward, Map<String, String>  customData){
-    if (rewardedad.rewardedAd.isNotEmpty) {
-      return rewardedinterstitialad.showad(reward, customData);
-    }else{
-      print("showRewardedAd error");
-      print(instertialattempt);
-      if(rewardshowposition == advertprovider) {
-        rewardshowposition = 1;
-      }else{
-        rewardshowposition ++;
-      }
-      if (instertialattempt < maxfail) {
-        instertialattempt ++;
-        return showRewardedinstertitialAd(reward,customData);
-      }  else{
-        instertialattempt = 0;
-        return Advertresponse.defaults();
-      }
+  /// Shows a rewarded interstitial ad with reward callback
+  Advertresponse showRewardedInterstitialAd(
+      Function? onRewarded, Map<String, String> customData) {
+    if (_rewardedInterstitialAdManager.hasAds) {
+      return _rewardedInterstitialAdManager.showAd(
+        onRewarded: onRewarded,
+        customData: customData,
+      );
+    } else {
+      // Fall back to regular rewarded ad if rewarded interstitial is not available
+      return showRewardedAd(onRewarded, customData);
     }
   }
 
-  Widget googlebanner(){
-    // return banner.bannerAds();
-    return banner.adWidget();
+  /// Returns a banner ad widget
+  Widget showBannerAd() {
+    return _bannerAdManager.adWidget();
   }
 
-  bool showAds = false;
-  bool _footerBannerShow = false;
-  dynamic _bannerAd;
-
-  set footBannerShow(bool value) {
-    _footerBannerShow = value;
-    update();
+  @override
+  void onClose() {
+    // No need to manually dispose ad managers as they're handled by GetX
+    super.onClose();
   }
-
-  // bool get footBannerShow => !showAds ? false : _footerBannerShow;
-
-  get bannerIsAvailable => _bannerAd != null;
-
-  // void removeBanner() {
-  //   banner.addispose();
-  // }
-
-
-  static String get appId => Platform.isAndroid
-      // old
-      // ? 'ca-app-pub-6117361441866120~5829948546'
-      // ? 'ca-app-pub-1598206053668309~2044155939'
-      ? 'ca-app-pub-6117361441866120~5829948546'
-      // : 'ca-app-pub-3940256099942544~1458002511';
-      // : 'ca-app-pub-1598206053668309~7710581439';
-      : 'ca-app-pub-6117361441866120~7211527566';
-
 }

@@ -1,190 +1,215 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import '../../model/advertresponse.dart';
-import '../device.dart';
 
+class RewardedAdManager extends GetxController {
+  // Constants
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+  static const Duration AD_EXPIRATION = Duration(hours: 1);
 
-class Rewardedad extends GetxController {
-  var videoUnitId;
-  Rewardedad(this.videoUnitId);
+  // Private variables
+  final List<String> _adUnitIds;
+  final RxList<Map<String, dynamic>> _loadedAds = <Map<String, dynamic>>[].obs;
+  final RxInt _currentLoadingIndex = 0.obs;
+  final RxInt _failedAttempts = 0.obs;
+  final RxBool _isLoading = false.obs;
+  final RxBool _rewardEarned = false.obs;
 
-  RxList _rewardedAd = [].obs;
-  set rewardedAd(value) => _rewardedAd.value = value;
-  get rewardedAd => _rewardedAd.value;
+  // Constructor
+  RewardedAdManager(this._adUnitIds);
 
-  var _numRewardedLoadAttempts = 0.obs;
-  set numRewardedLoadAttempts(value) => _numRewardedLoadAttempts.value = value;
-  get numRewardedLoadAttempts => _numRewardedLoadAttempts.value;
-
-  var _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value) => _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
-
-  final _givereward = false.obs;
-  set givereward(value) => _givereward.value = value;
-  get givereward => _givereward.value;
-
-  final _isloading = false.obs;
-  set isLoading(value) => _isloading.value = value;
-  get isLoading => _isloading.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
-
+  // Getters
+  bool get isLoading => _isLoading.value;
+  bool get hasAds => _loadedAds.isNotEmpty;
+  int get adsCount => _loadedAds.length;
 
   @override
   void onInit() {
     super.onInit();
-    // if (deviceallow.allow()) {
-    //   createRewardedAd();
-    // }
+    // Start preloading ads
+    preloadAds();
   }
 
-  void createRewardedAd({Function? show}) async {
-    print("Start Loading rewardedAd");
-
-    if (currentIndex >= videoUnitId.length) {
-      if (show != null) {
-        show();
-      }
-      return; // Exit if all ads have been loaded
+  @override
+  void onClose() {
+    // Dispose all ads when controller is closed
+    for (final adData in _loadedAds) {
+      (adData['advert'] as RewardedAd).dispose();
     }
+    _loadedAds.clear();
+    super.onClose();
+  }
 
-    if (isLoading) {
-      return; // Prevent multiple concurrent loading attempts
-    }
-
-    isLoading = true;
-    print("Loading rewardedAd $currentIndex");
-
-    var adUnitId = videoUnitId[currentIndex];
-
-    // Check if an ad already exists for the current ad unit
-    if (rewardedAd.any((ad) => ad.adUnitId == adUnitId)) {
-      print("Ad for adUnitId $adUnitId already exists.");
-      isLoading = false;
+  /// Preloads ads up to the number of ad unit IDs available
+  void preloadAds() {
+    // If we're already loading or have loaded all ads, don't start again
+    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
       return;
     }
 
-    await Future(() {
-      RewardedAd.load(
-        adUnitId: adUnitId,
-        request: AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (RewardedAd ad) {
-            isLoading = false;
-            print("Rewarded ad loaded: $adUnitId");
-
-            // Add the loaded ad to the rewardedAd list
-            rewardedAd.add({"advert": ad, "time": DateTime.now()});
-            numRewardedLoadAttempts = 0;
-            currentIndex++;
-
-            // Check if there are more ads to load
-            if (currentIndex < videoUnitId.length) {
-              createRewardedAd(); // Load the next ad
-            }
-
-            if (show != null) {
-              show();
-            }
-          },
-          onAdFailedToLoad: (LoadAdError error) {
-            isLoading = false;
-            print("Failed to load rewarded ad: $adUnitId, error: $error");
-            numRewardedLoadAttempts += 1;
-
-            // Retry loading the ad if the max attempts have not been reached
-            if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-              createRewardedAd();
-            } else {
-              currentIndex++;
-
-              // Check if there are more ads to load
-              if (currentIndex < videoUnitId.length) {
-                createRewardedAd(); // Load the next ad
-              }
-            }
-          },
-        ),
-      );
-    });
+    _loadNextAd();
   }
 
-
-  void addispose(RewardedAd ad) {
-    ad.dispose();
-    rewardedAd.removeWhere((element) => element['advert'] == ad);
-    // rewardedAd.removeAt(0);
-    currentIndex--;
-    createRewardedAd(); // Load a new ad when one is disposed
-  }
-
-  Advertresponse showRewardedAd(Function? rewarded, Map<String, String>  customData) {
-    if (rewardedAd.isEmpty) {
-      createRewardedAd(show: showRewardedAd);
-      debugPrint('Warning: attempt to show rewarded ad before loaded.');
-      return Advertresponse.defaults();
-    }else if(isMoreThanOneHourPast(rewardedAd[0]["time"])){
-      addispose(rewardedAd[0]["advert"]);
-      return showRewardedAd(rewarded, customData);
+  /// Loads the next ad in the sequence
+  void _loadNextAd() {
+    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+      _isLoading.value = false;
+      return;
     }
-    var rewarded0 = rewardedAd[0]["advert"];
-    rewarded0.fullScreenContentCallback = FullScreenContentCallback(
+
+    _isLoading.value = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+
+    // Check if an ad already exists for this ad unit ID
+    if (_loadedAds
+        .any((ad) => (ad['advert'] as RewardedAd).adUnitId == adUnitId)) {
+      debugPrint('Ad for adUnitId $adUnitId already exists');
+      _isLoading.value = false;
+      _currentLoadingIndex.value++;
+
+      if (_currentLoadingIndex.value < _adUnitIds.length) {
+        _loadNextAd();
+      }
+      return;
+    }
+
+    debugPrint(
+        'Loading rewarded ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}');
+
+    RewardedAd.load(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          debugPrint('Rewarded ad loaded successfully: $adUnitId');
+          _loadedAds.add({
+            'advert': ad,
+            'time': DateTime.now(),
+          });
+          _failedAttempts.value = 0;
+          _currentLoadingIndex.value++;
+          _isLoading.value = false;
+
+          // Continue loading the next ad if there are more ad units
+          if (_currentLoadingIndex.value < _adUnitIds.length) {
+            _loadNextAd();
+          }
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          debugPrint('Rewarded ad failed to load: ${error.message}');
+          _failedAttempts.value++;
+          _isLoading.value = false;
+
+          if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+            // Retry loading the same ad
+            _loadNextAd();
+          } else {
+            // Move to next ad unit after max retries
+            _failedAttempts.value = 0;
+            _currentLoadingIndex.value++;
+
+            if (_currentLoadingIndex.value < _adUnitIds.length) {
+              _loadNextAd();
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  /// Shows a rewarded ad if available, returns the result
+  Advertresponse showRewardedAd({
+    Function? onRewarded,
+    Map<String, String> customData = const {},
+  }) {
+    if (_loadedAds.isEmpty) {
+      debugPrint('Warning: attempt to show rewarded ad before loaded.');
+      preloadAds();
+      return Advertresponse.defaults();
+    }
+
+    // Check if the ad is expired
+    final adData = _loadedAds[0];
+    final adTime = adData['time'] as DateTime;
+    if (_isAdExpired(adTime)) {
+      debugPrint('Ad expired, disposing and loading a new one');
+      _disposeAd(adData['advert']);
+      return showRewardedAd(onRewarded: onRewarded, customData: customData);
+    }
+
+    final ad = adData['advert'] as RewardedAd;
+    _rewardEarned.value = false;
+
+    // Set server-side verification options if custom data is provided
+    if (customData.isNotEmpty) {
+      final options = ServerSideVerificationOptions(
+        customData: jsonEncode(customData),
+      );
+      ad.setServerSideOptions(options);
+    }
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) {
-          debugPrint('Ad onAdShowedFullScreenContent.');
-          // var customData = {
-          //   "username": "",
-          //   "platform": "",
-          //   "type": ""
-          // };
-          ServerSideVerificationOptions options = ServerSideVerificationOptions(
-            customData: jsonEncode(customData),
-          );
-          ad.setServerSideOptions(options);
-       },
+        debugPrint('Rewarded ad showed full screen content');
+      },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
-        debugPrint('$ad onAdDismissedFullScreenContent.');
-        if (rewarded != null && givereward) {
-          rewarded();
+        debugPrint('Rewarded ad dismissed');
+        if (onRewarded != null && _rewardEarned.value) {
+          onRewarded();
         }
-        addispose(ad);
+        _disposeAd(ad);
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
-        Future.delayed(Duration(seconds: 2), () {
-          showRewardedAd(rewarded, customData);
+        debugPrint('Rewarded ad failed to show: ${error.message}');
+        _disposeAd(ad);
+
+        // Try to show another ad after a short delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (_loadedAds.isNotEmpty) {
+            showRewardedAd(onRewarded: onRewarded, customData: customData);
+          }
         });
-        debugPrint('$ad onAdFailedToShowFullScreenContent: $error');
-        addispose(ad);
       },
     );
 
-    rewarded0.setImmersiveMode(true);
-    rewarded0.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-      debugPrint('$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
-      givereward = true;
-    });
+    ad.setImmersiveMode(true);
+    ad.show(
+      onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        debugPrint('User earned reward: ${reward.amount} ${reward.type}');
+        _rewardEarned.value = true;
+      },
+    );
+
     return Advertresponse.showing();
   }
 
-  static String get appId => Platform.isAndroid
-      ? 'ca-app-pub-6117361441866120~5829948546'
-      : 'ca-app-pub-6117361441866120~7211527566';
+  /// Disposes an ad and loads a replacement
+  void _disposeAd(RewardedAd ad) {
+    _loadedAds.removeWhere((adData) => adData['advert'] == ad);
+    ad.dispose();
 
-  bool isMoreThanOneHourPast(DateTime givenTime) {
-    // Get the current time
-    DateTime currentTime = DateTime.now();
-
-    // Calculate the difference in hours
-    Duration difference = currentTime.difference(givenTime);
-
-    // Check if the difference is more than 1 hour
-    return difference.inHours > 1;
+    // Load a replacement ad
+    _loadReplacementAd();
   }
 
+  /// Loads a replacement ad after one is shown or disposed
+  void _loadReplacementAd() {
+    // Reset index if we've gone through all ad units
+    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+      _currentLoadingIndex.value = 0;
+    }
+
+    _loadNextAd();
+  }
+
+  /// Checks if an ad is expired (older than AD_EXPIRATION)
+  bool _isAdExpired(DateTime adTime) {
+    final currentTime = DateTime.now();
+    final difference = currentTime.difference(adTime);
+    return difference > AD_EXPIRATION;
+  }
 }

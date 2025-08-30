@@ -1,14 +1,7 @@
-import 'dart:io';
-
 import 'package:advert/advert/advert.dart';
-import 'package:advert/model/adsmodel.dart';
 import 'package:advert/model/advertresponse.dart';
-import 'package:advert/model/google.dart';
-import 'package:advert/model/unity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'anchored_adaptive_example.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({Key? key}) : super(key: key);
@@ -36,8 +29,8 @@ class _HomepageState extends State<Homepage> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      platformVersion =
-          await _advertPlugin.getPlatformVersion() ?? 'Unknown platform version';
+      platformVersion = await _advertPlugin.getPlatformVersion() ??
+          'Unknown platform version';
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }
@@ -51,6 +44,7 @@ class _HomepageState extends State<Homepage> {
       _platformVersion = platformVersion;
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,14 +56,18 @@ class _HomepageState extends State<Homepage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            TextButton(onPressed: (){
-              _advertPlugin.adsProv.showads();
-            }, child: const Text("show advert")),
-            TextButton(onPressed: (){
-              setState(() {
-                native = !native;
-              });
-            }, child: const Text("show native advert")),
+            TextButton(
+                onPressed: () {
+                  _advertPlugin.adsProv.showInterstitialAd();
+                },
+                child: const Text("show advert")),
+            TextButton(
+                onPressed: () {
+                  setState(() {
+                    native = !native;
+                  });
+                },
+                child: const Text("show native advert")),
             Visibility(
               visible: native,
               child: ConstrainedBox(
@@ -79,34 +77,39 @@ class _HomepageState extends State<Homepage> {
                   maxWidth: 400,
                   maxHeight: 200,
                 ),
-                child: _advertPlugin.adsProv.shownativeads(),
+                child: _advertPlugin.adsProv.showNativeAd(),
               ),
             ),
-            TextButton(onPressed: (){
-              showreawardads((){});
-            }, child: const Text("show reward advert")),
-            TextButton(onPressed: (){
-              mutipleadvert(reward: (){});
-            }, child: const Text("show multiple reward advert")),
-            TextButton(onPressed: (){
-              // Navigator.push(context,
-              //     MaterialPageRoute(
-              //         builder: (context) => ReusableInlineExample())
-              // );
-              setState(() {
-                banner = !banner;
-              });
-            }, child: Text("${banner?'Hide':'show'} banner advert")),
+            TextButton(
+                onPressed: () {
+                  showreawardads(() {});
+                },
+                child: const Text("show reward advert")),
+            TextButton(
+                onPressed: () {
+                  mutipleadvert(reward: () {});
+                },
+                child: const Text("show multiple reward advert")),
+            TextButton(
+                onPressed: () {
+                  // Navigator.push(context,
+                  //     MaterialPageRoute(
+                  //         builder: (context) => ReusableInlineExample())
+                  // );
+                  setState(() {
+                    banner = !banner;
+                  });
+                },
+                child: Text("${banner ? 'Hide' : 'show'} banner advert")),
             Visibility(
-                visible: banner,
-                child: _advertPlugin.adsProv.banner()),
+                visible: banner, child: _advertPlugin.adsProv.showBannerAd()),
           ],
         ),
       ),
     );
   }
 
-  void showad(){
+  void showad() {
     print("native advert");
 
     // Small template
@@ -117,13 +120,13 @@ class _HomepageState extends State<Homepage> {
         maxWidth: 400,
         maxHeight: 200,
       ),
-      child: _advertPlugin.adsProv.shownativeads(),
+      child: _advertPlugin.adsProv.showNativeAd(),
     );
 
     // set up the button
     Widget okButton = TextButton(
       child: const Text("OK"),
-      onPressed: () { },
+      onPressed: () {},
     );
 
     // set up the AlertDialog
@@ -142,37 +145,30 @@ class _HomepageState extends State<Homepage> {
         return alert;
       },
     );
-
   }
 
   int gm_advt = 0;
 
-  Future<Advertresponse> showreawardads(Function reward) async{
-    var customData = {
-      "username": "",
-      "platform": "",
-      "type": ""
-    };
-    return await _advertPlugin.adsProv.showreawardads(reward,customData,3);
+  Future<Advertresponse> showreawardads(Function reward) async {
+    var customData = {"username": "", "platform": "", "type": ""};
+    return await _advertPlugin.adsProv.showRewardedAd(reward, customData, 3);
   }
 
-  Future<Advertresponse> mutipleadvert({required Function reward, int max = 3}) async {
+  Future<Advertresponse> mutipleadvert(
+      {required Function reward, int max = 3}) async {
     return await showreawardads(() {
       if (gm_advt < max) {
+        print("multiple advert $gm_advt");
         gm_advt += 1;
-        setState(() {
-
-        });
-        return mutipleadvert(reward:reward);
+        setState(() {});
+        return mutipleadvert(reward: reward);
       } else {
+        print("multiple advert $gm_advt finished");
         gm_advt = 0;
-        setState(() {
-
-        });
+        setState(() {});
         reward();
         return Advertresponse(message: "advert finished showing", status: true);
       }
     });
-
   }
 }

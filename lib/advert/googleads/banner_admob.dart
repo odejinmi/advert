@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,169 +5,200 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../device.dart';
 
-class BannerAdmob extends StatefulWidget {
-  final  adUnitId;
-  const BannerAdmob({Key? key, required this.adUnitId}) : super(key: key);
+class BannerAdWidget extends StatefulWidget {
+  final List<String> adUnitIds;
+  final AdSize adSize;
+  final Duration retryDelay;
+
+  const BannerAdWidget({
+    Key? key,
+    required this.adUnitIds,
+    this.adSize = AdSize.largeBanner,
+    this.retryDelay = const Duration(seconds: 3),
+  }) : super(key: key);
 
   @override
-  BannerAdmobState createState() => BannerAdmobState();
+  BannerAdWidgetState createState() => BannerAdWidgetState();
 }
 
-class BannerAdmobState extends State<BannerAdmob> {
+class BannerAdWidgetState extends State<BannerAdWidget> {
+  // Constants
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
 
+  // Ad management variables
+  final RxList<BannerAd> _loadedAds = <BannerAd>[].obs;
+  final RxInt _currentIndex = 0.obs;
+  final RxInt _failedAttempts = 0.obs;
+  final RxBool _isLoading = false.obs;
 
-  final _bannerAd = [].obs;
-  set bannerAd(value) => _bannerAd.value = value;
-  get bannerAd => _bannerAd.value;
-
-  var adUnitId;
-
-
-
+  // Getters
+  bool get isLoading => _isLoading.value;
+  bool get hasAds => _loadedAds.isNotEmpty;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    adUnitId = widget.adUnitId;
-    currentIndex = 0;
-    if(deviceallow.allow()) {
-      loadAd();
+    if (deviceallow.allow()) {
+      _loadAd();
     }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
+  void didUpdateWidget(BannerAdWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // If ad unit IDs changed, reload ads
+    if (!listEquals(widget.adUnitIds, oldWidget.adUnitIds) ||
+        widget.adSize != oldWidget.adSize) {
+      _disposeAllAds();
+      _currentIndex.value = 0;
+      _failedAttempts.value = 0;
+      if (deviceallow.allow()) {
+        _loadAd();
+      }
+    }
   }
 
-  // @override
-  // void didUpdateWidget(covariant BannerAdmob oldWidget) {
-  //   // TODO: implement didUpdateWidget
-  //   super.didUpdateWidget(oldWidget);
-  //   addispose();
-  // }
-
-  var _numRewardedLoadAttempts = 0.obs;
-  set numRewardedLoadAttempts(value) => _numRewardedLoadAttempts.value = value;
-  get numRewardedLoadAttempts => _numRewardedLoadAttempts.value;
-
-  var _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value) => _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
-
-  final _isloading = false.obs;
-  set isLoading(value) => _isloading.value = value;
-  get isLoading => _isloading.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
-
-  void loadAd() {
-    print("start loading banner");
-    if (currentIndex >= adUnitId.length) {
-      print("some banner has been loaded");
-      return; // Exit if all ads have been loaded
-    }
-    if ( isLoading) {
-      print("some banner still loading");
-      return; // Exit if all ads have been loaded
-    }
-
-    isLoading = true;
-    print("currentIndex   $currentIndex");
-    var adUnitI = adUnitId[currentIndex];
-
-    // Check if an ad already exists for the current ad unit
-    if (bannerAd.any((ad) => ad.adUnitId == adUnitI)) {
-      print("Ad for adUnitId $adUnitI already exists.");
-      isLoading = false;
+  /// Loads a banner ad using the current ad unit ID
+  void _loadAd() {
+    // Don't load if we have no ad unit IDs or device is not allowed
+    if (widget.adUnitIds.isEmpty || !deviceallow.allow()) {
       return;
     }
-      print("banner has started loading");
-        isLoading = true;
-        BannerAd(
-          adUnitId: adUnitI,
-          request: const AdRequest(),
-          size: AdSize.largeBanner,
-          listener: BannerAdListener(
-              onAdLoaded: (_) {
-                if (kDebugMode) {
-                  print("your bannerad has been loaded");
-                }
-                bannerAd.add(_);
-                isLoading = false;
-                currentIndex++;
-                setState((){});
-                // Check if there are more ads to load
-                if (currentIndex < adUnitId.length) {
-                  loadAd(); // Load the next ad
-                }
-              },
-              onAdFailedToLoad: (ad, err) async {
-                isLoading = false;
-                numRewardedLoadAttempts += 1;
-                setState((){});
-                // Retry loading the ad if the max attempts have not been reached
-                if (numRewardedLoadAttempts < maxFailedLoadAttempts) {
-                await Future.delayed(Duration(seconds: 3));
-                  loadAd();
-                } else {
-                  // currentIndex++;
-                  // setState((){});
-                  // // Check if there are more ads to load
-                  // if (currentIndex < adUnitId.length) {
-                  //   loadAd(); // Load the next ad
-                  // }else{
-                  //   currentIndex= 0;
-                  //   setState((){});
-                  //   await Future.delayed(Duration(seconds: 60));
-                  //   loadAd();
-                  // }
-                }
-                setState((){});
-              },
-              onAdWillDismissScreen: (ad){
-                addispose();
-              },
-              onAdClosed: (ad){
-                addispose();
-              }
-          ),
-        ).load();
+
+    // Don't start a new load if one is in progress
+    if (_isLoading.value) {
+      debugPrint('Banner ad load already in progress');
+      return;
+    }
+
+    // Don't load more ads if we've gone through all ad unit IDs
+    if (_currentIndex.value >= widget.adUnitIds.length) {
+      debugPrint('All banner ad units attempted');
+      return;
+    }
+
+    _isLoading.value = true;
+    final adUnitId = widget.adUnitIds[_currentIndex.value];
+
+    debugPrint(
+        'Loading banner ad ${_currentIndex.value + 1}/${widget.adUnitIds.length}: $adUnitId');
+
+    // Check if this ad unit ID is already loaded
+    if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
+      debugPrint('Banner ad for $adUnitId already exists');
+      _isLoading.value = false;
+      _currentIndex.value++;
+
+      if (_currentIndex.value < widget.adUnitIds.length) {
+        _loadAd();
+      }
+      return;
+    }
+
+    final bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: widget.adSize,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          debugPrint('Banner ad loaded successfully: ${ad.adUnitId}');
+          _loadedAds.add(ad as BannerAd);
+          _isLoading.value = false;
+          _failedAttempts.value = 0;
+          _currentIndex.value++;
+
+          // Force UI update
+          if (mounted) setState(() {});
+
+          // Try to load the next ad if available
+          if (_currentIndex.value < widget.adUnitIds.length) {
+            _loadAd();
+          }
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('Banner ad failed to load: ${error.message}');
+          ad.dispose();
+          _isLoading.value = false;
+          _failedAttempts.value++;
+
+          if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+            // Retry after delay
+            Future.delayed(widget.retryDelay, () {
+              if (mounted) _loadAd();
+            });
+          } else {
+            // Move to next ad unit
+            _failedAttempts.value = 0;
+            _currentIndex.value++;
+
+            if (_currentIndex.value < widget.adUnitIds.length) {
+              _loadAd();
+            } else {
+              // Reset index to try again after a longer delay
+              _currentIndex.value = 0;
+              Future.delayed(const Duration(seconds: 60), () {
+                if (mounted) _loadAd();
+              });
+            }
+          }
+
+          // Force UI update
+          if (mounted) setState(() {});
+        },
+        onAdOpened: (ad) => debugPrint('Banner ad opened'),
+        onAdClosed: (ad) {
+          debugPrint('Banner ad closed');
+          _refreshAd();
+        },
+        onAdWillDismissScreen: (ad) {
+          debugPrint('Banner ad will dismiss screen');
+          _refreshAd();
+        },
+        onAdImpression: (ad) => debugPrint('Banner ad impression recorded'),
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) =>
+            debugPrint('Banner ad paid event: $currencyCode $valueMicros'),
+      ),
+    );
+
+    bannerAd.load();
   }
 
-  void addispose(){
-    if(bannerAd.isNotEmpty) {
-      if (kDebugMode) {
-        print("dispose here");
-      }
-      bannerAd.first.dispose();
-      bannerAd.removeAt(0);
-      loadAd();
+  /// Refreshes the ad by disposing the current one and loading a new one
+  void _refreshAd() {
+    _disposeCurrentAd();
+    _loadAd();
+  }
+
+  /// Disposes the current ad and removes it from the list
+  void _disposeCurrentAd() {
+    if (_loadedAds.isNotEmpty) {
+      final ad = _loadedAds.removeAt(0);
+      ad.dispose();
     }
+  }
+
+  /// Disposes all loaded ads
+  void _disposeAllAds() {
+    for (final ad in _loadedAds) {
+      ad.dispose();
+    }
+    _loadedAds.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    // if(deviceallow.allow()) {
-    //   loadAd();
-    // }
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width,
       child: Obx(() {
-        if (bannerAd.isNotEmpty && deviceallow.allow()) {
+        if (_loadedAds.isNotEmpty && deviceallow.allow()) {
           return SizedBox(
-            height: bannerAd.first.size.height.toDouble(),
-            child: AdWidget(ad: bannerAd.first),
+            width: _loadedAds.first.size.width.toDouble(),
+            height: _loadedAds.first.size.height.toDouble(),
+            child: AdWidget(ad: _loadedAds.first),
           );
         } else {
-          // return SizedBox.shrink();
           return const SizedBox.shrink();
         }
       }),
@@ -178,8 +207,7 @@ class BannerAdmobState extends State<BannerAdmob> {
 
   @override
   void dispose() {
+    _disposeAllAds();
     super.dispose();
-    addispose();
-    currentIndex = 0;
   }
 }
