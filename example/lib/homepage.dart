@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:advert/advert/advert.dart';
 import 'package:advert/model/advertresponse.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({Key? key}) : super(key: key);
@@ -11,164 +12,128 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  String _platformVersion = 'Unknown';
   final _advertPlugin = Advert();
 
-  bool native = false;
-  bool banner = false;
+  bool _showNativeAd = false;
+  bool _showBannerAd = false;
+  bool _isShowingAds = false;
+
   @override
   void initState() {
     super.initState();
     _advertPlugin.initialize(testmode: true);
-    // initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion = await _advertPlugin.getPlatformVersion() ??
-          'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plugin example app'),
+        title: const Text('Advert Plugin Example'),
       ),
-      body: Container(
-        width: MediaQuery.of(context).size.width,
+      body: SizedBox(
+        width: double.infinity,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             TextButton(
-                onPressed: () {
-                  _advertPlugin.adsProv.showInterstitialAd();
-                },
-                child: const Text("show advert")),
-            TextButton(
-                onPressed: () {
-                  setState(() {
-                    native = !native;
-                  });
-                },
-                child: const Text("show native advert")),
-            Visibility(
-              visible: native,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: 320, // minimum recommended width
-                  minHeight: 90, // minimum recommended height
-                  maxWidth: 400,
-                  maxHeight: 200,
-                ),
-                child: _advertPlugin.adsProv.showNativeAd(),
-              ),
+              onPressed: _showInterstitialAd,
+              child: const Text("Show Interstitial Ad"),
             ),
             TextButton(
-                onPressed: () {
-                  showreawardads(() {});
-                },
-                child: const Text("show reward advert")),
+              onPressed: _toggleNativeAd,
+              child: Text("${_showNativeAd ? 'Hide' : 'Show'} Native Ad"),
+            ),
+            if (_showNativeAd) _buildNativeAdWidget(),
             TextButton(
-                onPressed: () {
-                  mutipleadvert(reward: () {});
-                },
-                child: const Text("show multiple reward advert")),
+              onPressed: _isShowingAds ? null : () => _showRewardAds(1),
+              child: const Text("Show Rewarded Ad"),
+            ),
             TextButton(
-                onPressed: () {
-                  // Navigator.push(context,
-                  //     MaterialPageRoute(
-                  //         builder: (context) => ReusableInlineExample())
-                  // );
-                  setState(() {
-                    banner = !banner;
-                  });
-                },
-                child: Text("${banner ? 'Hide' : 'show'} banner advert")),
-            Visibility(
-                visible: banner, child: _advertPlugin.adsProv.showBannerAd()),
+              onPressed: _isShowingAds ? null : () => _showRewardAds(3),
+              child: const Text("Show Multiple Rewarded Ads"),
+            ),
+            if (_isShowingAds)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 10),
+                    Text("Showing ads..."),
+                  ],
+                ),
+              ),
+            TextButton(
+              onPressed: _toggleBannerAd,
+              child: Text("${_showBannerAd ? 'Hide' : 'Show'} Banner Ad"),
+            ),
+            if (_showBannerAd) _advertPlugin.adsProv.showBannerAd(),
           ],
         ),
       ),
     );
   }
 
-  void showad() {
-    print("native advert");
+  void _showInterstitialAd() {
+    _advertPlugin.adsProv.showInterstitialAd();
+  }
 
-    // Small template
-    final adContainer = ConstrainedBox(
+  void _toggleNativeAd() {
+    setState(() {
+      _showNativeAd = !_showNativeAd;
+    });
+  }
+
+  Widget _buildNativeAdWidget() {
+    return ConstrainedBox(
       constraints: const BoxConstraints(
-        minWidth: 320, // minimum recommended width
-        minHeight: 90, // minimum recommended height
+        minWidth: 320,
+        minHeight: 90,
         maxWidth: 400,
         maxHeight: 200,
       ),
       child: _advertPlugin.adsProv.showNativeAd(),
     );
-
-    // set up the button
-    Widget okButton = TextButton(
-      child: const Text("OK"),
-      onPressed: () {},
-    );
-
-    // set up the AlertDialog
-    AlertDialog alert = AlertDialog(
-      title: const Text("My Advert"),
-      content: adContainer,
-      actions: [
-        okButton,
-      ],
-    );
-
-    // show the dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
   }
 
-  int gm_advt = 0;
-
-  Future<Advertresponse> showreawardads(Function reward) async {
-    var customData = {"username": "", "platform": "", "type": ""};
-    return await _advertPlugin.adsProv.showRewardedAd(reward, customData, 3);
+  void _toggleBannerAd() {
+    setState(() {
+      _showBannerAd = !_showBannerAd;
+    });
   }
 
-  Future<Advertresponse> mutipleadvert(
-      {required Function reward, int max = 3}) async {
-    return await showreawardads(() {
-      if (gm_advt < max) {
-        print("multiple advert $gm_advt");
-        gm_advt += 1;
-        setState(() {});
-        return mutipleadvert(reward: reward);
+  Future<void> _showRewardAds(int maxAds) async {
+    setState(() {
+      _isShowingAds = true;
+    });
+
+    final customData = {"username": "", "platform": "", "type": ""};
+
+    for (int i = 0; i < maxAds; i++) {
+      final completer = Completer<void>();
+
+      final Advertresponse response =
+          await _advertPlugin.adsProv.showRewardedAd(() {
+        // This is the onRewarded callback. We complete the future here.
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      }, customData);
+
+      if (response.status) {
+        // If the ad started showing, wait for the reward callback to be called.
+        // This future will complete when the onRewarded callback is executed.
+        await completer.future;
       } else {
-        print("multiple advert $gm_advt finished");
-        gm_advt = 0;
-        setState(() {});
-        reward();
-        return Advertresponse(message: "advert finished showing", status: true);
+        // If the ad failed to show, log it and stop trying.
+        debugPrint("Failed to show ad ${i + 1}. Stopping.");
+        break;
       }
+    }
+
+    setState(() {
+      _isShowingAds = false;
     });
   }
 }

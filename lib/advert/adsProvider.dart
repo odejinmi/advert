@@ -268,7 +268,7 @@ class AdManager extends GetxController {
   Widget showBannerAd() {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
       return BannerAdWidget(
-        adUnitIds: _adsConfig.googlemodel!.banneradadUnitId,
+        adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId,
       );
     }
     return const SizedBox.shrink();
@@ -278,7 +278,7 @@ class AdManager extends GetxController {
   Widget showBannerListAd(int numberOfAds) {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
       return BannerListWidget(
-        adUnitIds: _adsConfig.googlemodel!.banneradadUnitId,
+        adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId,
         numberOfAdsToShow: numberOfAds,
       );
     }

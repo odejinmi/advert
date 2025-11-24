@@ -1,5 +1,5 @@
 name: advert
-description: A new Flutter project.
+description: A Flutter plugin for integrating various advertising networks.
 version: 0.0.1
 homepage:
 
@@ -15,13 +15,12 @@ dependencies:
   plugin_platform_interface: ^2.1.8
   get: ^4.7.2
   unity_ads_plugin: ^0.3.27
-  #  adcolony_flutter: ^1.7.1
   google_mobile_ads: ^6.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

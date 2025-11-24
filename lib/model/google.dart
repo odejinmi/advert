@@ -1,58 +1,57 @@
 class Googlemodel {
-  List<String> _screenUnitId = [];
-  List<String> _videoUnitId = [];
-  List<String> _rewardedinterstitialad = [];
-  List<String> _nativeadUnitId = [];
-  List<String> _banneradadUnitId = [];
+  List<String> _interstitialAdUnitId = [];
+  List<String> _rewardedAdUnitId = [];
+  List<String> _rewardedInterstitialAdUnitId = [];
+  List<String> _nativeAdUnitId = [];
+  List<String> _bannerAdUnitId = [];
 
   Googlemodel();
 
   bool get googleempty {
-    return _screenUnitId.isEmpty &&
-        _videoUnitId.isEmpty &&
-        _rewardedinterstitialad.isEmpty &&
-        _nativeadUnitId.isEmpty &&
-        _banneradadUnitId.isEmpty;
+    return _interstitialAdUnitId.isEmpty &&
+        _rewardedAdUnitId.isEmpty &&
+        _rewardedInterstitialAdUnitId.isEmpty &&
+        _nativeAdUnitId.isEmpty &&
+        _bannerAdUnitId.isEmpty;
   }
 
-  List<String> get screenUnitId {
-    return _screenUnitId;
+  List<String> get interstitialAdUnitId {
+    return _interstitialAdUnitId;
   }
 
-  set screenUnitId(value) {
-    _screenUnitId = value;
+  set interstitialAdUnitId(value) {
+    _interstitialAdUnitId = value;
   }
 
-  List<String> get videoUnitId {
-    return _videoUnitId;
+  List<String> get rewardedAdUnitId {
+    return _rewardedAdUnitId;
   }
 
-  set videoUnitId(value) {
-    // Validate that the sdk has been initialized
-    _videoUnitId = value;
+  set rewardedAdUnitId(value) {
+    _rewardedAdUnitId = value;
   }
 
-  List<String> get rewardedinterstitialad {
-    return _rewardedinterstitialad;
+  List<String> get rewardedInterstitialAdUnitId {
+    return _rewardedInterstitialAdUnitId;
   }
 
-  set rewardedinterstitialad(value) {
-    _rewardedinterstitialad = value;
+  set rewardedInterstitialAdUnitId(value) {
+    _rewardedInterstitialAdUnitId = value;
   }
 
-  List<String> get nativeadUnitId {
-    return _nativeadUnitId;
+  List<String> get nativeAdUnitId {
+    return _nativeAdUnitId;
   }
 
-  set nativeadUnitId(value) {
-    _nativeadUnitId = value;
+  set nativeAdUnitId(value) {
+    _nativeAdUnitId = value;
   }
 
-  List<String> get banneradadUnitId {
-    return _banneradadUnitId;
+  List<String> get bannerAdUnitId {
+    return _bannerAdUnitId;
   }
 
-  set banneradadUnitId(value) {
-    _banneradadUnitId = value;
+  set bannerAdUnitId(value) {
+    _bannerAdUnitId = value;
   }
 }

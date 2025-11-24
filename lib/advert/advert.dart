@@ -51,11 +51,11 @@ class Advert {
   initialize({Adsmodel? adsmodel, required bool testmode}) async {
     assert(() {
       Googlemodel googlemodel = Googlemodel()
-        ..banneradadUnitId = banneradUnitId
-        ..nativeadUnitId = _nativeadUnitId
-        ..rewardedinterstitialad = adUnitId
-        ..videoUnitId = videoUnitId
-        ..screenUnitId = screenUnitId;
+        ..bannerAdUnitId = banneradUnitId
+        ..nativeAdUnitId = _nativeadUnitId
+        ..rewardedInterstitialAdUnitId = adUnitId
+        ..rewardedAdUnitId = videoUnitId
+        ..interstitialAdUnitId = screenUnitId;
       Unitymodel unitymodel = Unitymodel()
         ..gameId = gameid
         ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId

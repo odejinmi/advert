@@ -13,7 +13,7 @@ import 'googleads/rewardedinterstitialad.dart';
 
 class GoogleAdProvider extends GetxController {
   // Constants
-  static const int MAX_RETRY_ATTEMPTS = 3;
+  static const int maxRetryAttempts = 3;
 
   // Platform-specific app IDs
   static String get appId => Platform.isAndroid
@@ -22,7 +22,6 @@ class GoogleAdProvider extends GetxController {
 
   // Private variables
   final Googlemodel _adConfig;
-  final RxInt _interstitialShowPosition = 1.obs;
   final RxInt _rewardShowPosition = 1.obs;
   final RxInt _retryAttempts = 0.obs;
 
@@ -146,14 +145,14 @@ class GoogleAdProvider extends GetxController {
     // Handle case when no ads are available
     else {
       debugPrint(
-          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/$maxRetryAttempts)');
 
       // Cycle through ad providers
       _rewardShowPosition.value =
           _rewardShowPosition.value % adProviderCount + 1;
 
       // Retry with limited attempts
-      if (_retryAttempts.value < MAX_RETRY_ATTEMPTS) {
+      if (_retryAttempts.value < maxRetryAttempts) {
         _retryAttempts.value++;
         return showRewardedAd(onRewarded, customData);
       } else {
