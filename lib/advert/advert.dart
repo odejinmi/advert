@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:advert/model/google.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -8,6 +9,33 @@ import '../advert_platform_interface.dart';
 import '../model/adsmodel.dart';
 import '../model/unity.dart';
 import 'adsProvider.dart';
+
+/// Configuration constants for test ad units
+class _AdConfig {
+  // Android ad unit IDs
+  static const List<String> androidBannerIds = ['ca-app-pub-3940256099942544/6300978111'];
+  static const List<String> androidInterstitialIds = ['ca-app-pub-3940256099942544/1033173712'];
+  static const List<String> androidNativeIds = ['ca-app-pub-3940256099942544/2247696110'];
+  static const List<String> androidRewardedIds = ['ca-app-pub-3940256099942544/5224354917'];
+  static const List<String> androidRewardedInterstitialIds = ['ca-app-pub-3940256099942544/5354046379'];
+  
+  // iOS ad unit IDs
+  static const List<String> iosBannerIds = ['ca-app-pub-3940256099942544/2934735716'];
+  static const List<String> iosInterstitialIds = ['ca-app-pub-3940256099942544/4411468910'];
+  static const List<String> iosNativeIds = ['ca-app-pub-3940256099942544/3986624511'];
+  static const List<String> iosRewardedIds = ['ca-app-pub-3940256099942544/1712485313'];
+  static const List<String> iosRewardedInterstitialIds = ['ca-app-pub-3940256099942544/6978759866'];
+  
+  // Unity game IDs
+  static const String androidGameId = "3717787";
+  static const String iosGameId = "3717786";
+  
+  // Unity placement IDs
+  static const List<String> androidBannerPlacements = ['newandroidbanner'];
+  static const List<String> iosBannerPlacements = ['iOS_Banner'];
+  static const List<String> interstitialPlacements = ['video', 'iOS_Interstitial'];
+  static const List<String> rewardedPlacements = ['Android_Rewarded', 'rewardedVideo', 'iOS_Rewarded'];
+}
 
 class Advert {
   bool _sdkInitialized = false;
@@ -17,38 +45,70 @@ class Advert {
     return AdvertPlatform.instance.getPlatformVersion();
   }
 
-  final banneradUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/6300978111']
-      : ['ca-app-pub-3940256099942544/2934735716'];
+  // Lazy-loaded ad unit IDs
+  late final List<String> banneradUnitId;
+  late final List<String> screenUnitId;
+  late final List<String> _nativeadUnitId;
+  late final List<String> videoUnitId;
+  late final List<String> adUnitId;
+  late final String gameid;
+  late final List<String> bannerAdPlacementId;
+  late final List<String> interstitialVideoAdPlacementId;
+  late final List<String> rewardedVideoAdPlacementId;
+  
+  // Initialize ad unit IDs based on platform
+  void _initializeAdUnits() {
+    banneradUnitId = Platform.isAndroid 
+        ? List.from(_AdConfig.androidBannerIds) 
+        : List.from(_AdConfig.iosBannerIds);
+        
+    screenUnitId = Platform.isAndroid
+        ? List.from(_AdConfig.androidInterstitialIds)
+        : List.from(_AdConfig.iosInterstitialIds);
+        
+    _nativeadUnitId = Platform.isAndroid
+        ? List.from(_AdConfig.androidNativeIds)
+        : List.from(_AdConfig.iosNativeIds);
+        
+    videoUnitId = Platform.isAndroid
+        ? List.from(_AdConfig.androidRewardedIds)
+        : List.from(_AdConfig.iosRewardedIds);
+        
+    adUnitId = Platform.isAndroid
+        ? List.from(_AdConfig.androidRewardedInterstitialIds)
+        : List.from(_AdConfig.iosRewardedInterstitialIds);
+        
+    gameid = Platform.isAndroid ? _AdConfig.androidGameId : _AdConfig.iosGameId;
+    
+    bannerAdPlacementId = Platform.isAndroid 
+        ? List.from(_AdConfig.androidBannerPlacements)
+        : List.from(_AdConfig.iosBannerPlacements);
+        
+    interstitialVideoAdPlacementId = List.from(_AdConfig.interstitialPlacements);
+    rewardedVideoAdPlacementId = List.from(_AdConfig.rewardedPlacements);
+  }
 
-  get screenUnitId => Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/1033173712']
-      : ['ca-app-pub-3940256099942544/4411468910'];
-
-  final _nativeadUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/2247696110']
-      : ['ca-app-pub-3940256099942544/3986624511'];
-
-  final videoUnitId = Platform.isAndroid
-      // ? 'ca-app-pub-3940256099942544/5224354917'
-      ? ['ca-app-pub-3940256099942544/5224354917']
-      : ['ca-app-pub-3940256099942544/1712485313'];
-
-  // TODO: replace this test ad unit with your own ad unit.
-  final adUnitId = Platform.isAndroid
-      ? ['ca-app-pub-3940256099942544/5354046379']
-      : ['ca-app-pub-3940256099942544/6978759866'];
-
-  final gameid = Platform.isAndroid ? "3717787" : '3717786';
-  final bannerAdPlacementId =
-      Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
-  final interstitialVideoAdPlacementId =
-      Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
-  final rewardedVideoAdPlacementId = Platform.isAndroid
-      ? ['Android_Rewarded', "rewardedVideo"]
-      : ['iOS_Rewarded'];
-
-  initialize({Adsmodel? adsmodel, required bool testmode}) async {
+  /// Initializes the ad plugin with the provided configuration.
+  /// 
+  /// [adsmodel] - Optional custom ad configuration model
+  /// [testmode] - Whether to use test ad units
+  /// [enableDebugLogging] - Whether to enable debug logging
+  Future<void> initialize({
+    Adsmodel? adsmodel, 
+    required bool testmode,
+    bool enableDebugLogging = kDebugMode,
+  }) async {
+    if (_sdkInitialized) {
+      debugPrint('Advert SDK already initialized');
+      return;
+    }
+    
+    _initializeAdUnits();
+    
+    if (enableDebugLogging) {
+      debugPrint('Initializing Advert SDK in ${testmode ? 'TEST' : 'PRODUCTION'} mode');
+      debugPrint('Platform: ${Platform.operatingSystem}');
+    }
     assert(() {
       Googlemodel googlemodel = Googlemodel()
         ..bannerAdUnitId = banneradUnitId
@@ -96,9 +156,13 @@ class Advert {
     }
   }
 
+  /// Gets the ad manager instance, initializing it if necessary
   AdManager get adsProv {
     validateSdkInitialized();
-    return Get.put(AdManager(_adsmodel), permanent: true);
+    return Get.put(
+      AdManager(_adsmodel),
+      tag: 'ad_manager',
+    );
   }
 
   bool get sdkInitialized => _sdkInitialized;

@@ -25,9 +25,13 @@ class GoogleAdProvider extends GetxController {
   final RxInt _rewardShowPosition = 1.obs;
   final RxInt _retryAttempts = 0.obs;
 
+  final RxInt _spinAndWinShowPosition = 1.obs;
+  final RxInt _spinAndWinretryAttempts = 0.obs;
+
   // Ad managers
   late final InterstitialAdManager _interstitialAdManager;
   late final RewardedAdManager _rewardedAdManager;
+  late final SpinAndWin _SpinAndWin;
   late final NativeAdManager _nativeAdManager;
   late final BannerAdManager _bannerAdManager;
   late final RewardedInterstitialAdManager _rewardedInterstitialAdManager;
@@ -56,6 +60,9 @@ class GoogleAdProvider extends GetxController {
     _rewardedAdManager =
         Get.put(RewardedAdManager(_adConfig.rewardedAdUnitId), permanent: true);
 
+    _SpinAndWin =
+        Get.put(SpinAndWin(_adConfig.spinAndWin), permanent: true);
+
     _nativeAdManager =
         Get.put(NativeAdManager(_adConfig.nativeAdUnitId), permanent: true);
 
@@ -72,6 +79,7 @@ class GoogleAdProvider extends GetxController {
     loadInterstitialAd();
     loadRewardedAd();
     loadNativeAd();
+    loadSpinAndWin();
     loadRewardedInterstitialAd();
   }
 
@@ -88,6 +96,11 @@ class GoogleAdProvider extends GetxController {
   /// Loads a rewarded ad
   void loadRewardedAd() {
     _rewardedAdManager.preloadAds();
+  }
+
+   /// Loads a rewarded ad
+  void loadSpinAndWin() {
+    _SpinAndWin.preloadAds();
   }
 
   /// Loads a rewarded interstitial ad
@@ -157,6 +170,45 @@ class GoogleAdProvider extends GetxController {
         return showRewardedAd(onRewarded, customData);
       } else {
         _retryAttempts.value = 0;
+        return Advertresponse.defaults();
+      }
+    }
+  }
+
+  /// Shows a rewarded ad with reward callback
+  Advertresponse showSpinAndWin(
+      Function? onRewarded, Map<String, String> customData) {
+    // Reset retry counter if we're switching ad types
+    if (_spinAndWinShowPosition.value != 1) {
+      _spinAndWinretryAttempts.value = 0;
+    }
+
+    // Try to show rewarded ad if available
+    if (_SpinAndWin.hasAds && _spinAndWinShowPosition.value == 1) {
+      debugPrint(
+          'Showing rewarded ad (${_SpinAndWin.adsCount} available)');
+      _spinAndWinShowPosition.value = 2; // Move to next ad type for next attempt
+      _spinAndWinretryAttempts.value = 0;
+      return _SpinAndWin.showRewardedAd(
+        onRewarded: onRewarded,
+        customData: customData,
+      );
+    }
+    // Handle case when no ads are available
+    else {
+      debugPrint(
+          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/$maxRetryAttempts)');
+
+      // Cycle through ad providers
+      _spinAndWinShowPosition.value =
+          _spinAndWinShowPosition.value % adProviderCount + 1;
+
+      // Retry with limited attempts
+      if (_spinAndWinretryAttempts.value < maxRetryAttempts) {
+        _spinAndWinretryAttempts.value++;
+        return showRewardedAd(onRewarded, customData);
+      } else {
+        _spinAndWinretryAttempts.value = 0;
         return Advertresponse.defaults();
       }
     }

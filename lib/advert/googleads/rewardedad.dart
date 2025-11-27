@@ -206,3 +206,35 @@ class RewardedAdManager extends GetxController {
     return DateTime.now().difference(adTime) > adExpiration;
   }
 }
+
+class SpinAndWin extends RewardedAdManager {
+  final String spinAndWinAdUnitId;
+
+  SpinAndWin(this.spinAndWinAdUnitId) : super([]);
+
+  @override
+  void preloadAds() {
+    if (isLoading || hasAds) {
+      return;
+    }
+
+    _isLoading.value = true;
+    debugPrint('Loading Spin and Win rewarded ad...');
+
+    RewardedAd.load(
+      adUnitId: spinAndWinAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          debugPrint('Spin and Win rewarded ad loaded successfully: ${ad.adUnitId}');
+          _loadedAds.add(_LoadedAd(ad: ad, loadTime: DateTime.now()));
+          _isLoading.value = false;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          debugPrint('Spin and Win rewarded ad failed to load: ${error.message}');
+          _isLoading.value = false;
+        },
+      ),
+    );
+  }
+}

@@ -188,6 +188,36 @@ class AdManager extends GetxController {
     }
   }
 
+  /// Shows a rewarded ad, cycling through available providers
+  Future<Advertresponse> showspinAndWin(
+      Function? onRewarded, Map<String, String> customData,
+      [int retryDelaySeconds = 1]) async {
+    // Ensure ads are preloaded
+    _preloadRewardedAds();
+
+    // Try Google provider
+    if (_googleProvider != null &&
+        _googleProvider!.hasspinAndWin &&
+        _rewardedProviderIndex.value == 2) {
+      _advanceRewardedProvider();
+      _rewardedRetryAttempts.value = 0;
+      return _googleProvider!.showspinAndWin(onRewarded, customData);
+    }
+
+    // Try AdColony provider (if implemented)
+    // else if (_adcolonyProvider.isloaded() && _rewardedProviderIndex.value == 3) {
+    //   _advanceRewardedProvider();
+    //   _rewardedRetryAttempts.value = 0;
+    //   return _adcolonyProvider.show(onRewarded);
+    // }
+
+    // No ad available, try next provider or check if any provider has an ad
+    else {
+      return await _handleRewardedRetry(
+          onRewarded, customData, retryDelaySeconds);
+    }
+  }
+
   /// Handles retry logic for rewarded ads with smart fallback
   Future<Advertresponse> _handleRewardedRetry(Function? onRewarded,
       Map<String, String> customData, int retryDelaySeconds) async {
