@@ -251,7 +251,6 @@ class GoogleAdProvider extends GetxController {
     }
     // Handle case when no ads are available
     else {
-      loadfreemoney();
       debugPrint(
           'No fremoney ads new available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
 
