@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:advert/advert/googleads/freemoney.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -10,6 +11,7 @@ import 'googleads/interstitialad.dart';
 import 'googleads/nativead.dart';
 import 'googleads/rewardedad.dart';
 import 'googleads/rewardedinterstitialad.dart';
+import 'googleads/spinandwin.dart';
 
 class GoogleAdProvider extends GetxController {
   // Constants
@@ -25,13 +27,16 @@ class GoogleAdProvider extends GetxController {
   final RxInt _interstitialShowPosition = 1.obs;
   final RxInt _rewardShowPosition = 1.obs;
   final RxInt _spinAndWinShowPosition = 1.obs;
+  final RxInt _freemoneyShowPosition = 1.obs;
   final RxInt _retryAttempts = 0.obs;
   final RxInt _spinAndWinretryAttempts = 0.obs;
+  final RxInt _freemoneyretryAttempts = 0.obs;
 
   // Ad managers
   late final InterstitialAdManager _interstitialAdManager;
   late final RewardedAdManager _rewardedAdManager;
   late final SpinAndWin _spinAndWin;
+  late final Freemoney _freemoney;
   late final NativeAdManager _nativeAdManager;
   late final BannerAdManager _bannerAdManager;
   late final RewardedInterstitialAdManager _rewardedInterstitialAdManager;
@@ -43,6 +48,7 @@ class GoogleAdProvider extends GetxController {
   bool get hasInterstitialAd => _interstitialAdManager.hasAds;
   bool get hasRewardedAd => _rewardedAdManager.hasAds;
   bool get hasspinAndWin => _spinAndWin.hasAds;
+  bool get hasfreemoney => _freemoney.hasAds;
   bool get hasRewardedInterstitialAd => _rewardedInterstitialAdManager.hasAds;
   int get adProviderCount =>
       2; // Number of ad providers (rewarded and rewarded interstitial)
@@ -70,6 +76,9 @@ class GoogleAdProvider extends GetxController {
     _spinAndWin =
         Get.put(SpinAndWin(_adConfig.spinAndWin), permanent: true);
 
+    _freemoney =
+        Get.put(Freemoney(_adConfig.freemoney), permanent: true);
+
     _rewardedInterstitialAdManager = Get.put(
         RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId),
         permanent: true);
@@ -81,6 +90,7 @@ class GoogleAdProvider extends GetxController {
     loadRewardedAd();
     loadNativeAd();
     loadspinAndWin();
+    loadfreemoney();
     loadRewardedInterstitialAd();
   }
 
@@ -104,6 +114,11 @@ class GoogleAdProvider extends GetxController {
     _spinAndWin.preloadAds();
   }
 
+  /// Loads a spinAndWin ad
+  void loadfreemoney() {
+    _freemoney.preloadAds();
+  }
+
   /// Loads a rewarded interstitial ad
   void loadRewardedInterstitialAd() {
     _rewardedInterstitialAdManager.preloadAds();
@@ -113,6 +128,8 @@ class GoogleAdProvider extends GetxController {
   void loadRewardAds() {
     loadRewardedAd();
     loadRewardedInterstitialAd();
+    loadfreemoney();
+    loadspinAndWin();
   }
 
   /// Shows a native ad
@@ -197,7 +214,7 @@ class GoogleAdProvider extends GetxController {
     // Handle case when no ads are available
     else {
       debugPrint(
-          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+          'No spinandwin ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
 
       // Cycle through ad providers
       _spinAndWinShowPosition.value =
@@ -206,9 +223,48 @@ class GoogleAdProvider extends GetxController {
       // Retry with limited attempts
       if (_spinAndWinretryAttempts.value < MAX_RETRY_ATTEMPTS) {
         _spinAndWinretryAttempts.value++;
-        return showRewardedAd(onRewarded, customData);
+        return showspinAndWin(onRewarded, customData);
       } else {
         _spinAndWinretryAttempts.value = 0;
+        return Advertresponse.defaults();
+      }
+    }
+  }
+
+  Advertresponse showfreemoney(
+      Function? onRewarded, Map<String, String> customData) {
+    // Reset retry counter if we're switching ad types
+    if (_freemoneyShowPosition.value != 1) {
+      _freemoneyretryAttempts.value = 0;
+    }
+
+    // Try to show rewarded ad if available
+    if (_freemoney.hasAds && _freemoneyShowPosition.value == 1) {
+      debugPrint(
+          'Showing rewarded ad (${_freemoney.adsCount} available)');
+      _freemoneyShowPosition.value = 2; // Move to next ad type for next attempt
+      _freemoneyretryAttempts.value = 0;
+      return _freemoney.showRewardedAd(
+        onRewarded: onRewarded,
+        customData: customData,
+      );
+    }
+    // Handle case when no ads are available
+    else {
+      loadfreemoney();
+      debugPrint(
+          'No fremoney ads new available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+
+      // Cycle through ad providers
+      _freemoneyShowPosition.value =
+          _freemoneyShowPosition.value % adProviderCount + 1;
+
+      // Retry with limited attempts
+      if (_freemoneyretryAttempts.value < MAX_RETRY_ATTEMPTS) {
+        _freemoneyretryAttempts.value++;
+        return showfreemoney(onRewarded, customData);
+      } else {
+        _freemoneyretryAttempts.value = 0;
         return Advertresponse.defaults();
       }
     }

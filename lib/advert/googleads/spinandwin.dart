@@ -1,11 +1,11 @@
-import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
+
 
 class _LoadedAd {
   final RewardedAd ad;
@@ -14,7 +14,11 @@ class _LoadedAd {
   _LoadedAd({required this.ad, required this.loadTime});
 }
 
-class RewardedAdManager extends GetxController {
+
+class SpinAndWin extends GetxController {
+
+  SpinAndWin(this._adUnitIds);
+
   // Constants
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
@@ -26,10 +30,6 @@ class RewardedAdManager extends GetxController {
   final RxInt _failedAttempts = 0.obs;
   final RxBool _isLoading = false.obs;
   final RxBool _rewardEarned = false.obs;
-
-  // Constructor
-  RewardedAdManager(this._adUnitIds);
-
   // Getters
   bool get isLoading => _isLoading.value;
   bool get hasAds => _loadedAds.isNotEmpty;
@@ -85,7 +85,7 @@ class RewardedAdManager extends GetxController {
   }
 
   void _onAdLoaded(RewardedAd ad) {
-    debugPrint('Rewarded ad loaded successfully: ${ad.adUnitId}');
+    debugPrint('Spinandwin ad loaded successfully: ${ad.adUnitId}');
     _loadedAds.add(_LoadedAd(ad: ad, loadTime: DateTime.now()));
     _failedAttempts.value = 0;
     _currentLoadingIndex.value++;
@@ -97,7 +97,7 @@ class RewardedAdManager extends GetxController {
   }
 
   void _onAdFailedToLoad(LoadAdError error) {
-    debugPrint('Rewarded ad failed to load: ${error.message}');
+    debugPrint('Spinandwin ad failed to load: ${error.message}');
     _failedAttempts.value++;
     _isLoading.value = false;
 
@@ -162,16 +162,16 @@ class RewardedAdManager extends GetxController {
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) =>
-          debugPrint('Rewarded ad showed full screen content ${ad.adUnitId}'),
+          debugPrint('Spinandwin ad showed full screen content ${ad.adUnitId}'),
       onAdDismissedFullScreenContent: (RewardedAd ad) {
-        debugPrint('Rewarded ad dismissed');
+        debugPrint('Spinandwin ad dismissed');
         if (onRewarded != null && _rewardEarned.value) {
           onRewarded();
         }
         _disposeAd(ad);
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
-        debugPrint('Rewarded ad failed to show: ${error.message}');
+        debugPrint('Spinandwin ad failed to show: ${error.message}');
         _disposeAd(ad);
         // Attempt to show the next ad if available
         if (_loadedAds.isNotEmpty) {

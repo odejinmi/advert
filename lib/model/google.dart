@@ -1,7 +1,8 @@
 class Googlemodel {
   List<String> _interstitialAdUnitId = [];
   List<String> _rewardedAdUnitId = [];
-  String _spinAndWin = "";
+  List<String>  _spinAndWin = [];
+  List<String>  _freemoney = [];
   List<String> _rewardedInterstitialAdUnitId = [];
   List<String> _nativeAdUnitId = [];
   List<String> _bannerAdUnitId = [];
@@ -14,6 +15,7 @@ class Googlemodel {
         _rewardedInterstitialAdUnitId.isEmpty &&
         _nativeAdUnitId.isEmpty &&
         _bannerAdUnitId.isEmpty&&
+        _freemoney.isEmpty&&
         _spinAndWin.isEmpty;
   }
 
@@ -33,12 +35,20 @@ class Googlemodel {
     _rewardedAdUnitId = value;
   }
 
-  String get spinAndWin {
+  List<String>  get spinAndWin {
     return _spinAndWin;
   }
 
   set spinAndWin(value) {
     _spinAndWin = value;
+  }
+
+   List<String>  get freemoney {
+    return _freemoney;
+  }
+
+  set freemoney(value) {
+    _freemoney = value;
   }
 
   List<String> get rewardedInterstitialAdUnitId {
