@@ -159,10 +159,14 @@ class SpinAndWin extends GetxController {
       );
       ad.setServerSideOptions(options);
     }
-
+    debugPrint('i know you are here');
     ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (RewardedAd ad) =>
-          debugPrint('Spinandwin ad showed full screen content ${ad.adUnitId}'),
+      onAdShowedFullScreenContent: (RewardedAd ad) {
+          debugPrint('Spinandwin ad showed full screen content ${ad.adUnitId}');
+          // Preload the next ad as soon as the current one is shown
+          _loadedAds.removeWhere((adData) => adData.ad == ad);
+          _loadReplacementAd();
+      },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Spinandwin ad dismissed');
         if (onRewarded != null && _rewardEarned.value) {
@@ -190,12 +194,13 @@ class SpinAndWin extends GetxController {
   }
 
   void _disposeAd(RewardedAd ad) {
-    _loadedAds.removeWhere((adData) => adData.ad == ad);
+
     ad.dispose();
-    _loadReplacementAd();
+    // Removed _loadReplacementAd() from here as we now call it in onAdShowedFullScreenContent
   }
 
   void _loadReplacementAd() {
+    debugPrint('currentloadingindex: ${_currentLoadingIndex.value}  adunitIds: ${_adUnitIds.length}');
     if (_currentLoadingIndex.value >= _adUnitIds.length) {
       _currentLoadingIndex.value = 0;
     }

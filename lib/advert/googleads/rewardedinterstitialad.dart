@@ -154,15 +154,16 @@ class RewardedInterstitialAdManager extends GetxController {
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
+        _loadedAds.removeWhere((adData) => adData == ad);
         debugPrint('Rewarded interstitial ad showed full screen content');
       },
       onAdDismissedFullScreenContent: (ad) {
         debugPrint('Rewarded interstitial ad dismissed');
-        _disposeCurrentAd();
+        _disposeCurrentAd(ad);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         debugPrint('Rewarded interstitial ad failed to show: ${error.message}');
-        _disposeCurrentAd();
+        _disposeCurrentAd(ad);
 
         // Try to show another ad after a short delay
         Future.delayed(const Duration(seconds: 2), () {
@@ -190,9 +191,9 @@ class RewardedInterstitialAdManager extends GetxController {
   }
 
   /// Disposes the current ad and loads a replacement
-  void _disposeCurrentAd() {
+  void _disposeCurrentAd(ad) {
     if (_loadedAds.isNotEmpty) {
-      final ad = _loadedAds.removeAt(0);
+      // final ad = _loadedAds.removeAt(0);
       ad.dispose();
 
       // Decrement the index to allow reloading this slot

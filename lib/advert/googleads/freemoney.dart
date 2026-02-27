@@ -161,8 +161,12 @@ class Freemoney extends GetxController {
     }
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (RewardedAd ad) =>
-          debugPrint('Freemoney ad showed full screen content ${ad.adUnitId}'),
+      onAdShowedFullScreenContent: (RewardedAd ad) {
+          debugPrint('Freemoney ad showed full screen content ${ad.adUnitId}');
+          // Preload the next ad as soon as the current one is shown
+          _loadedAds.removeWhere((adData) => adData.ad == ad);
+          _loadReplacementAd();
+      },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Freemoney ad dismissed');
         if (onRewarded != null && _rewardEarned.value) {
@@ -172,6 +176,7 @@ class Freemoney extends GetxController {
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('Freemoney ad failed to show: ${error.message}');
+        _loadedAds.removeWhere((adData) => adData.ad == ad);
         _disposeAd(ad);
         // Attempt to show the next ad if available
         if (_loadedAds.isNotEmpty) {
@@ -190,9 +195,8 @@ class Freemoney extends GetxController {
   }
 
   void _disposeAd(RewardedAd ad) {
-    _loadedAds.removeWhere((adData) => adData.ad == ad);
     ad.dispose();
-    _loadReplacementAd();
+    // Removed _loadReplacementAd() from here as we now call it in onAdShowedFullScreenContent
   }
 
   void _loadReplacementAd() {

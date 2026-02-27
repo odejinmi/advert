@@ -213,8 +213,8 @@ class GoogleAdProvider extends GetxController {
     }
     // Handle case when no ads are available
     else {
-      debugPrint(
-          'No spinandwin ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+      // debugPrint(
+      //     'No spinandwin ads available, retrying (attempt ${_spinAndWinretryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
 
       // Cycle through ad providers
       _spinAndWinShowPosition.value =
@@ -222,7 +222,7 @@ class GoogleAdProvider extends GetxController {
 
       // Retry with limited attempts
       if (_spinAndWinretryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _spinAndWinretryAttempts.value++;
+        _spinAndWinretryAttempts.value += 1;
         return showspinAndWin(onRewarded, customData);
       } else {
         _spinAndWinretryAttempts.value = 0;
@@ -252,7 +252,7 @@ class GoogleAdProvider extends GetxController {
     // Handle case when no ads are available
     else {
       debugPrint(
-          'No fremoney ads new available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+          'No fremoney ads new available, retrying (attempt ${_freemoneyretryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
 
       // Cycle through ad providers
       _freemoneyShowPosition.value =

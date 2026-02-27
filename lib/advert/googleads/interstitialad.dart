@@ -120,17 +120,17 @@ class InterstitialAdManager extends GetxController {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (InterstitialAd ad) {
         debugPrint('Interstitial ad showed full screen content');
+        // Preload the next ad as soon as the current one is shown
+        _loadReplacementAd();
       },
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
         debugPrint('Interstitial ad dismissed');
         ad.dispose();
-        // Preload a replacement ad
-        _loadReplacementAd();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
         debugPrint('Interstitial ad failed to show: ${error.message}');
         ad.dispose();
-        // Preload a replacement ad
+        // Preload a replacement ad (since show failed, we still need one)
         _loadReplacementAd();
       },
     );

@@ -183,8 +183,27 @@ class AdManager extends GetxController {
 
     // No ad available, try next provider or check if any provider has an ad
     else {
-      return await _handleRewardedRetry(
-          onRewarded, customData, retryDelaySeconds,_googleProvider!.showRewardedAd(onRewarded, customData));
+      if (_unityProvider?.unityrewardedAd == true) {
+        _rewardedRetryAttempts.value = 0;
+        return _unityProvider!.showRewardedAd(onRewarded);
+      }
+
+      if (_googleProvider?.hasRewardedAd == true) {
+        _rewardedRetryAttempts.value = 0;
+        return _googleProvider!.showRewardedAd(onRewarded, customData);
+      }
+
+      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+        _advanceRewardedProvider();
+        _rewardedRetryAttempts.value++;
+        debugPrint(
+            'Retrying rewarded ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
+        await Future.delayed(Duration(seconds: retryDelaySeconds));
+        return showRewardedAd(onRewarded, customData, retryDelaySeconds);
+      } else {
+        _rewardedRetryAttempts.value = 0;
+        return Advertresponse.defaults();
+      }
     }
   }
 
@@ -213,8 +232,22 @@ class AdManager extends GetxController {
 
     // No ad available, try next provider or check if any provider has an ad
     else {
-      return await _handleRewardedRetry(
-          onRewarded, customData, retryDelaySeconds,_googleProvider!.showspinAndWin(onRewarded, customData));
+      if (_googleProvider?.hasspinAndWin == true) {
+        _rewardedRetryAttempts.value = 0;
+        return _googleProvider!.showspinAndWin(onRewarded, customData);
+      }
+
+      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+        _advanceRewardedProvider();
+        _rewardedRetryAttempts.value++;
+        debugPrint(
+            'Retrying spinandwin ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
+        await Future.delayed(Duration(seconds: retryDelaySeconds));
+        return showspinAndWin(onRewarded, customData, retryDelaySeconds);
+      } else {
+        _rewardedRetryAttempts.value = 0;
+        return Advertresponse.defaults();
+      }
     }
   }
 
@@ -227,7 +260,7 @@ class AdManager extends GetxController {
 
     // Try Google provider
     if (_googleProvider != null &&
-        _googleProvider!.hasspinAndWin &&
+        _googleProvider!.hasfreemoney &&
         _rewardedProviderIndex.value == 2) {
       _advanceRewardedProvider();
       _rewardedRetryAttempts.value = 0;
@@ -243,36 +276,22 @@ class AdManager extends GetxController {
 
     // No ad available, try next provider or check if any provider has an ad
     else {
-      return await _handleRewardedRetry(
-          onRewarded, customData, retryDelaySeconds, _googleProvider!.showfreemoney(onRewarded, customData) );
-    }
-  }
+      if (_googleProvider?.hasfreemoney == true) {
+        _rewardedRetryAttempts.value = 0;
+        return _googleProvider!.showfreemoney(onRewarded, customData);
+      }
 
-  /// Handles retry logic for rewarded ads with smart fallback
-  Future<Advertresponse> _handleRewardedRetry(Function? onRewarded,
-      Map<String, String> customData, int retryDelaySeconds,  Advertresponse recallfunction) async {
-    // Check if any provider has an ad ready regardless of rotation order
-    if (_unityProvider?.unityrewardedAd == true) {
-      _rewardedRetryAttempts.value = 0;
-      return _unityProvider!.showRewardedAd(onRewarded);
-    }
-
-    if (_googleProvider?.hasRewardedAd == true) {
-      _rewardedRetryAttempts.value = 0;
-      return recallfunction;
-    }
-
-    // No ads available, try standard rotation retry
-    if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-      _advanceRewardedProvider();
-      _rewardedRetryAttempts.value++;
-      debugPrint(
-          'Retrying rewarded ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
-      await Future.delayed(Duration(seconds: retryDelaySeconds));
-      return recallfunction;
-    } else {
-      _rewardedRetryAttempts.value = 0;
-      return Advertresponse.defaults();
+      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+        _advanceRewardedProvider();
+        _rewardedRetryAttempts.value++;
+        debugPrint(
+            'Retrying freemoney ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
+        await Future.delayed(Duration(seconds: retryDelaySeconds));
+        return showfreemoney(onRewarded, customData, retryDelaySeconds);
+      } else {
+        _rewardedRetryAttempts.value = 0;
+        return Advertresponse.defaults();
+      }
     }
   }
 
