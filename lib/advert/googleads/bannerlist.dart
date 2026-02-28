@@ -99,13 +99,13 @@ class BannerListWidgetState extends State<BannerListWidget> {
         'Loading banner ad ${_currentIndex.value + 1}/${widget.adUnitIds.length}: $adUnitId');
 
     // Check if this ad unit ID is already loaded
-    if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
-      debugPrint('Banner ad for $adUnitId already exists');
-      _isLoading.value = false;
-      _currentIndex.value = (_currentIndex.value + 1) % widget.adUnitIds.length;
-      _loadAds();
-      return;
-    }
+    // if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
+    //   debugPrint('Banner ad for $adUnitId already exists');
+    //   _isLoading.value = false;
+    //   _currentIndex.value = (_currentIndex.value + 1) % widget.adUnitIds.length;
+    //   _loadAds();
+    //   return;
+    // }
 
     BannerAd(
       adUnitId: adUnitId,
@@ -180,7 +180,7 @@ class BannerListWidgetState extends State<BannerListWidget> {
   /// Refreshes an ad by disposing it and loading a new one
   void _refreshAd(BannerAd ad) {
     final index =
-        _loadedAds.indexWhere((loadedAd) => loadedAd.adUnitId == ad.adUnitId);
+        _loadedAds.indexWhere((loadedAd) => loadedAd == ad);
     if (index != -1) {
       _loadedAds[index].dispose();
       _loadedAds.removeAt(index);

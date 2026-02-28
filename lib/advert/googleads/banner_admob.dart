@@ -85,16 +85,16 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
         'Loading banner ad ${_currentIndex.value + 1}/${widget.adUnitIds.length}: $adUnitId');
 
     // Check if this ad unit ID is already loaded
-    if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
-      debugPrint('Banner ad for $adUnitId already exists');
-      _isLoading.value = false;
-      _currentIndex.value++;
+    // if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
+    //   debugPrint('Banner ad for $adUnitId already exists');
+    //   _isLoading.value = false;
+    //   _currentIndex.value++;
 
-      if (_currentIndex.value < widget.adUnitIds.length) {
-        _loadAd();
-      }
-      return;
-    }
+    //   if (_currentIndex.value < widget.adUnitIds.length) {
+    //     _loadAd();
+    //   }
+    //   return;
+    // }
 
     final bannerAd = BannerAd(
       adUnitId: adUnitId,
@@ -114,6 +114,9 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
           // Try to load the next ad if available
           if (_currentIndex.value < widget.adUnitIds.length) {
             _loadAd();
+          } else {
+             // We've loaded all ads for this round
+             debugPrint('All banner ads loaded for this cycle');
           }
         },
         onAdFailedToLoad: (ad, error) {
@@ -146,14 +149,17 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
           // Force UI update
           if (mounted) setState(() {});
         },
-        onAdOpened: (ad) => debugPrint('Banner ad opened'),
+        onAdOpened: (ad) {
+          debugPrint('Banner ad opened');
+          _loadedAds.removeWhere((adData) => adData == ad);
+          },
         onAdClosed: (ad) {
           debugPrint('Banner ad closed');
-          _refreshAd();
+          _refreshAd(ad);
         },
         onAdWillDismissScreen: (ad) {
           debugPrint('Banner ad will dismiss screen');
-          _refreshAd();
+          _refreshAd(ad);
         },
         onAdImpression: (ad) => debugPrint('Banner ad impression recorded'),
         onPaidEvent: (ad, valueMicros, precision, currencyCode) =>
@@ -165,15 +171,21 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   /// Refreshes the ad by disposing the current one and loading a new one
-  void _refreshAd() {
-    _disposeCurrentAd();
+  void _refreshAd(Ad ad) {
+    _disposeCurrentAd(ad);
+    
+    // Reset index to 0 to start loading from the beginning if we reached the end
+    if (_currentIndex.value >= widget.adUnitIds.length) {
+      _currentIndex.value = 0;
+    }
+    
     _loadAd();
   }
 
   /// Disposes the current ad and removes it from the list
-  void _disposeCurrentAd() {
-    if (_loadedAds.isNotEmpty) {
-      final ad = _loadedAds.removeAt(0);
+  void _disposeCurrentAd(Ad ad) {
+    if (_loadedAds.contains(ad)) {
+      _loadedAds.remove(ad);
       ad.dispose();
     }
   }
