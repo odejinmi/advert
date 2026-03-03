@@ -84,8 +84,13 @@ class Advert {
         ? List.from(_AdConfig.androidBannerPlacements)
         : List.from(_AdConfig.iosBannerPlacements);
         
-    interstitialVideoAdPlacementId = List.from(_AdConfig.interstitialPlacements);
-    rewardedVideoAdPlacementId = List.from(_AdConfig.rewardedPlacements);
+    interstitialVideoAdPlacementId = Platform.isAndroid
+        ? ['video']
+        : ['iOS_Interstitial'];
+
+    rewardedVideoAdPlacementId = Platform.isAndroid
+        ? ['Android_Rewarded', 'rewardedVideo']
+        : ['iOS_Rewarded', 'rewardedVideo'];
   }
 
   /// Initializes the ad plugin with the provided configuration.
@@ -151,18 +156,21 @@ class Advert {
       // _nativeadUnitId = googlemodel.nativeadUnitId;
       // _banneradadUnitId = googlemodel.banneradadUnitId;
       _sdkInitialized = true;
+      adsProv = Get.put(
+        AdManager(_adsmodel),
+        tag: 'ad_manager',
+      );
     } on PlatformException {
       rethrow;
     }
   }
 
+  var _adsProv = Rx<AdManager?> (null);
+  set adsProv(value) => _adsProv.value = value;
   /// Gets the ad manager instance, initializing it if necessary
   AdManager get adsProv {
     validateSdkInitialized();
-    return Get.put(
-      AdManager(_adsmodel),
-      tag: 'ad_manager',
-    );
+    return _adsProv.value!;
   }
 
   bool get sdkInitialized => _sdkInitialized;

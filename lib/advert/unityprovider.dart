@@ -23,6 +23,17 @@ class UnityProvider extends GetxController {
   var rewardedvideo;
   @override
   void onInit() {
+    UnityAds.init(
+      gameId: unitymodel.gameId,
+      testMode: true,
+      onComplete: () {
+        print('Initialization Complete');
+        loadinterrtitialad();
+        loadrewardedad();
+      },
+      onFailed: (error, message) =>
+          print('Initialization Failed: $error $message'),
+    );
     interstitiaad = Get.put(Unityinterstitialad(unitymodel.interstitialVideoAdPlacementId), permanent: true);
     rewardedvideo = Get.put(Rewardedvideo(unitymodel.rewardedVideoAdPlacementId), permanent: true);
 
