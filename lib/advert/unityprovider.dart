@@ -19,8 +19,8 @@ class UnityProvider extends GetxController {
   Map<String, bool> placements = {};
 
   static final _random = Random();
-  var interstitiaad;
-  var rewardedvideo;
+  late Unityinterstitialad interstitiaad;
+  late Rewardedvideo rewardedvideo;
   @override
   void onInit() {
     UnityAds.init(
@@ -63,8 +63,8 @@ class UnityProvider extends GetxController {
     return interstitiaad.intersAd1.isNotEmpty;
   }
 
-  Advertresponse showAd1(){
-    return interstitiaad.showAd();
+  Advertresponse showAd1(Function? onclick){
+    return interstitiaad.showAd(onclick);
   }
 
   get unityrewardedAd{
@@ -77,8 +77,8 @@ class UnityProvider extends GetxController {
   loadinterrtitialad(){
     interstitiaad.createInterstitialAd();
   }
-  Advertresponse showRewardedAd(rewarded){
-    return rewardedvideo.showAd(rewarded);
+  Advertresponse showRewardedAd(rewarded,Function? onclick){
+    return rewardedvideo.showAd(rewarded, onclick);
   }
 
   Widget adWidget() {

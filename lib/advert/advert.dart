@@ -120,6 +120,8 @@ class Advert {
         ..nativeAdUnitId = _nativeadUnitId
         ..rewardedInterstitialAdUnitId = adUnitId
         ..rewardedAdUnitId = videoUnitId
+        ..spinAndWin = videoUnitId
+        ..freemoney = videoUnitId
         ..interstitialAdUnitId = screenUnitId;
       Unitymodel unitymodel = Unitymodel()
         ..gameId = gameid

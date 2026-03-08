@@ -94,7 +94,7 @@ class Unityinterstitialad extends GetxController {
     // }
   }
 
-  Advertresponse showAd(){
+  Advertresponse showAd(Function? onclick){
     if (intersAd1.isEmpty) {
       createInterstitialAd(show: showAd);
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
@@ -119,6 +119,9 @@ class Unityinterstitialad extends GetxController {
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
+        if (onclick != null) {
+          onclick();
+        }
         return Advertresponse.defaults();
       },
       onSkipped: (placementId) {
@@ -132,7 +135,7 @@ class Unityinterstitialad extends GetxController {
 
 
   void addispose(String ad) {
-    intersAd1.removeAt(0);
+    intersAd1.removeWhere((adData) => adData.ad == ad);
     currentIndex--;
     createInterstitialAd(); // Load a new ad when one is disposed
   }

@@ -175,8 +175,8 @@ class GoogleAdProvider extends GetxController {
     }
     // Handle case when no ads are available
     else {
-      debugPrint(
-          'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
+      // debugPrint(
+      //     'No rewarded ads available, retrying (attempt ${_retryAttempts.value + 1}/${MAX_RETRY_ATTEMPTS})');
 
       // Cycle through ad providers
       _rewardShowPosition.value =
@@ -184,7 +184,7 @@ class GoogleAdProvider extends GetxController {
 
       // Retry with limited attempts
       if (_retryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _retryAttempts.value++;
+        _retryAttempts.value += 1;
         return showRewardedAd(onRewarded, customData);
       } else {
         _retryAttempts.value = 0;

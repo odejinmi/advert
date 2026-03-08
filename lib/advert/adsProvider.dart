@@ -93,7 +93,7 @@ class AdManager extends GetxController {
   }
 
   /// Shows an interstitial ad, cycling through available providers
-  Future<Advertresponse> showInterstitialAd() async {
+  Future<Advertresponse> showInterstitialAd({Function? onclick}) async {
     // Ensure ads are preloaded
     _preloadInterstitialAds();
 
@@ -103,7 +103,7 @@ class AdManager extends GetxController {
         _interstitialProviderIndex.value == 1) {
       _advanceInterstitialProvider();
       _interstitialRetryAttempts.value = 0;
-      return _unityProvider!.showAd1();
+      return _unityProvider!.showAd1(onclick);
     }
 
     // Try Google provider
@@ -162,7 +162,7 @@ class AdManager extends GetxController {
         _rewardedProviderIndex.value == 1) {
       _advanceRewardedProvider();
       _rewardedRetryAttempts.value = 0;
-      return _unityProvider!.showRewardedAd(onRewarded);
+      return _unityProvider!.showRewardedAd(onRewarded,(){});
     }
 
     // Try Google provider
@@ -185,7 +185,7 @@ class AdManager extends GetxController {
     else {
       if (_unityProvider?.unityrewardedAd == true) {
         _rewardedRetryAttempts.value = 0;
-        return _unityProvider!.showRewardedAd(onRewarded);
+        return _unityProvider!.showRewardedAd(onRewarded,(){});
       }
 
       if (_googleProvider?.hasRewardedAd == true) {

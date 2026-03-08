@@ -90,7 +90,7 @@ class Rewardedvideo extends GetxController {
     // }
   }
 
-  Advertresponse showAd(Function? rewarded){
+  Advertresponse showAd(Function? rewarded, Function? onClicked){
     if (intersAd1.isEmpty) {
       createInterstitialAd(show: showAd);
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
@@ -122,6 +122,9 @@ class Rewardedvideo extends GetxController {
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
+        if (onClicked != null) {
+          onClicked();
+        }
         return Advertresponse.defaults();
       },
       onSkipped: (placementId) {
@@ -135,7 +138,7 @@ class Rewardedvideo extends GetxController {
   }
 
   void addispose(String ad) {
-    intersAd1.removeAt(0);
+    intersAd1.removeWhere((adData) => adData.ad == ad);
     currentIndex--;
     createInterstitialAd(); // Load a new ad when one is disposed
   }
