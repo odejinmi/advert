@@ -9,6 +9,7 @@ import '../../model/advertresponse.dart';
 class RewardedInterstitialAdManager extends GetxController {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+  static const int TARGET_BUFFER_SIZE = 2;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -46,36 +47,27 @@ class RewardedInterstitialAdManager extends GetxController {
 
   /// Preloads ads up to the number of ad unit IDs available
   void preloadAds() {
-    // If we're already loading or have loaded all ads, don't start again
-    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
-      return;
-    }
-
-    _loadNextAd();
+    _topUpBuffer();
   }
 
   /// Loads the next ad in the sequence
   void _loadNextAd({Function? onComplete}) {
     if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _isLoading.value = false;
-      if (onComplete != null) onComplete();
-      return;
+      _currentLoadingIndex.value = 0; // wrap for continuous loading
     }
 
+    if (_isLoading.value) return;
     _isLoading.value = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex.value];
 
     // Check if an ad already exists for this ad unit ID
-    if (_loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
+        _loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
       debugPrint('Ad for adUnitId $adUnitId already exists');
       _isLoading.value = false;
       _currentLoadingIndex.value++;
 
-      if (_currentLoadingIndex.value < _adUnitIds.length) {
-        _loadNextAd(onComplete: onComplete);
-      } else if (onComplete != null) {
-        onComplete();
-      }
+      _topUpBuffer();
       return;
     }
 
@@ -93,12 +85,8 @@ class RewardedInterstitialAdManager extends GetxController {
           _currentLoadingIndex.value++;
           _isLoading.value = false;
 
-          // Continue loading the next ad if there are more ad units
-          if (_currentLoadingIndex.value < _adUnitIds.length) {
-            _loadNextAd(onComplete: onComplete);
-          } else if (onComplete != null) {
-            onComplete();
-          }
+          _topUpBuffer();
+          if (onComplete != null) onComplete();
         },
         onAdFailedToLoad: (LoadAdError error) {
           debugPrint(
@@ -114,11 +102,8 @@ class RewardedInterstitialAdManager extends GetxController {
             _failedAttempts.value = 0;
             _currentLoadingIndex.value++;
 
-            if (_currentLoadingIndex.value < _adUnitIds.length) {
-              _loadNextAd(onComplete: onComplete);
-            } else if (onComplete != null) {
-              onComplete();
-            }
+            _topUpBuffer();
+            if (onComplete != null) onComplete();
           }
         },
       ),
@@ -156,6 +141,7 @@ class RewardedInterstitialAdManager extends GetxController {
       onAdShowedFullScreenContent: (ad) {
         _loadedAds.removeWhere((adData) => adData == ad);
         debugPrint('Rewarded interstitial ad showed full screen content');
+        _topUpBuffer();
       },
       onAdDismissedFullScreenContent: (ad) {
         debugPrint('Rewarded interstitial ad dismissed');
@@ -202,7 +188,12 @@ class RewardedInterstitialAdManager extends GetxController {
       }
 
       // Load a replacement ad
-      _loadNextAd();
+      _topUpBuffer();
     }
+  }
+
+  void _topUpBuffer() {
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE) return;
+    _loadNextAd();
   }
 }

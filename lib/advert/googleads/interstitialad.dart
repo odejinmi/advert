@@ -7,6 +7,7 @@ import '../../model/advertresponse.dart';
 class InterstitialAdManager extends GetxController {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+  static const int TARGET_BUFFER_SIZE = 2;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -42,21 +43,16 @@ class InterstitialAdManager extends GetxController {
 
   /// Preloads ads up to the number of ad unit IDs available
   void preloadAds() {
-    // If we're already loading or have loaded all ads, don't start again
-    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
-      return;
-    }
-
-    _loadNextAd();
+    _topUpBuffer();
   }
 
   /// Loads the next ad in the sequence
   void _loadNextAd() {
     if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _isLoading.value = false;
-      return;
+      _currentLoadingIndex.value = 0; // wrap to allow continuous loading
     }
 
+    if (_isLoading.value) return;
     _isLoading.value = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex.value];
 
@@ -81,10 +77,7 @@ class InterstitialAdManager extends GetxController {
     _currentLoadingIndex.value++;
     _isLoading.value = false;
 
-    // Continue loading the next ad if there are more ad units
-    if (_currentLoadingIndex.value < _adUnitIds.length) {
-      _loadNextAd();
-    }
+    _topUpBuffer();
   }
 
   /// Callback when ad fails to load
@@ -100,10 +93,7 @@ class InterstitialAdManager extends GetxController {
       // Move to next ad unit after max retries
       _failedAttempts.value = 0;
       _currentLoadingIndex.value++;
-
-      if (_currentLoadingIndex.value < _adUnitIds.length) {
-        _loadNextAd();
-      }
+      _topUpBuffer();
     }
   }
 
@@ -143,11 +133,12 @@ class InterstitialAdManager extends GetxController {
 
   /// Loads a replacement ad after one is shown or fails
   void _loadReplacementAd() {
-    // Reset index if we've gone through all ad units
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0;
-    }
+    _topUpBuffer();
+  }
 
+  /// Ensures the buffer maintains the target number of preloaded ads
+  void _topUpBuffer() {
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE) return;
     _loadNextAd();
   }
 }

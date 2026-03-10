@@ -145,6 +145,15 @@ class GoogleAdProvider extends GetxController {
   /// Shows a rewarded ad with reward callback
   Advertresponse showRewardedAd(
       Function? onRewarded, Map<String, String> customData) {
+    return _rewardedAdManager.showRewardedAd(
+      onRewarded: onRewarded,
+      customData: customData,
+    );
+  }
+
+ /// Shows a rewarded ad with reward callback
+  Advertresponse showmergeRewardedAd(
+      Function? onRewarded, Map<String, String> customData) {
     // Reset retry counter if we're switching ad types
     if (_rewardShowPosition.value != 1) {
       _retryAttempts.value = 0;
@@ -272,15 +281,10 @@ class GoogleAdProvider extends GetxController {
   /// Shows a rewarded interstitial ad with reward callback
   Advertresponse showRewardedInterstitialAd(
       Function? onRewarded, Map<String, String> customData) {
-    if (_rewardedInterstitialAdManager.hasAds) {
       return _rewardedInterstitialAdManager.showAd(
         onRewarded: onRewarded,
         customData: customData,
       );
-    } else {
-      // Fall back to regular rewarded ad if rewarded interstitial is not available
-      return showRewardedAd(onRewarded, customData);
-    }
   }
 
   /// Returns a banner ad widget

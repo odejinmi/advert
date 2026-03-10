@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../model/adsmodel.dart';
 import '../model/advertresponse.dart';
+import 'AdProgressDialog.dart';
 import 'adcolonyProvider.dart';
 import 'googleProvider.dart';
 import 'googleads/banner_admob.dart';
@@ -23,12 +24,22 @@ class AdManager extends GetxController {
   final AdcolonyProvider _adcolonyProvider =
       Get.put(AdcolonyProvider(), permanent: true);
 
-  // State variables
+  // State variables for provider cycling
   final RxInt _interstitialProviderIndex = 1.obs;
   final RxInt _rewardedProviderIndex = 1.obs;
   final RxInt _interstitialRetryAttempts = 0.obs;
   final RxInt _rewardedRetryAttempts = 0.obs;
   final RxInt _bannerProviderIndex = 1.obs;
+
+  // Ad Sequence State
+  final RxInt adsWatched = 0.obs;
+  final RxInt totalAds = 0.obs;
+  final RxBool isShowingAds = false.obs;
+  
+  late String _currentAdType;
+  final RxString reasonads = "".obs;
+  late Map<String, String> _customData;
+  late VoidCallback _onSequenceComplete;
 
   // Constructor
   AdManager(this._adsConfig);
@@ -44,97 +55,65 @@ class AdManager extends GetxController {
     _startBannerRotation();
   }
 
-  /// Initializes all available ad providers
   void _initializeAdProviders() {
-    // Initialize Google provider if config exists
     if (_adsConfig.googlemodel != null) {
       _googleProvider =
           Get.put(GoogleAdProvider(_adsConfig.googlemodel!), permanent: true);
     }
 
-    // Initialize Unity provider if config exists
     if (_adsConfig.unitymodel != null) {
       _unityProvider =
           Get.put(UnityProvider(_adsConfig.unitymodel!), permanent: true);
     }
   }
 
-  /// Returns the number of available ad providers
   int _getAvailableProviderCount() {
     int count = 0;
     if (_unityProvider != null) count++;
     if (_googleProvider != null) count++;
-    if (_adcolonyProvider != null) count++;
-    return count > 0 ? count : 1; // At least 1 to avoid division by zero
+    return count > 0 ? count : 1;
   }
 
-  /// Checks if any rewarded ad is ready
   bool _isAnyRewardedAdReady() {
     return (_unityProvider?.unityrewardedAd == true) ||
         (_googleProvider?.hasRewardedAd == true);
   }
 
-  /// Preloads all ad types across all providers
   void preloadAllAds() {
     _preloadInterstitialAds();
     _preloadRewardedAds();
   }
 
-  /// Preloads interstitial ads from all providers
   void _preloadInterstitialAds() {
     if (_unityProvider != null) _unityProvider!.loadinterrtitialad();
     if (_googleProvider != null) _googleProvider!.loadInterstitialAd();
   }
 
-  /// Preloads rewarded ads from all providers
   void _preloadRewardedAds() {
     if (_unityProvider != null) _unityProvider!.loadrewardedad();
     if (_googleProvider != null) _googleProvider!.loadRewardAds();
   }
 
-  /// Shows an interstitial ad, cycling through available providers
+  /// Shows an interstitial ad
   Future<Advertresponse> showInterstitialAd({Function? onclick}) async {
-    // Ensure ads are preloaded
     _preloadInterstitialAds();
-
-    // Try Unity provider
-    if (_unityProvider != null &&
-        _unityProvider!.unityintersAd1 &&
-        _interstitialProviderIndex.value == 1) {
+    if (_unityProvider != null && _unityProvider!.unityintersAd1 && _interstitialProviderIndex.value == 1) {
       _advanceInterstitialProvider();
       _interstitialRetryAttempts.value = 0;
       return _unityProvider!.showAd1(onclick);
-    }
-
-    // Try Google provider
-    else if (_googleProvider != null &&
-        _googleProvider!.hasInterstitialAd &&
-        _interstitialProviderIndex.value == 2) {
+    } else if (_googleProvider != null && _googleProvider!.hasInterstitialAd && _interstitialProviderIndex.value == 2) {
       _advanceInterstitialProvider();
       _interstitialRetryAttempts.value = 0;
       return _googleProvider!.showInterstitialAd();
-    }
-
-    // Try AdColony provider (if implemented)
-    // else if (_adcolonyProvider.isloaded() && _interstitialProviderIndex.value == 3) {
-    //   _advanceInterstitialProvider();
-    //   _interstitialRetryAttempts.value = 0;
-    //   return _adcolonyProvider.show(null);
-    // }
-
-    // No ad available, try next provider
-    else {
+    } else {
       return await _handleInterstitialRetry();
     }
   }
 
-  /// Handles retry logic for interstitial ads
   Future<Advertresponse> _handleInterstitialRetry() async {
     if (_interstitialRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
       _advanceInterstitialProvider();
       _interstitialRetryAttempts.value++;
-      debugPrint(
-          'Retrying interstitial ad with provider ${_interstitialProviderIndex.value} (attempt ${_interstitialRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
       await Future.delayed(DEFAULT_RETRY_DELAY);
       return showInterstitialAd();
     } else {
@@ -143,107 +122,91 @@ class AdManager extends GetxController {
     }
   }
 
-  /// Advances to the next interstitial ad provider
   void _advanceInterstitialProvider() {
-    _interstitialProviderIndex.value =
-        _interstitialProviderIndex.value % providerCount + 1;
+    _interstitialProviderIndex.value = _interstitialProviderIndex.value % providerCount + 1;
   }
 
-  /// Shows a rewarded ad, cycling through available providers
-  Future<Advertresponse> showRewardedAd(
+  /// --- Standard Ad Show Methods ---
+
+  Future<Advertresponse> showmergeRewardedAd(
       Function? onRewarded, Map<String, String> customData,
       [int retryDelaySeconds = 1]) async {
-    // Ensure ads are preloaded
     _preloadRewardedAds();
+    
+    // 1: Unity, 2: Google
+    int turn = _rewardedProviderIndex.value;
 
-    // Try Unity provider
-    if (_unityProvider != null &&
-        _unityProvider!.unityrewardedAd &&
-        _rewardedProviderIndex.value == 1) {
-      _advanceRewardedProvider();
-      _rewardedRetryAttempts.value = 0;
-      return _unityProvider!.showRewardedAd(onRewarded,(){});
-    }
-
-    // Try Google provider
-    else if (_googleProvider != null &&
-        _googleProvider!.hasRewardedAd &&
-        _rewardedProviderIndex.value == 2) {
-      _advanceRewardedProvider();
-      _rewardedRetryAttempts.value = 0;
-      return _googleProvider!.showRewardedAd(onRewarded, customData);
-    }
-
-    // Try AdColony provider (if implemented)
-    // else if (_adcolonyProvider.isloaded() && _rewardedProviderIndex.value == 3) {
-    //   _advanceRewardedProvider();
-    //   _rewardedRetryAttempts.value = 0;
-    //   return _adcolonyProvider.show(onRewarded);
-    // }
-
-    // No ad available, try next provider or check if any provider has an ad
-    else {
-      if (_unityProvider?.unityrewardedAd == true) {
+    // TRY CURRENT TURN
+    if (turn == 1) {
+      if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
+        _rewardedProviderIndex.value = 2; // Success: Next turn Google
         _rewardedRetryAttempts.value = 0;
-        return _unityProvider!.showRewardedAd(onRewarded,(){});
-      }
-
-      if (_googleProvider?.hasRewardedAd == true) {
-        _rewardedRetryAttempts.value = 0;
-        return _googleProvider!.showRewardedAd(onRewarded, customData);
-      }
-
-      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _advanceRewardedProvider();
-        _rewardedRetryAttempts.value++;
-        debugPrint(
-            'Retrying rewarded ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
-        await Future.delayed(Duration(seconds: retryDelaySeconds));
-        return showRewardedAd(onRewarded, customData, retryDelaySeconds);
+        return _unityProvider!.showRewardedAd(onRewarded, () {});
       } else {
-        _rewardedRetryAttempts.value = 0;
-        return Advertresponse.defaults();
+        // Fallback to Google immediately if Unity is not ready
+        if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+          _rewardedProviderIndex.value = 1; // Google played: Next turn Unity
+          _rewardedRetryAttempts.value = 0;
+          return _googleProvider!.showmergeRewardedAd(onRewarded, customData);
+        }
       }
+    } else {
+      if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+        _rewardedProviderIndex.value = 1; // Success: Next turn Unity
+        _rewardedRetryAttempts.value = 0;
+        return _googleProvider!.showmergeRewardedAd(onRewarded, customData);
+      } else {
+        // Fallback to Unity immediately if Google is not ready
+        if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
+          _rewardedProviderIndex.value = 2; // Unity played: Next turn Google
+          _rewardedRetryAttempts.value = 0;
+          return _unityProvider!.showRewardedAd(onRewarded, () {});
+        }
+      }
+    }
+
+    // BOTH FAILED: RETRY LOGIC
+    if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+      _rewardedRetryAttempts.value++;
+      // Switch the turn for the next retry attempt
+      _rewardedProviderIndex.value = (turn == 1) ? 2 : 1;
+      
+      debugPrint('No rewarded ads ready. Retry attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS');
+      await Future.delayed(Duration(seconds: retryDelaySeconds));
+      return showmergeRewardedAd(onRewarded, customData, retryDelaySeconds);
+    } else {
+      _rewardedRetryAttempts.value = 0;
+      return Advertresponse.defaults();
     }
   }
 
-  /// Shows a rewarded ad, cycling through available providers
-  Future<Advertresponse> showspinAndWin(
-      Function? onRewarded, Map<String, String> customData,
-      [int retryDelaySeconds = 1]) async {
-    // Ensure ads are preloaded
+  Future<Advertresponse> showspinAndWin(Function? onRewarded, Map<String, String> customData) async {
     _preloadRewardedAds();
-
-    // Try Google provider
-    if (_googleProvider != null &&
-        _googleProvider!.hasspinAndWin &&
-        _rewardedProviderIndex.value == 2) {
-      _advanceRewardedProvider();
-      _rewardedRetryAttempts.value = 0;
+    if (_googleProvider != null && _googleProvider!.hasspinAndWin) {
       return _googleProvider!.showspinAndWin(onRewarded, customData);
     }
+    return Advertresponse.defaults();
+  }
 
-    // Try AdColony provider (if implemented)
-    // else if (_adcolonyProvider.isloaded() && _rewardedProviderIndex.value == 3) {
-    //   _advanceRewardedProvider();
-    //   _rewardedRetryAttempts.value = 0;
-    //   return _adcolonyProvider.show(onRewarded);
-    // }
+  Future<Advertresponse> showRewardedAd(Function? onRewarded, Map<String, String> customData) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+      return _googleProvider!.showRewardedAd(onRewarded, customData);
+    }
+    return Advertresponse.defaults();
+  }
 
-    // No ad available, try next provider or check if any provider has an ad
-    else {
-      if (_googleProvider?.hasspinAndWin == true) {
-        _rewardedRetryAttempts.value = 0;
-        return _googleProvider!.showspinAndWin(onRewarded, customData);
-      }
-
+  Future<Advertresponse> showgooglemergeRewardedAd(Function? onRewarded, Map<String, String> customData,
+  [int retryDelaySeconds = 1]) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+      _rewardedRetryAttempts.value = 0;
+      return _googleProvider!.showmergeRewardedAd(onRewarded, customData);
+    } else {
       if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _advanceRewardedProvider();
         _rewardedRetryAttempts.value++;
-        debugPrint(
-            'Retrying spinandwin ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
         await Future.delayed(Duration(seconds: retryDelaySeconds));
-        return showspinAndWin(onRewarded, customData, retryDelaySeconds);
+        return showgooglemergeRewardedAd(onRewarded, customData, retryDelaySeconds);
       } else {
         _rewardedRetryAttempts.value = 0;
         return Advertresponse.defaults();
@@ -251,91 +214,26 @@ class AdManager extends GetxController {
     }
   }
 
-  /// Shows a rewarded ad, cycling through available providers
-  Future<Advertresponse> showfreemoney(
-      Function? onRewarded, Map<String, String> customData,
-      [int retryDelaySeconds = 1]) async {
-    // Ensure ads are preloaded
+  Future<Advertresponse> showRewardedInterstitialAd(Function? onRewarded, Map<String, String> customData) async {
     _preloadRewardedAds();
+    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+      return _googleProvider!.showRewardedInterstitialAd(onRewarded, customData);
+    }
+    return Advertresponse.defaults();
+  }
 
-    // Try Google provider
-    if (_googleProvider != null &&
-        _googleProvider!.hasfreemoney &&
-        _rewardedProviderIndex.value == 2) {
-      _advanceRewardedProvider();
-      _rewardedRetryAttempts.value = 0;
+  Future<Advertresponse> showfreemoney(Function? onRewarded, Map<String, String> customData) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null && _googleProvider!.hasfreemoney) {
       return _googleProvider!.showfreemoney(onRewarded, customData);
     }
-
-    // Try AdColony provider (if implemented)
-    // else if (_adcolonyProvider.isloaded() && _rewardedProviderIndex.value == 3) {
-    //   _advanceRewardedProvider();
-    //   _rewardedRetryAttempts.value = 0;
-    //   return _adcolonyProvider.show(onRewarded);
-    // }
-
-    // No ad available, try next provider or check if any provider has an ad
-    else {
-      if (_googleProvider?.hasfreemoney == true) {
-        _rewardedRetryAttempts.value = 0;
-        return _googleProvider!.showfreemoney(onRewarded, customData);
-      }
-
-      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _advanceRewardedProvider();
-        _rewardedRetryAttempts.value++;
-        debugPrint(
-            'Retrying freemoney ad with provider ${_rewardedProviderIndex.value} (attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS)');
-        await Future.delayed(Duration(seconds: retryDelaySeconds));
-        return showfreemoney(onRewarded, customData, retryDelaySeconds);
-      } else {
-        _rewardedRetryAttempts.value = 0;
-        return Advertresponse.defaults();
-      }
-    }
+    return Advertresponse.defaults();
   }
 
-  /// Advances to the next rewarded ad provider
   void _advanceRewardedProvider() {
-    _rewardedProviderIndex.value =
-        _rewardedProviderIndex.value % providerCount + 1;
+    _rewardedProviderIndex.value = _rewardedProviderIndex.value % providerCount + 1;
   }
 
-  /// Shows a rewarded interstitial ad
-  // Future<Advertresponse> showRewardedInterstitialAd(
-  //     Function? onRewarded, Map<String, String> customData,
-  //     [int retryDelaySeconds = 1]) async {
-  //   // Ensure ads are preloaded
-  //   _preloadRewardedAds();
-  //
-  //   // Try Unity provider
-  //   if (_unityProvider != null &&
-  //       _unityProvider!.unityrewardedAd &&
-  //       _rewardedProviderIndex.value == 1) {
-  //     _advanceRewardedProvider();
-  //     _rewardedRetryAttempts.value = 0;
-  //     return _unityProvider!.showRewardedAd(onRewarded);
-  //   }
-  //
-  //   // Try Google rewarded interstitial provider
-  //   else if (_googleProvider != null &&
-  //       _googleProvider!.hasRewardedInterstitialAd &&
-  //       _rewardedProviderIndex.value == 2) {
-  //     _advanceRewardedProvider();
-  //     _rewardedRetryAttempts.value = 0;
-  //     return _googleProvider!
-  //         .showRewardedInterstitialAd(onRewarded, customData);
-  //   }
-  //
-  //   // No ad available, try next provider or check if any provider has an ad
-  //   else {
-  //     return await _handleRewardedRetry(
-  //         onRewarded, customData, retryDelaySeconds, _googleProvider!
-  //         .showRewardedInterstitialAd(onRewarded, customData));
-  //   }
-  // }
-
-  /// Shows a native ad
   Widget showNativeAd() {
     if (_googleProvider != null) {
       _googleProvider!.loadNativeAd();
@@ -344,17 +242,13 @@ class AdManager extends GetxController {
     return Container();
   }
 
-  /// Returns a banner ad widget
   Widget showBannerAd() {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
-      return BannerAdWidget(
-        adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId,
-      );
+      return BannerAdWidget(adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId);
     }
     return const SizedBox.shrink();
   }
 
-  /// Returns a scrolling banner list widget
   Widget showBannerListAd(int numberOfAds) {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
       return BannerListWidget(
@@ -365,7 +259,6 @@ class AdManager extends GetxController {
     return const SizedBox.shrink();
   }
 
-  /// Starts the banner rotation timer
   void _startBannerRotation() {
     Future.delayed(const Duration(seconds: 30), () {
       _rotateBannerProvider();
@@ -373,9 +266,89 @@ class AdManager extends GetxController {
     });
   }
 
-  /// Rotates to the next banner provider
   void _rotateBannerProvider() {
     _bannerProviderIndex.value = _bannerProviderIndex.value % providerCount + 1;
-    update(); // Notify listeners to rebuild
+    update();
+  }
+
+  // --- Unified Ad Sequence Logic ---
+
+  /// Starts a sequence of multiple ads.
+  /// [adType] can be: 'mergeRewarded', 'rewarded', 'googleMergeRewarded', 'rewardedInterstitial', 'spinAndWin'
+  void startAdSequence(BuildContext context, {
+    required int total,
+    required String adType,
+    required String reason,
+    required Map<String, String> customData,
+    required VoidCallback onComplete
+  }) {
+    adsWatched.value = 0;
+    totalAds.value = total;
+    _currentAdType = adType;
+    _customData = customData;
+    reasonads.value = reason;
+    _onSequenceComplete = onComplete;
+    isShowingAds.value = true;
+    _showAdProgressDialog(context);
+  }
+
+  void _handleAdCompletion(BuildContext context) {
+    adsWatched.value++;
+    if (adsWatched.value < totalAds.value) {
+      _showAdProgressDialog(context);
+    } else {
+      isShowingAds.value = false;
+      _onSequenceComplete();
+    }
+  }
+
+  void _showAdProgressDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AdProgressDialog(
+        completed: adsWatched.value,
+        total: totalAds.value,
+        reason: reasonads.value,
+        onTimerFinished: () {
+          Navigator.of(dialogContext).pop();
+          _playCurrentAd(context);
+        },
+        onCancel: () {
+          isShowingAds.value = false;
+          adsWatched.value = 0;
+          Navigator.of(dialogContext).pop();
+        },
+      ),
+    );
+  }
+
+  Future<void> _playCurrentAd(BuildContext context) async {
+    Advertresponse result;
+    final onRewarded = () => _handleAdCompletion(context);
+
+    switch (_currentAdType) {
+      case 'mergeRewarded':
+        result = await showmergeRewardedAd(onRewarded, _customData);
+        break;
+      case 'rewarded':
+        result = await showRewardedAd(onRewarded, _customData);
+        break;
+      case 'googleMergeRewarded':
+        result = await showgooglemergeRewardedAd(onRewarded, _customData);
+        break;
+      case 'rewardedInterstitial':
+        result = await showRewardedInterstitialAd(onRewarded, _customData);
+        break;
+      case 'spinAndWin':
+        result = await showspinAndWin(onRewarded, _customData);
+        break;
+      default:
+        result = await showRewardedAd(onRewarded, _customData);
+    }
+
+    if (!result.status) {
+      isShowingAds.value = false;
+    }
   }
 }

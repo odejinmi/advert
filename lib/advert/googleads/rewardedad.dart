@@ -18,6 +18,7 @@ class RewardedAdManager extends GetxController {
   // Constants
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
+  static const int TARGET_BUFFER_SIZE = 3;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -26,6 +27,8 @@ class RewardedAdManager extends GetxController {
   final RxInt _failedAttempts = 0.obs;
   final RxBool _isLoading = false.obs;
   final RxBool _rewardEarned = false.obs;
+  final RxBool _isShowing = false.obs;
+  final RxInt _pendingShowRequests = 0.obs;
 
   // Constructor
   RewardedAdManager(this._adUnitIds);
@@ -51,23 +54,26 @@ class RewardedAdManager extends GetxController {
   }
 
   void preloadAds() {
-    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
-      return;
-    }
-    _loadNextAd();
+    _topUpBuffer();
   }
 
-  void _loadNextAd() {
+  void _loadNextAd({Function? onComplete}) {
     if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _isLoading.value = false;
+      _currentLoadingIndex.value = 0;
+      if (onComplete != null) onComplete();
       return;
     }
 
+    if (_isLoading.value) return;
     _isLoading.value = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex.value];
 
-    if (_loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
+    // Allow duplicates per ad unit when building buffer
+    // Only skip if buffer is already satisfied and we already have one for this ad unit
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
+        _loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
       _handleAdAlreadyExists(adUnitId);
+      if (onComplete != null) onComplete();
       return;
     }
 
@@ -78,8 +84,14 @@ class RewardedAdManager extends GetxController {
       adUnitId: adUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: _onAdLoaded,
-        onAdFailedToLoad: _onAdFailedToLoad,
+        onAdLoaded: (ad) {
+          _onAdLoaded(ad);
+          if (onComplete != null) onComplete();
+        },
+        onAdFailedToLoad: (error) {
+          _onAdFailedToLoad(error);
+          if (onComplete != null) onComplete();
+        },
       ),
     );
   }
@@ -91,9 +103,7 @@ class RewardedAdManager extends GetxController {
     _currentLoadingIndex.value++;
     _isLoading.value = false;
 
-    if (_currentLoadingIndex.value < _adUnitIds.length) {
-      _loadNextAd();
-    }
+    _topUpBuffer();
   }
 
   void _onAdFailedToLoad(LoadAdError error) {
@@ -106,9 +116,7 @@ class RewardedAdManager extends GetxController {
     } else {
       _failedAttempts.value = 0;
       _currentLoadingIndex.value++;
-      if (_currentLoadingIndex.value < _adUnitIds.length) {
-        _loadNextAd();
-      }
+      _topUpBuffer();
     }
   }
 
@@ -126,9 +134,17 @@ class RewardedAdManager extends GetxController {
     Function? onRewarded,
     Map<String, String> customData = const {},
   }) {
+    if (_isShowing.value) {
+      _pendingShowRequests.value++;
+      return Advertresponse.defaults();
+    }
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
-      preloadAds();
+      _loadNextAd(onComplete: () {
+        if (_loadedAds.isNotEmpty) {
+          showRewardedAd(onRewarded: onRewarded, customData: customData);
+        }
+      });
       return Advertresponse.defaults();
     }
 
@@ -139,7 +155,7 @@ class RewardedAdManager extends GetxController {
       if (_loadedAds.isNotEmpty) {
         return showRewardedAd(onRewarded: onRewarded, customData: customData);
       } else {
-        preloadAds(); // Preload if no ads are available
+        preloadAds();
         return Advertresponse.defaults();
       }
     }
@@ -165,7 +181,8 @@ class RewardedAdManager extends GetxController {
           debugPrint('Rewarded ad showed full screen content ${ad.adUnitId}');
           // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
-          _loadReplacementAd();
+          _topUpBuffer();
+          _isShowing.value = true;
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Rewarded ad dismissed');
@@ -173,13 +190,28 @@ class RewardedAdManager extends GetxController {
           onRewarded();
         }
         _disposeAd(ad);
+        _isShowing.value = false;
+        if (_pendingShowRequests.value > 0) {
+          _pendingShowRequests.value--;
+          Future.microtask(() {
+            showRewardedAd(onRewarded: onRewarded, customData: customData);
+          });
+        }
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('Rewarded ad failed to show: ${error.message}');
         _disposeAd(ad);
         // Attempt to show the next ad if available
+        _isShowing.value = false;
         if (_loadedAds.isNotEmpty) {
           showRewardedAd(onRewarded: onRewarded, customData: customData);
+        } else if (_pendingShowRequests.value > 0) {
+          _loadNextAd(onComplete: () {
+            if (_loadedAds.isNotEmpty) {
+              _pendingShowRequests.value--;
+              showRewardedAd(onRewarded: onRewarded, customData: customData);
+            }
+          });
         }
       },
     );
@@ -199,10 +231,8 @@ class RewardedAdManager extends GetxController {
     // Removed _loadReplacementAd() from here as we now call it in onAdShowedFullScreenContent
   }
 
-  void _loadReplacementAd() {
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0;
-    }
+  void _topUpBuffer() {
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE) return;
     _loadNextAd();
   }
 

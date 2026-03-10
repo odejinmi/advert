@@ -2,21 +2,22 @@ PODS:
   - advert (0.0.1):
     - Flutter
   - Flutter (1.0.0)
-  - Google-Mobile-Ads-SDK (11.2.0):
+  - Google-Mobile-Ads-SDK (12.2.0):
     - GoogleUserMessagingPlatform (>= 1.1)
-  - google_mobile_ads (5.1.0):
+  - google_mobile_ads (6.0.0):
     - Flutter
-    - Google-Mobile-Ads-SDK (~> 11.2.0)
+    - Google-Mobile-Ads-SDK (~> 12.2.0)
     - webview_flutter_wkwebview
-  - GoogleUserMessagingPlatform (2.1.0)
+  - GoogleUserMessagingPlatform (3.1.0)
   - integration_test (0.0.1):
     - Flutter
   - unity_ads_plugin (0.0.1):
     - Flutter
-    - UnityAds (= 4.12.0)
-  - UnityAds (4.12.0)
+    - UnityAds (= 4.16.6)
+  - UnityAds (4.16.6)
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
+    - FlutterMacOS
 
 DEPENDENCIES:
   - advert (from `.symlinks/plugins/advert/ios`)
@@ -24,7 +25,7 @@ DEPENDENCIES:
   - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - unity_ads_plugin (from `.symlinks/plugins/unity_ads_plugin/ios`)
-  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/ios`)
+  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -44,19 +45,19 @@ EXTERNAL SOURCES:
   unity_ads_plugin:
     :path: ".symlinks/plugins/unity_ads_plugin/ios"
   webview_flutter_wkwebview:
-    :path: ".symlinks/plugins/webview_flutter_wkwebview/ios"
+    :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
 SPEC CHECKSUMS:
   advert: fdada0533558b972e00a5508ec49ed62618adeaf
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  Google-Mobile-Ads-SDK: 5a6d005a6cb5b5e8f4c7b69ca05cdea79c181139
-  google_mobile_ads: 9379c80fdfa9988fb0e105a407890ff8deb3cf86
-  GoogleUserMessagingPlatform: dce302b8f1b84d6e945812ee7a15c3f65a102cbf
-  integration_test: ce0a3ffa1de96d1a89ca0ac26fca7ea18a749ef4
-  unity_ads_plugin: d5d6dc3c8ee4b8ab7e1d7ad6ca4c74f7edb1bee8
-  UnityAds: 1e669f1d49924fbdbd54544afa9294b567354509
-  webview_flutter_wkwebview: be0f0d33777f1bfd0c9fdcb594786704dbf65f36
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Google-Mobile-Ads-SDK: 1dfb0c3cb46c7e2b00b0f4de74a1e06d9ea25d67
+  google_mobile_ads: cab27248050510554aa646195eacc393ce7406ad
+  GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  unity_ads_plugin: d085cb47a1e30517e7d223e3a7537c12d55fbb70
+  UnityAds: 37544c41dd6916fa9074bf68cf07fce793460b84
+  webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
-PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
+PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

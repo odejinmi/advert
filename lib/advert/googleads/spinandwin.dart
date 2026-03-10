@@ -22,6 +22,7 @@ class SpinAndWin extends GetxController {
   // Constants
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
+  static const int TARGET_BUFFER_SIZE = 2;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -51,22 +52,21 @@ class SpinAndWin extends GetxController {
   }
 
   void preloadAds() {
-    if (_isLoading.value || _currentLoadingIndex.value >= _adUnitIds.length) {
-      return;
-    }
-    _loadNextAd();
+    _topUpBuffer();
   }
 
   void _loadNextAd() {
     if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _isLoading.value = false;
-      return;
+      _currentLoadingIndex.value = 0; // wrap
     }
 
+    if (_isLoading.value) return;
     _isLoading.value = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex.value];
 
-    if (_loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
+    // Allow duplicates per ad unit while filling buffer
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
+        _loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
       _handleAdAlreadyExists(adUnitId);
       return;
     }
@@ -91,9 +91,7 @@ class SpinAndWin extends GetxController {
     _currentLoadingIndex.value++;
     _isLoading.value = false;
 
-    if (_currentLoadingIndex.value < _adUnitIds.length) {
-      _loadNextAd();
-    }
+    _topUpBuffer();
   }
 
   void _onAdFailedToLoad(LoadAdError error) {
@@ -106,9 +104,7 @@ class SpinAndWin extends GetxController {
     } else {
       _failedAttempts.value = 0;
       _currentLoadingIndex.value++;
-      if (_currentLoadingIndex.value < _adUnitIds.length) {
-        _loadNextAd();
-      }
+      _topUpBuffer();
     }
   }
 
@@ -165,7 +161,7 @@ class SpinAndWin extends GetxController {
           debugPrint('Spinandwin ad showed full screen content ${ad.adUnitId}');
           // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
-          _loadReplacementAd();
+          _topUpBuffer();
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Spinandwin ad dismissed');
@@ -199,11 +195,8 @@ class SpinAndWin extends GetxController {
     // Removed _loadReplacementAd() from here as we now call it in onAdShowedFullScreenContent
   }
 
-  void _loadReplacementAd() {
-    debugPrint('currentloadingindex: ${_currentLoadingIndex.value}  adunitIds: ${_adUnitIds.length}');
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0;
-    }
+  void _topUpBuffer() {
+    if (_loadedAds.length >= TARGET_BUFFER_SIZE) return;
     _loadNextAd();
   }
 
