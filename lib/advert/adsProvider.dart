@@ -348,6 +348,9 @@ class AdManager extends GetxController {
       case 'spinAndWin':
         result = await showspinAndWin(onRewarded, _customData);
         break;
+      case 'freemoney':
+        result = await showfreemoney(onRewarded, _customData);
+        break;
       default:
         result = await showRewardedAd(onRewarded, _customData);
     }
