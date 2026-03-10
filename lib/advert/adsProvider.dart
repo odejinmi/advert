@@ -289,7 +289,12 @@ class AdManager extends GetxController {
     reasonads.value = reason;
     _onSequenceComplete = onComplete;
     isShowingAds.value = true;
-    _showAdProgressDialog(context);
+    
+    if (total == 1) {
+      _playCurrentAd(context);
+    } else {
+      _showAdProgressDialog(context);
+    }
   }
 
   void _handleAdCompletion(BuildContext context) {

@@ -23,10 +23,10 @@ class _HomepageState extends State<Homepage> {
     _advertPlugin.initialize(testmode: true);
   }
 
-  void _startSequence(String type, String reason) {
+  void _startSequence(String type, String reason, int total) {
     _advertPlugin.adsProv.startAdSequence(
       context,
-      total: 6,
+      total: total,
       adType: type,
       reason: reason,
       customData: {"username": "test_user", "platform": "mobile", "type": "sequence"},
@@ -66,23 +66,23 @@ class _HomepageState extends State<Homepage> {
               if (_showNativeAd) _buildNativeAdWidget(),
               
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('mergeRewarded', "Use general Market"),
+                onPressed: isShowing ? null : () => _startSequence('mergeRewarded', "Use general Market",1),
                 child: const Text("Show mergeRewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('googleMergeRewarded', "Earn card"),
+                onPressed: isShowing ? null : () => _startSequence('googleMergeRewarded', "Earn card",1),
                 child: const Text("Show googlemergeRewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('rewarded', "Receive \$1"),
+                onPressed: isShowing ? null : () => _startSequence('rewarded', "Receive \$1",1),
                 child: const Text("Show Rewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('rewardedInterstitial', "Earn \#6"),
+                onPressed: isShowing ? null : () => _startSequence('rewardedInterstitial', "Earn \#6",2),
                 child: const Text("Show Rewarded Insterstitial Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('spinAndWin', "Earn \$100"),
+                onPressed: isShowing ? null : () => _startSequence('spinAndWin', "Earn \$100",5),
                 child: const Text("Show SpinandWin Ad"),
               ),
               
