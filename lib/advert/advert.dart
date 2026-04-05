@@ -123,11 +123,13 @@ class Advert {
         ..spinAndWin = videoUnitId
         ..freemoney = videoUnitId
         ..interstitialAdUnitId = screenUnitId;
-      Unitymodel unitymodel = Unitymodel()
-        ..gameId = gameid
-        ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
-        ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
-        ..bannerAdPlacementId = bannerAdPlacementId;
+      Unitymodel? unitymodel = Platform.isAndroid
+          ? (Unitymodel()
+            ..gameId = gameid
+            ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
+            ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
+            ..bannerAdPlacementId = bannerAdPlacementId)
+          : null;
       if (testmode) {
         adsmodel = Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel);
       }

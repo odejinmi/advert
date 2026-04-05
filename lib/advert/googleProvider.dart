@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:advert/advert/googleads/freemoney.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../model/advertresponse.dart';
 import '../model/google.dart';
@@ -56,6 +57,7 @@ class GoogleAdProvider extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    MobileAds.instance.initialize();
     _initializeAdManagers();
   }
 

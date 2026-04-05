@@ -282,14 +282,21 @@ class AdManager extends GetxController {
     required Map<String, String> customData,
     required VoidCallback onComplete
   }) {
-    adsWatched.value = 0;
+    // adsWatched.value = 0;
     totalAds.value = total;
     _currentAdType = adType;
     _customData = customData;
     reasonads.value = reason;
     _onSequenceComplete = onComplete;
     isShowingAds.value = true;
-    
+
+    // If we've already watched some ads but the total changed (or we are just starting),
+    // ensure we don't exceed the new total.
+    // If you want to force reset on a NEW reason, you could compare 'reasonads.value'.
+    if (adsWatched.value >= total) {
+      adsWatched.value = 0;
+    }
+
     if (total == 1) {
       _playCurrentAd(context);
     } else {
@@ -304,13 +311,16 @@ class AdManager extends GetxController {
     } else {
       isShowingAds.value = false;
       _onSequenceComplete();
+      adsWatched.value = 0; // Reset only after successful completion
     }
   }
 
   void _showAdProgressDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
       builder: (dialogContext) => AdProgressDialog(
         completed: adsWatched.value,
         total: totalAds.value,
@@ -321,9 +331,44 @@ class AdManager extends GetxController {
         },
         onCancel: () {
           isShowingAds.value = false;
-          adsWatched.value = 0;
+          // adsWatched.value = 0;
           Navigator.of(dialogContext).pop();
         },
+      ),
+    );
+  }
+
+  void _showRetryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1C23),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Ad Not Available",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "No video available at the moment. Would you like to try again?",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              isShowingAds.value = false;
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text("Cancel", style: TextStyle(color: Color(0xFFF9C304))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _playCurrentAd(context);
+            },
+            child: const Text("Retry", style: TextStyle(color: Color(0xFFF9C304), fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -356,7 +401,7 @@ class AdManager extends GetxController {
     }
 
     if (!result.status) {
-      isShowingAds.value = false;
+      _showRetryDialog(context);
     }
   }
 }
