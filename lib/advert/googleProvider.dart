@@ -63,27 +63,43 @@ class GoogleAdProvider extends GetxController {
 
   /// Initializes all ad managers
   void _initializeAdManagers() {
-    _interstitialAdManager =
-        Get.put(InterstitialAdManager(_adConfig.interstitialAdUnitId), permanent: true);
+    if(_adConfig.interstitialAdUnitId.isNotEmpty) {
+      _interstitialAdManager =
+          Get.put(InterstitialAdManager(_adConfig.interstitialAdUnitId),
+              permanent: true);
+    }
 
-    _rewardedAdManager =
-        Get.put(RewardedAdManager(_adConfig.rewardedAdUnitId), permanent: true);
+    if(_adConfig.rewardedAdUnitId.isNotEmpty) {
+      _rewardedAdManager =
+          Get.put(
+              RewardedAdManager(_adConfig.rewardedAdUnitId), permanent: true);
+    }
 
-    _nativeAdManager =
-        Get.put(NativeAdManager(_adConfig.nativeAdUnitId), permanent: true);
+    if (_adConfig.nativeAdUnitId.isNotEmpty) {
+      _nativeAdManager =
+          Get.put(NativeAdManager(_adConfig.nativeAdUnitId), permanent: true);
+    }
 
-    _bannerAdManager =
-        Get.put(BannerAdManager(_adConfig.bannerAdUnitId), permanent: true);
+    if(_adConfig.bannerAdUnitId.isNotEmpty) {
+      _bannerAdManager =
+          Get.put(BannerAdManager(_adConfig.bannerAdUnitId), permanent: true);
+    }
 
-    _spinAndWin =
-        Get.put(SpinAndWin(_adConfig.spinAndWin), permanent: true);
+    if (_adConfig.spinAndWin.isNotEmpty) {
+      _spinAndWin =
+          Get.put(SpinAndWin(_adConfig.spinAndWin), permanent: true);
+    }
 
-    _freemoney =
-        Get.put(Freemoney(_adConfig.freemoney), permanent: true);
+    if (_adConfig.freemoney.isNotEmpty) {
+      _freemoney =
+          Get.put(Freemoney(_adConfig.freemoney), permanent: true);
+    }
 
-    _rewardedInterstitialAdManager = Get.put(
-        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId),
-        permanent: true);
+    if(_adConfig.rewardedInterstitialAdUnitId.isNotEmpty) {
+      _rewardedInterstitialAdManager = Get.put(
+          RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId),
+          permanent: true);
+    }
   }
 
   /// Preloads all ad types
