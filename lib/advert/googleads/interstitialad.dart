@@ -98,7 +98,10 @@ class InterstitialAdManager extends GetxController {
   }
 
   /// Shows an ad if available, returns the result
-  Advertresponse showAd() {
+  Advertresponse showAd({
+    Function? onAdClicked,
+    Function? onAdImpression,
+  }) {
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show interstitial ad before loaded.');
       preloadAds();
@@ -122,6 +125,14 @@ class InterstitialAdManager extends GetxController {
         ad.dispose();
         // Preload a replacement ad (since show failed, we still need one)
         _loadReplacementAd();
+      },
+      onAdClicked: (InterstitialAd ad) {
+        debugPrint('Interstitial ad clicked');
+        if (onAdClicked != null) onAdClicked();
+      },
+      onAdImpression: (InterstitialAd ad) {
+        debugPrint('Interstitial ad impression');
+        if (onAdImpression != null) onAdImpression();
       },
     );
 

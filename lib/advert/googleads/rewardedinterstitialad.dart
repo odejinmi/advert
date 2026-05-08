@@ -113,6 +113,8 @@ class RewardedInterstitialAdManager extends GetxController {
   /// Shows a rewarded interstitial ad if available, returns the result
   Advertresponse showAd({
     Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
     if (_loadedAds.isEmpty) {
@@ -120,7 +122,12 @@ class RewardedInterstitialAdManager extends GetxController {
           'Warning: attempt to show rewarded interstitial ad before loaded.');
       _loadNextAd(onComplete: () {
         if (_loadedAds.isNotEmpty) {
-          showAd(onRewarded: onRewarded, customData: customData);
+          showAd(
+            onRewarded: onRewarded,
+            onAdClicked: onAdClicked,
+            onAdImpression: onAdImpression,
+            customData: customData,
+          );
         }
       });
       return Advertresponse.defaults();
@@ -154,12 +161,22 @@ class RewardedInterstitialAdManager extends GetxController {
         // Try to show another ad after a short delay
         Future.delayed(const Duration(seconds: 2), () {
           if (_loadedAds.isNotEmpty) {
-            showAd(onRewarded: onRewarded, customData: customData);
+            showAd(
+              onRewarded: onRewarded,
+              onAdClicked: onAdClicked,
+              onAdImpression: onAdImpression,
+              customData: customData,
+            );
           }
         });
       },
       onAdClicked: (ad) {
         debugPrint('Rewarded interstitial ad clicked');
+        if (onAdClicked != null) onAdClicked();
+      },
+      onAdImpression: (ad) {
+        debugPrint('Rewarded interstitial ad impression');
+        if (onAdImpression != null) onAdImpression();
       },
     );
 

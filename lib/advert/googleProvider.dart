@@ -161,17 +161,27 @@ class GoogleAdProvider extends GetxController {
   }
 
   /// Shows a rewarded ad with reward callback
-  Advertresponse showRewardedAd(
-      Function? onRewarded, Map<String, String> customData) {
+  Advertresponse showRewardedAd({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
     return _rewardedAdManager.showRewardedAd(
       onRewarded: onRewarded,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
       customData: customData,
     );
   }
 
- /// Shows a rewarded ad with reward callback
-  Advertresponse showmergeRewardedAd(
-      Function? onRewarded, Map<String, String> customData) {
+  /// Shows a rewarded ad with reward callback
+  Advertresponse showmergeRewardedAd({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
     // Reset retry counter if we're switching ad types
     if (_rewardShowPosition.value != 1) {
       _retryAttempts.value = 0;
@@ -185,6 +195,8 @@ class GoogleAdProvider extends GetxController {
       _retryAttempts.value = 0;
       return _rewardedAdManager.showRewardedAd(
         onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
         customData: customData,
       );
     }
@@ -197,6 +209,8 @@ class GoogleAdProvider extends GetxController {
       _retryAttempts.value = 0;
       return _rewardedInterstitialAdManager.showAd(
         onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
         customData: customData,
       );
     }
@@ -212,7 +226,12 @@ class GoogleAdProvider extends GetxController {
       // Retry with limited attempts
       if (_retryAttempts.value < MAX_RETRY_ATTEMPTS) {
         _retryAttempts.value += 1;
-        return showRewardedAd(onRewarded, customData);
+        return showmergeRewardedAd(
+          onRewarded: onRewarded,
+          onAdClicked: onAdClicked,
+          onAdImpression: onAdImpression,
+          customData: customData,
+        );
       } else {
         _retryAttempts.value = 0;
         return Advertresponse.defaults();
@@ -220,8 +239,12 @@ class GoogleAdProvider extends GetxController {
     }
   }
 
-  Advertresponse showspinAndWin(
-      Function? onRewarded, Map<String, String> customData) {
+  Advertresponse showspinAndWin({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
     // Reset retry counter if we're switching ad types
     if (_spinAndWinShowPosition.value != 1) {
       _spinAndWinretryAttempts.value = 0;
@@ -229,12 +252,14 @@ class GoogleAdProvider extends GetxController {
 
     // Try to show rewarded ad if available
     if (_spinAndWin.hasAds && _spinAndWinShowPosition.value == 1) {
-      debugPrint(
-          'Showing rewarded ad (${_spinAndWin.adsCount} available)');
-      _spinAndWinShowPosition.value = 2; // Move to next ad type for next attempt
+      debugPrint('Showing rewarded ad (${_spinAndWin.adsCount} available)');
+      _spinAndWinShowPosition.value =
+          2; // Move to next ad type for next attempt
       _spinAndWinretryAttempts.value = 0;
       return _spinAndWin.showRewardedAd(
         onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
         customData: customData,
       );
     }
@@ -250,7 +275,12 @@ class GoogleAdProvider extends GetxController {
       // Retry with limited attempts
       if (_spinAndWinretryAttempts.value < MAX_RETRY_ATTEMPTS) {
         _spinAndWinretryAttempts.value += 1;
-        return showspinAndWin(onRewarded, customData);
+        return showspinAndWin(
+          onRewarded: onRewarded,
+          onAdClicked: onAdClicked,
+          onAdImpression: onAdImpression,
+          customData: customData,
+        );
       } else {
         _spinAndWinretryAttempts.value = 0;
         return Advertresponse.defaults();
@@ -258,8 +288,12 @@ class GoogleAdProvider extends GetxController {
     }
   }
 
-  Advertresponse showfreemoney(
-      Function? onRewarded, Map<String, String> customData) {
+  Advertresponse showfreemoney({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
     // Reset retry counter if we're switching ad types
     if (_freemoneyShowPosition.value != 1) {
       _freemoneyretryAttempts.value = 0;
@@ -267,12 +301,14 @@ class GoogleAdProvider extends GetxController {
 
     // Try to show rewarded ad if available
     if (_freemoney.hasAds && _freemoneyShowPosition.value == 1) {
-      debugPrint(
-          'Showing rewarded ad (${_freemoney.adsCount} available)');
-      _freemoneyShowPosition.value = 2; // Move to next ad type for next attempt
+      debugPrint('Showing rewarded ad (${_freemoney.adsCount} available)');
+      _freemoneyShowPosition.value =
+          2; // Move to next ad type for next attempt
       _freemoneyretryAttempts.value = 0;
       return _freemoney.showRewardedAd(
         onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
         customData: customData,
       );
     }
@@ -288,7 +324,12 @@ class GoogleAdProvider extends GetxController {
       // Retry with limited attempts
       if (_freemoneyretryAttempts.value < MAX_RETRY_ATTEMPTS) {
         _freemoneyretryAttempts.value++;
-        return showfreemoney(onRewarded, customData);
+        return showfreemoney(
+          onRewarded: onRewarded,
+          onAdClicked: onAdClicked,
+          onAdImpression: onAdImpression,
+          customData: customData,
+        );
       } else {
         _freemoneyretryAttempts.value = 0;
         return Advertresponse.defaults();
@@ -297,12 +338,18 @@ class GoogleAdProvider extends GetxController {
   }
 
   /// Shows a rewarded interstitial ad with reward callback
-  Advertresponse showRewardedInterstitialAd(
-      Function? onRewarded, Map<String, String> customData) {
-      return _rewardedInterstitialAdManager.showAd(
-        onRewarded: onRewarded,
-        customData: customData,
-      );
+  Advertresponse showRewardedInterstitialAd({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
+    return _rewardedInterstitialAdManager.showAd(
+      onRewarded: onRewarded,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      customData: customData,
+    );
   }
 
   /// Returns a banner ad widget

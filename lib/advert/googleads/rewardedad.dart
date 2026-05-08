@@ -132,6 +132,8 @@ class RewardedAdManager extends GetxController {
 
   Advertresponse showRewardedAd({
     Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
     if (_isShowing.value) {
@@ -142,7 +144,12 @@ class RewardedAdManager extends GetxController {
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       _loadNextAd(onComplete: () {
         if (_loadedAds.isNotEmpty) {
-          showRewardedAd(onRewarded: onRewarded, customData: customData);
+          showRewardedAd(
+            onRewarded: onRewarded,
+            onAdClicked: onAdClicked,
+            onAdImpression: onAdImpression,
+            customData: customData,
+          );
         }
       });
       return Advertresponse.defaults();
@@ -153,19 +160,30 @@ class RewardedAdManager extends GetxController {
       debugPrint('Ad expired, disposing and loading a new one');
       _disposeAd(adData.ad);
       if (_loadedAds.isNotEmpty) {
-        return showRewardedAd(onRewarded: onRewarded, customData: customData);
+        return showRewardedAd(
+          onRewarded: onRewarded,
+          onAdClicked: onAdClicked,
+          onAdImpression: onAdImpression,
+          customData: customData,
+        );
       } else {
         preloadAds();
         return Advertresponse.defaults();
       }
     }
 
-    _configureAndShowAd(adData, onRewarded, customData);
+    _configureAndShowAd(
+        adData, onRewarded, onAdClicked, onAdImpression, customData);
     return Advertresponse.showing();
   }
 
   void _configureAndShowAd(
-      _LoadedAd adData, Function? onRewarded, Map<String, String> customData) {
+    _LoadedAd adData,
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData,
+  ) {
     final ad = adData.ad;
     _rewardEarned.value = false;
 
@@ -194,7 +212,12 @@ class RewardedAdManager extends GetxController {
         if (_pendingShowRequests.value > 0) {
           _pendingShowRequests.value--;
           Future.microtask(() {
-            showRewardedAd(onRewarded: onRewarded, customData: customData);
+            showRewardedAd(
+              onRewarded: onRewarded,
+              onAdClicked: onAdClicked,
+              onAdImpression: onAdImpression,
+              customData: customData,
+            );
           });
         }
       },
@@ -204,15 +227,33 @@ class RewardedAdManager extends GetxController {
         // Attempt to show the next ad if available
         _isShowing.value = false;
         if (_loadedAds.isNotEmpty) {
-          showRewardedAd(onRewarded: onRewarded, customData: customData);
+          showRewardedAd(
+            onRewarded: onRewarded,
+            onAdClicked: onAdClicked,
+            onAdImpression: onAdImpression,
+            customData: customData,
+          );
         } else if (_pendingShowRequests.value > 0) {
           _loadNextAd(onComplete: () {
             if (_loadedAds.isNotEmpty) {
               _pendingShowRequests.value--;
-              showRewardedAd(onRewarded: onRewarded, customData: customData);
+              showRewardedAd(
+                onRewarded: onRewarded,
+                onAdClicked: onAdClicked,
+                onAdImpression: onAdImpression,
+                customData: customData,
+              );
             }
           });
         }
+      },
+      onAdClicked: (RewardedAd ad) {
+        debugPrint('Rewarded ad clicked');
+        if (onAdClicked != null) onAdClicked();
+      },
+      onAdImpression: (RewardedAd ad) {
+        debugPrint('Rewarded ad impression');
+        if (onAdImpression != null) onAdImpression();
       },
     );
 
