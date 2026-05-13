@@ -5,11 +5,14 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
+import '../event_reporter.dart';
 
 class RewardedInterstitialAdManager extends GetxController {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
   static const int TARGET_BUFFER_SIZE = 2;
+
+  final EventReporter _reporter = Get.find();
 
   // Private variables
   final List<String> _adUnitIds;
@@ -91,6 +94,14 @@ class RewardedInterstitialAdManager extends GetxController {
         onAdFailedToLoad: (LoadAdError error) {
           debugPrint(
               'Rewarded interstitial ad failed to load: ${error.message}');
+          
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Google',
+            adType: 'RewardedInterstitial',
+            errorMessage: error.message,
+          );
+
           _failedAttempts.value++;
           _isLoading.value = false;
 
@@ -148,14 +159,34 @@ class RewardedInterstitialAdManager extends GetxController {
       onAdShowedFullScreenContent: (ad) {
         _loadedAds.removeWhere((adData) => adData == ad);
         debugPrint('Rewarded interstitial ad showed full screen content');
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Google',
+          adType: 'RewardedInterstitial',
+          placementId: ad.adUnitId,
+        );
         _topUpBuffer();
       },
       onAdDismissedFullScreenContent: (ad) {
         debugPrint('Rewarded interstitial ad dismissed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Google',
+          adType: 'RewardedInterstitial',
+          placementId: ad.adUnitId,
+          extraData: {'rewardEarned': _rewardEarned.value},
+        );
         _disposeCurrentAd(ad);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         debugPrint('Rewarded interstitial ad failed to show: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'RewardedInterstitial',
+          placementId: ad.adUnitId,
+          errorMessage: error.message,
+        );
         _disposeCurrentAd(ad);
 
         // Try to show another ad after a short delay
@@ -172,6 +203,12 @@ class RewardedInterstitialAdManager extends GetxController {
       },
       onAdClicked: (ad) {
         debugPrint('Rewarded interstitial ad clicked');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'RewardedInterstitial',
+          placementId: ad.adUnitId,
+        );
         if (onAdClicked != null) onAdClicked();
       },
       onAdImpression: (ad) {

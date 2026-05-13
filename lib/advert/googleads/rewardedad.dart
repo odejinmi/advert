@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
+import '../event_reporter.dart';
 
 class _LoadedAd {
   final RewardedAd ad;
@@ -19,6 +20,8 @@ class RewardedAdManager extends GetxController {
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
   static const int TARGET_BUFFER_SIZE = 3;
+
+  final EventReporter _reporter = Get.find();
 
   // Private variables
   final List<String> _adUnitIds;
@@ -108,6 +111,14 @@ class RewardedAdManager extends GetxController {
 
   void _onAdFailedToLoad(LoadAdError error) {
     debugPrint('Rewarded ad failed to load: ${error.message}');
+    
+    _reporter.reportEvent(
+      event: AdEvent.failed,
+      adProvider: 'Google',
+      adType: 'Rewarded',
+      errorMessage: error.message,
+    );
+
     _failedAttempts.value++;
     _isLoading.value = false;
 
@@ -197,6 +208,12 @@ class RewardedAdManager extends GetxController {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) {
           debugPrint('Rewarded ad showed full screen content ${ad.adUnitId}');
+          _reporter.reportEvent(
+            event: AdEvent.displayed,
+            adProvider: 'Google',
+            adType: 'Rewarded',
+            placementId: ad.adUnitId,
+          );
           // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
           _topUpBuffer();
@@ -204,6 +221,13 @@ class RewardedAdManager extends GetxController {
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Rewarded ad dismissed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Google',
+          adType: 'Rewarded',
+          placementId: ad.adUnitId,
+          extraData: {'rewardEarned': _rewardEarned.value},
+        );
         if (onRewarded != null && _rewardEarned.value) {
           onRewarded();
         }
@@ -223,6 +247,13 @@ class RewardedAdManager extends GetxController {
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('Rewarded ad failed to show: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'Rewarded',
+          placementId: ad.adUnitId,
+          errorMessage: error.message,
+        );
         _disposeAd(ad);
         // Attempt to show the next ad if available
         _isShowing.value = false;
@@ -249,6 +280,12 @@ class RewardedAdManager extends GetxController {
       },
       onAdClicked: (RewardedAd ad) {
         debugPrint('Rewarded ad clicked');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'Rewarded',
+          placementId: ad.adUnitId,
+        );
         if (onAdClicked != null) onAdClicked();
       },
       onAdImpression: (RewardedAd ad) {

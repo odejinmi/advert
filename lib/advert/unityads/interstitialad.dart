@@ -5,10 +5,13 @@ import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
 import '../device.dart';
+import '../event_reporter.dart';
 
 class Unityinterstitialad extends GetxController {
   var screenUnitId;
   Unityinterstitialad(this.screenUnitId);
+
+  final EventReporter _reporter = Get.find();
 
   final _intersAd1 = [].obs;
   set intersAd1(value)=> _intersAd1.value = value;
@@ -66,6 +69,13 @@ class Unityinterstitialad extends GetxController {
           onFailed: (placementId, error, message) {
               debugPrint('Load Failed $placementId: $error $message');
               isloading = false;
+              _reporter.reportEvent(
+                event: AdEvent.failed,
+                adProvider: 'Unity',
+                adType: 'Interstitial',
+                placementId: placementId,
+                errorMessage: '$error: $message',
+              );
               print("Failed to load rewarded ad: $placementId, error: $error");
               numInterstitialLoadAttempts += 1;
               if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
@@ -104,21 +114,46 @@ class Unityinterstitialad extends GetxController {
       placementId: intersAd1[0],
       onComplete: (placementId) {
         debugPrint('Video Ad $placementId completed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Unity',
+          adType: 'Interstitial',
+          placementId: placementId,
+        );
         addispose(placementId);
         return Advertresponse.showing();
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Unity',
+          adType: 'Interstitial',
+          placementId: placementId,
+          errorMessage: '$error: $message',
+        );
         addispose(placementId);
         return Advertresponse.defaults();
       },
       onStart: (placementId) {
         addispose(placementId);
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Unity',
+          adType: 'Interstitial',
+          placementId: placementId,
+        );
         debugPrint('Video Ad $placementId started');
         return Advertresponse.defaults();
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Unity',
+          adType: 'Interstitial',
+          placementId: placementId,
+        );
         if (onclick != null) {
           onclick();
         }

@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
+import '../event_reporter.dart';
 
 class InterstitialAdManager extends GetxController {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
   static const int TARGET_BUFFER_SIZE = 2;
+
+  final EventReporter _reporter = Get.find();
 
   // Private variables
   final List<String> _adUnitIds;
@@ -83,6 +86,14 @@ class InterstitialAdManager extends GetxController {
   /// Callback when ad fails to load
   void _onAdFailedToLoad(LoadAdError error) {
     debugPrint('Interstitial ad failed to load: ${error.message}');
+    
+    _reporter.reportEvent(
+      event: AdEvent.failed,
+      adProvider: 'Google',
+      adType: 'Interstitial',
+      errorMessage: error.message,
+    );
+
     _failedAttempts.value++;
     _isLoading.value = false;
 
@@ -113,21 +124,46 @@ class InterstitialAdManager extends GetxController {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (InterstitialAd ad) {
         debugPrint('Interstitial ad showed full screen content');
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Google',
+          adType: 'Interstitial',
+          placementId: ad.adUnitId,
+        );
         // Preload the next ad as soon as the current one is shown
         _loadReplacementAd();
       },
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
         debugPrint('Interstitial ad dismissed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Google',
+          adType: 'Interstitial',
+          placementId: ad.adUnitId,
+        );
         ad.dispose();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
         debugPrint('Interstitial ad failed to show: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'Interstitial',
+          placementId: ad.adUnitId,
+          errorMessage: error.message,
+        );
         ad.dispose();
         // Preload a replacement ad (since show failed, we still need one)
         _loadReplacementAd();
       },
       onAdClicked: (InterstitialAd ad) {
         debugPrint('Interstitial ad clicked');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'Interstitial',
+          placementId: ad.adUnitId,
+        );
         if (onAdClicked != null) onAdClicked();
       },
       onAdImpression: (InterstitialAd ad) {

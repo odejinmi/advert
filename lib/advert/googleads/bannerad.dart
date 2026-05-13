@@ -3,10 +3,13 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../device.dart';
+import '../event_reporter.dart';
 
 class BannerAdManager extends GetxController {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+
+  final EventReporter _reporter = Get.find();
 
   // Private variables
   final List<String> _adUnitIds;
@@ -46,6 +49,12 @@ class BannerAdManager extends GetxController {
       onAdLoaded: (ad) {
         debugPrint(
             'Banner ad loaded successfully: ${(ad as BannerAd).adUnitId}');
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Google',
+          adType: 'Banner',
+          placementId: (ad as BannerAd).adUnitId,
+        );
         _loadedAds.add(ad as BannerAd);
         _bannerReady.value = true;
         _failedAttempts.value = 0;
@@ -59,6 +68,13 @@ class BannerAdManager extends GetxController {
       },
       onAdFailedToLoad: (ad, error) {
         debugPrint('Banner ad failed to load: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'Banner',
+          placementId: (ad as BannerAd).adUnitId,
+          errorMessage: error.message,
+        );
         ad.dispose();
         _failedAttempts.value++;
         _isLoading.value = false;
@@ -78,6 +94,12 @@ class BannerAdManager extends GetxController {
       },
       onAdOpened: (ad) {
         debugPrint('Banner ad opened');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'Banner',
+          placementId: (ad as BannerAd).adUnitId,
+        );
       },
       onAdClosed: (ad) {
         debugPrint('Banner ad closed');

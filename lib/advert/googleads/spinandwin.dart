@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
-
+import '../event_reporter.dart';
 
 class _LoadedAd {
   final RewardedAd ad;
@@ -18,6 +18,8 @@ class _LoadedAd {
 class SpinAndWin extends GetxController {
 
   SpinAndWin(this._adUnitIds);
+
+  final EventReporter _reporter = Get.find();
 
   // Constants
   static const int maxFailedLoadAttempts = 3;
@@ -96,6 +98,14 @@ class SpinAndWin extends GetxController {
 
   void _onAdFailedToLoad(LoadAdError error) {
     debugPrint('Spinandwin ad failed to load: ${error.message}');
+    
+    _reporter.reportEvent(
+      event: AdEvent.failed,
+      adProvider: 'Google',
+      adType: 'SpinAndWin',
+      errorMessage: error.message,
+    );
+
     _failedAttempts.value++;
     _isLoading.value = false;
 
@@ -172,12 +182,25 @@ class SpinAndWin extends GetxController {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) {
           debugPrint('Spinandwin ad showed full screen content ${ad.adUnitId}');
+          _reporter.reportEvent(
+            event: AdEvent.displayed,
+            adProvider: 'Google',
+            adType: 'SpinAndWin',
+            placementId: ad.adUnitId,
+          );
           // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
           _topUpBuffer();
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Spinandwin ad dismissed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Google',
+          adType: 'SpinAndWin',
+          placementId: ad.adUnitId,
+          extraData: {'rewardEarned': _rewardEarned.value},
+        );
         if (onRewarded != null && _rewardEarned.value) {
           onRewarded();
         }
@@ -185,6 +208,13 @@ class SpinAndWin extends GetxController {
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('Spinandwin ad failed to show: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'SpinAndWin',
+          placementId: ad.adUnitId,
+          errorMessage: error.message,
+        );
         _disposeAd(ad);
         // Attempt to show the next ad if available
         if (_loadedAds.isNotEmpty) {
@@ -198,6 +228,12 @@ class SpinAndWin extends GetxController {
       },
       onAdClicked: (RewardedAd ad) {
         debugPrint('Spinandwin ad clicked');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'SpinAndWin',
+          placementId: ad.adUnitId,
+        );
         if (onAdClicked != null) onAdClicked();
       },
       onAdImpression: (RewardedAd ad) {

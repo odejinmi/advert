@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../event_reporter.dart';
+
 class NativeAdManager extends GetxController {
   // Constants
   static const int AUTO_CLOSE_DELAY_SECONDS = 20;
   static const String FACTORY_ID = 'adFactoryExample';
+
+  final EventReporter _reporter = Get.find();
 
   // Private variables
   final List<String> _adUnitIds;
@@ -60,9 +64,34 @@ class NativeAdManager extends GetxController {
       adUnitId: adUnitId,
       factoryId: FACTORY_ID,
       listener: NativeAdListener(
-        onAdLoaded: _onAdLoaded,
-        onAdFailedToLoad: _onAdFailedToLoad,
-        onAdClicked: (ad) => debugPrint('Native ad clicked'),
+        onAdLoaded: (ad) {
+          _reporter.reportEvent(
+            event: AdEvent.displayed,
+            adProvider: 'Google',
+            adType: 'Native',
+            placementId: ad.adUnitId,
+          );
+          _onAdLoaded(ad);
+        },
+        onAdFailedToLoad: (ad, error) {
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Google',
+            adType: 'Native',
+            placementId: ad.adUnitId,
+            errorMessage: error.message,
+          );
+          _onAdFailedToLoad(ad, error);
+        },
+        onAdClicked: (ad) {
+          debugPrint('Native ad clicked');
+          _reporter.reportEvent(
+            event: AdEvent.clicked,
+            adProvider: 'Google',
+            adType: 'Native',
+            placementId: ad.adUnitId,
+          );
+        },
         onAdImpression: (ad) => debugPrint('Native ad impression recorded'),
         onAdClosed: (ad) => debugPrint('Native ad closed'),
         onAdOpened: (ad) => debugPrint('Native ad opened'),

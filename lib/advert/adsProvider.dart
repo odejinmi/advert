@@ -5,6 +5,7 @@ import '../model/adsmodel.dart';
 import '../model/advertresponse.dart';
 import 'AdProgressDialog.dart';
 import 'adcolonyProvider.dart';
+import 'event_reporter.dart';
 import 'googleProvider.dart';
 import 'googleads/banner_admob.dart';
 import 'googleads/bannerlist.dart';
@@ -17,6 +18,7 @@ class AdManager extends GetxController {
 
   // Configuration
   final Adsmodel _adsConfig;
+  late final EventReporter _eventReporter;
 
   // Ad providers
   UnityProvider? _unityProvider;
@@ -44,7 +46,12 @@ class AdManager extends GetxController {
   Function? _onAdImpression;
 
   // Constructor
-  AdManager(this._adsConfig);
+  AdManager(this._adsConfig) {
+    _eventReporter = Get.put(
+      EventReporter(),
+      permanent: true,
+    );
+  }
 
   // Getters
   int get providerCount => _getAvailableProviderCount();

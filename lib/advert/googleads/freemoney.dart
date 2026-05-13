@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
-
+import '../event_reporter.dart';
 
 class _LoadedAd {
   final RewardedAd ad;
@@ -18,6 +18,8 @@ class _LoadedAd {
 class Freemoney extends GetxController {
 
   Freemoney(this._adUnitIds);
+
+  final EventReporter _reporter = Get.find();
 
   // Constants
   static const int maxFailedLoadAttempts = 3;
@@ -96,6 +98,14 @@ class Freemoney extends GetxController {
 
   void _onAdFailedToLoad(LoadAdError error) {
     debugPrint('Freemoney ad failed to load: ${error.message}');
+    
+    _reporter.reportEvent(
+      event: AdEvent.failed,
+      adProvider: 'Google',
+      adType: 'Freemoney',
+      errorMessage: error.message,
+    );
+
     _failedAttempts.value++;
     _isLoading.value = false;
 
@@ -172,12 +182,25 @@ class Freemoney extends GetxController {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) {
           debugPrint('Freemoney ad showed full screen content ${ad.adUnitId}');
+          _reporter.reportEvent(
+            event: AdEvent.displayed,
+            adProvider: 'Google',
+            adType: 'Freemoney',
+            placementId: ad.adUnitId,
+          );
           // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
           _topUpBuffer();
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Freemoney ad dismissed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Google',
+          adType: 'Freemoney',
+          placementId: ad.adUnitId,
+          extraData: {'rewardEarned': _rewardEarned.value},
+        );
         if (onRewarded != null && _rewardEarned.value) {
           onRewarded();
         }
@@ -185,6 +208,13 @@ class Freemoney extends GetxController {
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         debugPrint('Freemoney ad failed to show: ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Google',
+          adType: 'Freemoney',
+          placementId: ad.adUnitId,
+          errorMessage: error.message,
+        );
         _loadedAds.removeWhere((adData) => adData.ad == ad);
         _disposeAd(ad);
         // Attempt to show the next ad if available
@@ -199,6 +229,12 @@ class Freemoney extends GetxController {
       },
       onAdClicked: (RewardedAd ad) {
         debugPrint('Freemoney ad clicked');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Google',
+          adType: 'Freemoney',
+          placementId: ad.adUnitId,
+        );
         if (onAdClicked != null) onAdClicked();
       },
       onAdImpression: (RewardedAd ad) {

@@ -7,10 +7,13 @@ import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
 import '../device.dart';
+import '../event_reporter.dart';
 
 class Rewardedvideo extends GetxController {
   var videoUnitId;
   Rewardedvideo(this.videoUnitId);
+
+  final EventReporter _reporter = Get.find();
 
   final _intersAd1 = [].obs;
   set intersAd1(value)=> _intersAd1.value = value;
@@ -66,6 +69,13 @@ class Rewardedvideo extends GetxController {
       onFailed: (placementId, error, message) {
           debugPrint('Load Failed $placementId: $error $message');
           isloading = false;
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Unity',
+            adType: 'Rewarded',
+            placementId: placementId,
+            errorMessage: '$error: $message',
+          );
           numInterstitialLoadAttempts += 1;
           if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
             // Retry loading the specific ad unit
@@ -100,6 +110,12 @@ class Rewardedvideo extends GetxController {
       placementId: intersAd1[0],
       onComplete: (placementId) {
         debugPrint('Video Ad $placementId completed');
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Unity',
+          adType: 'Rewarded',
+          placementId: placementId,
+        );
         createInterstitialAd();
         if (rewarded != null) {
           rewarded();
@@ -108,6 +124,13 @@ class Rewardedvideo extends GetxController {
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Unity',
+          adType: 'Rewarded',
+          placementId: placementId,
+          errorMessage: '$error: $message',
+        );
         Future.delayed(Duration(seconds: 2), () {
           createInterstitialAd();
         });
@@ -116,12 +139,24 @@ class Rewardedvideo extends GetxController {
       },
       onStart: (placementId) {
         addispose(placementId);
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Unity',
+          adType: 'Rewarded',
+          placementId: placementId,
+        );
         // intersAd1.remove(placementId);
         debugPrint('Video Ad $placementId started');
         return Advertresponse.defaults();
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Unity',
+          adType: 'Rewarded',
+          placementId: placementId,
+        );
         if (onClicked != null) {
           onClicked();
         }
