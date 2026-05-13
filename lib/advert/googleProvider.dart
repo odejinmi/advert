@@ -151,8 +151,8 @@ class GoogleAdProvider extends GetxController {
   }
 
   /// Shows a native ad
-  Widget showNativeAd() {
-    return _nativeAdManager.buildAdWidget();
+  Widget showNativeAd(BuildContext context) {
+    return _nativeAdManager.buildAdWidget(context, autoClose: false);
   }
 
   /// Shows an interstitial ad

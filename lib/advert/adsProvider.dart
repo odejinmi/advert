@@ -340,10 +340,10 @@ class AdManager extends GetxController {
     _rewardedProviderIndex.value = _rewardedProviderIndex.value % providerCount + 1;
   }
 
-  Widget showNativeAd() {
+  Widget showNativeAd(BuildContext context) {
     if (_googleProvider != null) {
       _googleProvider!.loadNativeAd();
-      return _googleProvider!.showNativeAd();
+      return _googleProvider!.showNativeAd(context);
     }
     return Container();
   }

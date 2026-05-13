@@ -142,19 +142,23 @@ class NativeAdManager extends GetxController {
   }
 
   /// Closes the ad dialog and reloads a new ad
-  void closeAd() {
-    Get.back();
+  void closeAd(BuildContext context) {
+    Navigator.of(context).pop();
     _disposeCurrentAd();
     loadAd();
   }
 
   /// Returns a widget containing the native ad or an empty container if not loaded
-  Widget buildAdWidget({bool autoClose = true}) {
+  Widget buildAdWidget(BuildContext context, {bool autoClose = true}) {
     if (_nativeAd.value != null && _isAdLoaded.value) {
       if (autoClose) {
         // Set up auto-close timer
         Future.delayed(Duration(seconds: AUTO_CLOSE_DELAY_SECONDS))
-            .then((_) => closeAd());
+            .then((_) {
+              if (Navigator.of(context).canPop()) {
+                closeAd(context);
+              }
+            });
       }
       return AdWidget(ad: _nativeAd.value!);
     } else {
@@ -163,14 +167,16 @@ class NativeAdManager extends GetxController {
   }
 
   /// Shows the ad in a dialog
-  void showAdDialog({bool autoClose = true}) {
+  void showAdDialog(BuildContext context, {bool autoClose = true}) {
     if (!_isAdLoaded.value || _nativeAd.value == null) {
       debugPrint('Cannot show dialog: Native ad not loaded');
       return;
     }
 
-    Get.dialog(
-      Dialog(
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -181,7 +187,7 @@ class NativeAdManager extends GetxController {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: closeAd,
+                    onPressed: () => closeAd(context),
                   ),
                 ],
               ),
@@ -189,12 +195,11 @@ class NativeAdManager extends GetxController {
             Container(
               height: 300, // Adjust height as needed
               padding: const EdgeInsets.all(8.0),
-              child: buildAdWidget(autoClose: autoClose),
+              child: buildAdWidget(context, autoClose: autoClose),
             ),
           ],
         ),
       ),
-      barrierDismissible: false,
     );
   }
 }
