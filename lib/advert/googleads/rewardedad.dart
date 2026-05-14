@@ -1,8 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
@@ -15,45 +12,39 @@ class _LoadedAd {
   _LoadedAd({required this.ad, required this.loadTime});
 }
 
-class RewardedAdManager extends GetxController {
+class RewardedAdManager {
   // Constants
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
   static const int TARGET_BUFFER_SIZE = 3;
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
   // Private variables
   final List<String> _adUnitIds;
-  final RxList<_LoadedAd> _loadedAds = <_LoadedAd>[].obs;
-  final RxInt _currentLoadingIndex = 0.obs;
-  final RxInt _failedAttempts = 0.obs;
-  final RxBool _isLoading = false.obs;
-  final RxBool _rewardEarned = false.obs;
-  final RxBool _isShowing = false.obs;
-  final RxInt _pendingShowRequests = 0.obs;
+  final List<_LoadedAd> _loadedAds = [];
+  int _currentLoadingIndex = 0;
+  int _failedAttempts = 0;
+  bool _isLoading = false;
+  bool _rewardEarned = false;
+  bool _isShowing = false;
+  int _pendingShowRequests = 0;
 
   // Constructor
-  RewardedAdManager(this._adUnitIds);
-
-  // Getters
-  bool get isLoading => _isLoading.value;
-  bool get hasAds => _loadedAds.isNotEmpty;
-  int get adsCount => _loadedAds.length;
-
-  @override
-  void onInit() {
-    super.onInit();
+  RewardedAdManager(this._adUnitIds, this._reporter) {
     preloadAds();
   }
 
-  @override
-  void onClose() {
+  // Getters
+  bool get isLoading => _isLoading;
+  bool get hasAds => _loadedAds.isNotEmpty;
+  int get adsCount => _loadedAds.length;
+
+  void dispose() {
     for (final adData in _loadedAds) {
       adData.ad.dispose();
     }
     _loadedAds.clear();
-    super.onClose();
   }
 
   void preloadAds() {
@@ -61,18 +52,22 @@ class RewardedAdManager extends GetxController {
   }
 
   void _loadNextAd({Function? onComplete}) {
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0;
+    if (_adUnitIds.isEmpty) {
+      debugPrint('No ad unit IDs provided for RewardedAd');
       if (onComplete != null) onComplete();
       return;
     }
 
-    if (_isLoading.value) return;
-    _isLoading.value = true;
-    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+    if (_currentLoadingIndex >= _adUnitIds.length) {
+      _currentLoadingIndex = 0;
+      if (onComplete != null) onComplete();
+      return;
+    }
 
-    // Allow duplicates per ad unit when building buffer
-    // Only skip if buffer is already satisfied and we already have one for this ad unit
+    if (_isLoading) return;
+    _isLoading = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex];
+
     if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
         _loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
       _handleAdAlreadyExists(adUnitId);
@@ -81,7 +76,7 @@ class RewardedAdManager extends GetxController {
     }
 
     debugPrint(
-        'Loading rewarded ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}');
+        'Loading rewarded ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
     RewardedAd.load(
       adUnitId: adUnitId,
@@ -102,9 +97,9 @@ class RewardedAdManager extends GetxController {
   void _onAdLoaded(RewardedAd ad) {
     debugPrint('Rewarded ad loaded successfully: ${ad.adUnitId}');
     _loadedAds.add(_LoadedAd(ad: ad, loadTime: DateTime.now()));
-    _failedAttempts.value = 0;
-    _currentLoadingIndex.value++;
-    _isLoading.value = false;
+    _failedAttempts = 0;
+    _currentLoadingIndex++;
+    _isLoading = false;
 
     _topUpBuffer();
   }
@@ -119,24 +114,24 @@ class RewardedAdManager extends GetxController {
       errorMessage: error.message,
     );
 
-    _failedAttempts.value++;
-    _isLoading.value = false;
+    _failedAttempts++;
+    _isLoading = false;
 
-    if (_failedAttempts.value < maxFailedLoadAttempts) {
+    if (_failedAttempts < maxFailedLoadAttempts) {
       _loadNextAd();
     } else {
-      _failedAttempts.value = 0;
-      _currentLoadingIndex.value++;
+      _failedAttempts = 0;
+      _currentLoadingIndex++;
       _topUpBuffer();
     }
   }
 
   void _handleAdAlreadyExists(String adUnitId) {
     debugPrint('Ad for adUnitId $adUnitId already exists');
-    _isLoading.value = false;
-    _currentLoadingIndex.value++;
+    _isLoading = false;
+    _currentLoadingIndex++;
 
-    if (_currentLoadingIndex.value < _adUnitIds.length) {
+    if (_currentLoadingIndex < _adUnitIds.length) {
       _loadNextAd();
     }
   }
@@ -147,8 +142,8 @@ class RewardedAdManager extends GetxController {
     Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
-    if (_isShowing.value) {
-      _pendingShowRequests.value++;
+    if (_isShowing) {
+      _pendingShowRequests++;
       return Advertresponse.defaults();
     }
     if (_loadedAds.isEmpty) {
@@ -196,7 +191,7 @@ class RewardedAdManager extends GetxController {
     Map<String, String> customData,
   ) {
     final ad = adData.ad;
-    _rewardEarned.value = false;
+    _rewardEarned = false;
 
     if (customData.isNotEmpty) {
       final options = ServerSideVerificationOptions(
@@ -214,10 +209,9 @@ class RewardedAdManager extends GetxController {
             adType: 'Rewarded',
             placementId: ad.adUnitId,
           );
-          // Preload the next ad as soon as the current one is shown
           _loadedAds.removeWhere((adData) => adData.ad == ad);
           _topUpBuffer();
-          _isShowing.value = true;
+          _isShowing = true;
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         debugPrint('Rewarded ad dismissed');
@@ -226,15 +220,15 @@ class RewardedAdManager extends GetxController {
           adProvider: 'Google',
           adType: 'Rewarded',
           placementId: ad.adUnitId,
-          extraData: {'rewardEarned': _rewardEarned.value},
+          extraData: {'rewardEarned': _rewardEarned},
         );
-        if (onRewarded != null && _rewardEarned.value) {
+        if (onRewarded != null && _rewardEarned) {
           onRewarded();
         }
         _disposeAd(ad);
-        _isShowing.value = false;
-        if (_pendingShowRequests.value > 0) {
-          _pendingShowRequests.value--;
+        _isShowing = false;
+        if (_pendingShowRequests > 0) {
+          _pendingShowRequests--;
           Future.microtask(() {
             showRewardedAd(
               onRewarded: onRewarded,
@@ -255,8 +249,7 @@ class RewardedAdManager extends GetxController {
           errorMessage: error.message,
         );
         _disposeAd(ad);
-        // Attempt to show the next ad if available
-        _isShowing.value = false;
+        _isShowing = false;
         if (_loadedAds.isNotEmpty) {
           showRewardedAd(
             onRewarded: onRewarded,
@@ -264,10 +257,10 @@ class RewardedAdManager extends GetxController {
             onAdImpression: onAdImpression,
             customData: customData,
           );
-        } else if (_pendingShowRequests.value > 0) {
+        } else if (_pendingShowRequests > 0) {
           _loadNextAd(onComplete: () {
             if (_loadedAds.isNotEmpty) {
-              _pendingShowRequests.value--;
+              _pendingShowRequests--;
               showRewardedAd(
                 onRewarded: onRewarded,
                 onAdClicked: onAdClicked,
@@ -298,15 +291,13 @@ class RewardedAdManager extends GetxController {
     ad.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         debugPrint('User earned reward: ${reward.amount} ${reward.type}');
-        _rewardEarned.value = true;
+        _rewardEarned = true;
       },
     );
   }
 
   void _disposeAd(RewardedAd ad) {
-    // _loadedAds.removeWhere((adData) => adData.ad == ad);
     ad.dispose();
-    // Removed _loadReplacementAd() from here as we now call it in onAdShowedFullScreenContent
   }
 
   void _topUpBuffer() {

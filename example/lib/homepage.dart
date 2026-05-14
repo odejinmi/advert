@@ -2,7 +2,6 @@ import 'dart:developer' as dev;
 
 import 'package:advert/advert/advert.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({Key? key}) : super(key: key);
@@ -20,7 +19,9 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
-    _advertPlugin.initialize(testmode: true);
+    _advertPlugin.initialize(testmode: true).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _startSequence(String type, String reason, int total) {
@@ -32,25 +33,29 @@ class _HomepageState extends State<Homepage> {
       customData: {"username": "test_user", "platform": "mobile", "type": "sequence"},
       onComplete: () {
         dev.log("Sequence: $type ads finished");
+        if (mounted) setState(() {});
       },
     );
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_advertPlugin.sdkInitialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final adsProv = _advertPlugin.adsProv;
+    final isShowing = adsProv.isShowingAds;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Advert Plugin Example'),
       ),
-      body: Obx(() {
-        if (!_advertPlugin.sdkInitialized) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final adsProv = _advertPlugin.adsProv;
-        final isShowing = adsProv.isShowingAds.value;
-
-        return SizedBox(
+      body: SingleChildScrollView(
+        child: SizedBox(
           width: double.infinity,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -93,7 +98,7 @@ class _HomepageState extends State<Homepage> {
                     children: [
                       const CircularProgressIndicator(),
                       const SizedBox(height: 10),
-                      Text("Ad Sequence: ${adsProv.adsWatched.value}/${adsProv.totalAds.value} completed"),
+                      Text("Ad Sequence: ${adsProv.adsWatched}/${adsProv.totalAds} completed"),
                     ],
                   ),
                 ),
@@ -104,8 +109,8 @@ class _HomepageState extends State<Homepage> {
               if (_showBannerAd) adsProv.showBannerAd(),
             ],
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 
@@ -123,7 +128,7 @@ class _HomepageState extends State<Homepage> {
         maxWidth: 400,
         maxHeight: 200,
       ),
-      child: _advertPlugin.adsProv.showNativeAd(),
+      child: _advertPlugin.adsProv.showNativeAd(context),
     );
   }
 

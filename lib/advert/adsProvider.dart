@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../model/adsmodel.dart';
 import '../model/advertresponse.dart';
@@ -11,7 +10,7 @@ import 'googleads/banner_admob.dart';
 import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
 
-class AdManager extends GetxController {
+class AdManager {
   // Constants
   static const int MAX_RETRY_ATTEMPTS = 3;
   static const Duration DEFAULT_RETRY_DELAY = Duration(seconds: 1);
@@ -23,23 +22,22 @@ class AdManager extends GetxController {
   // Ad providers
   UnityProvider? _unityProvider;
   GoogleAdProvider? _googleProvider;
-  final AdcolonyProvider _adcolonyProvider =
-      Get.put(AdcolonyProvider(), permanent: true);
+  late final AdcolonyProvider _adcolonyProvider;
 
   // State variables for provider cycling
-  final RxInt _interstitialProviderIndex = 1.obs;
-  final RxInt _rewardedProviderIndex = 1.obs;
-  final RxInt _interstitialRetryAttempts = 0.obs;
-  final RxInt _rewardedRetryAttempts = 0.obs;
-  final RxInt _bannerProviderIndex = 1.obs;
+  int _interstitialProviderIndex = 1;
+  int _rewardedProviderIndex = 1;
+  int _interstitialRetryAttempts = 0;
+  int _rewardedRetryAttempts = 0;
+  int _bannerProviderIndex = 1;
 
   // Ad Sequence State
-  final RxInt adsWatched = 0.obs;
-  final RxInt totalAds = 0.obs;
-  final RxBool isShowingAds = false.obs;
+  int adsWatched = 0;
+  int totalAds = 0;
+  bool isShowingAds = false;
   
   late String _currentAdType;
-  final RxString reasonads = "".obs;
+  String reasonads = "";
   late Map<String, String> _customData;
   late VoidCallback _onSequenceComplete;
   Function? _onAdClicked;
@@ -47,34 +45,26 @@ class AdManager extends GetxController {
 
   // Constructor
   AdManager(this._adsConfig) {
-    _eventReporter = Get.put(
-      EventReporter(),
-      permanent: true,
-    );
-  }
-
-  // Getters
-  int get providerCount => _getAvailableProviderCount();
-  bool get isRewardedAdReady => _isAnyRewardedAdReady();
-
-  @override
-  void onInit() {
-    super.onInit();
+    _eventReporter = EventReporter();
     _initializeAdProviders();
     _startBannerRotation();
   }
 
   void _initializeAdProviders() {
+    _adcolonyProvider = AdcolonyProvider();
+    
     if (_adsConfig.googlemodel != null) {
-      _googleProvider =
-          Get.put(GoogleAdProvider(_adsConfig.googlemodel!), permanent: true);
+      _googleProvider = GoogleAdProvider(_adsConfig.googlemodel!, _eventReporter);
     }
 
     if (_adsConfig.unitymodel != null) {
-      _unityProvider =
-          Get.put(UnityProvider(_adsConfig.unitymodel!), permanent: true);
+      _unityProvider = UnityProvider(_adsConfig.unitymodel!, _eventReporter);
     }
   }
+
+  // Getters
+  int get providerCount => _getAvailableProviderCount();
+  bool get isRewardedAdReady => _isAnyRewardedAdReady();
 
   int _getAvailableProviderCount() {
     int count = 0;
@@ -112,15 +102,15 @@ class AdManager extends GetxController {
     _preloadInterstitialAds();
     if (_unityProvider != null &&
         _unityProvider!.unityintersAd1 &&
-        _interstitialProviderIndex.value == 1) {
+        _interstitialProviderIndex == 1) {
       _advanceInterstitialProvider();
-      _interstitialRetryAttempts.value = 0;
+      _interstitialRetryAttempts = 0;
       return _unityProvider!.showAd1(onclick);
     } else if (_googleProvider != null &&
         _googleProvider!.hasInterstitialAd &&
-        _interstitialProviderIndex.value == 2) {
+        _interstitialProviderIndex == 2) {
       _advanceInterstitialProvider();
-      _interstitialRetryAttempts.value = 0;
+      _interstitialRetryAttempts = 0;
       return _googleProvider!.showInterstitialAd();
     } else {
       return await _handleInterstitialRetry(
@@ -136,9 +126,9 @@ class AdManager extends GetxController {
     Function? onAdClicked,
     Function? onAdImpression,
   }) async {
-    if (_interstitialRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
+    if (_interstitialRetryAttempts < MAX_RETRY_ATTEMPTS) {
       _advanceInterstitialProvider();
-      _interstitialRetryAttempts.value++;
+      _interstitialRetryAttempts++;
       await Future.delayed(DEFAULT_RETRY_DELAY);
       return showInterstitialAd(
         onclick: onclick,
@@ -146,13 +136,13 @@ class AdManager extends GetxController {
         onAdImpression: onAdImpression,
       );
     } else {
-      _interstitialRetryAttempts.value = 0;
+      _interstitialRetryAttempts = 0;
       return Advertresponse.defaults();
     }
   }
 
   void _advanceInterstitialProvider() {
-    _interstitialProviderIndex.value = _interstitialProviderIndex.value % providerCount + 1;
+    _interstitialProviderIndex = _interstitialProviderIndex % providerCount + 1;
   }
 
   /// --- Standard Ad Show Methods ---
@@ -167,19 +157,19 @@ class AdManager extends GetxController {
     _preloadRewardedAds();
 
     // 1: Unity, 2: Google
-    int turn = _rewardedProviderIndex.value;
+    int turn = _rewardedProviderIndex;
 
     // TRY CURRENT TURN
     if (turn == 1) {
       if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
-        _rewardedProviderIndex.value = 2; // Success: Next turn Google
-        _rewardedRetryAttempts.value = 0;
+        _rewardedProviderIndex = 2; // Success: Next turn Google
+        _rewardedRetryAttempts = 0;
         return _unityProvider!.showRewardedAd(onRewarded, () {});
       } else {
         // Fallback to Google immediately if Unity is not ready
         if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-          _rewardedProviderIndex.value = 1; // Google played: Next turn Unity
-          _rewardedRetryAttempts.value = 0;
+          _rewardedProviderIndex = 1; // Google played: Next turn Unity
+          _rewardedRetryAttempts = 0;
           return _googleProvider!.showmergeRewardedAd(
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
@@ -190,8 +180,8 @@ class AdManager extends GetxController {
       }
     } else {
       if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-        _rewardedProviderIndex.value = 1; // Success: Next turn Unity
-        _rewardedRetryAttempts.value = 0;
+        _rewardedProviderIndex = 1; // Success: Next turn Unity
+        _rewardedRetryAttempts = 0;
         return _googleProvider!.showmergeRewardedAd(
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
@@ -201,21 +191,21 @@ class AdManager extends GetxController {
       } else {
         // Fallback to Unity immediately if Google is not ready
         if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
-          _rewardedProviderIndex.value = 2; // Unity played: Next turn Google
-          _rewardedRetryAttempts.value = 0;
+          _rewardedProviderIndex = 2; // Unity played: Next turn Google
+          _rewardedRetryAttempts = 0;
           return _unityProvider!.showRewardedAd(onRewarded, () {});
         }
       }
     }
 
     // BOTH FAILED: RETRY LOGIC
-    if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-      _rewardedRetryAttempts.value++;
+    if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
+      _rewardedRetryAttempts++;
       // Switch the turn for the next retry attempt
-      _rewardedProviderIndex.value = (turn == 1) ? 2 : 1;
+      _rewardedProviderIndex = (turn == 1) ? 2 : 1;
 
       debugPrint(
-          'No rewarded ads ready. Retry attempt ${_rewardedRetryAttempts.value}/$MAX_RETRY_ATTEMPTS');
+          'No rewarded ads ready. Retry attempt ${_rewardedRetryAttempts}/$MAX_RETRY_ATTEMPTS');
       await Future.delayed(Duration(seconds: retryDelaySeconds));
       return showmergeRewardedAd(
         onRewarded: onRewarded,
@@ -225,7 +215,7 @@ class AdManager extends GetxController {
         retryDelaySeconds: retryDelaySeconds,
       );
     } else {
-      _rewardedRetryAttempts.value = 0;
+      _rewardedRetryAttempts = 0;
       return Advertresponse.defaults();
     }
   }
@@ -275,7 +265,7 @@ class AdManager extends GetxController {
   }) async {
     _preloadRewardedAds();
     if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-      _rewardedRetryAttempts.value = 0;
+      _rewardedRetryAttempts = 0;
       return _googleProvider!.showmergeRewardedAd(
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
@@ -283,8 +273,8 @@ class AdManager extends GetxController {
         customData: customData,
       );
     } else {
-      if (_rewardedRetryAttempts.value < MAX_RETRY_ATTEMPTS) {
-        _rewardedRetryAttempts.value++;
+      if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
+        _rewardedRetryAttempts++;
         await Future.delayed(Duration(seconds: retryDelaySeconds));
         return showgooglemergeRewardedAd(
           onRewarded: onRewarded,
@@ -294,7 +284,7 @@ class AdManager extends GetxController {
           retryDelaySeconds: retryDelaySeconds,
         );
       } else {
-        _rewardedRetryAttempts.value = 0;
+        _rewardedRetryAttempts = 0;
         return Advertresponse.defaults();
       }
     }
@@ -337,7 +327,7 @@ class AdManager extends GetxController {
   }
 
   void _advanceRewardedProvider() {
-    _rewardedProviderIndex.value = _rewardedProviderIndex.value % providerCount + 1;
+    _rewardedProviderIndex = _rewardedProviderIndex % providerCount + 1;
   }
 
   Widget showNativeAd(BuildContext context) {
@@ -373,8 +363,7 @@ class AdManager extends GetxController {
   }
 
   void _rotateBannerProvider() {
-    _bannerProviderIndex.value = _bannerProviderIndex.value % providerCount + 1;
-    update();
+    _bannerProviderIndex = _bannerProviderIndex % providerCount + 1;
   }
 
   // --- Unified Ad Sequence Logic ---
@@ -390,21 +379,17 @@ class AdManager extends GetxController {
     Function? onAdClicked,
     Function? onAdImpression,
   }) {
-    // adsWatched.value = 0;
-    totalAds.value = total;
+    totalAds = total;
     _currentAdType = adType;
     _customData = customData;
-    reasonads.value = reason;
+    reasonads = reason;
     _onSequenceComplete = onComplete;
     _onAdClicked = onAdClicked;
     _onAdImpression = onAdImpression;
-    isShowingAds.value = true;
+    isShowingAds = true;
 
-    // If we've already watched some ads but the total changed (or we are just starting),
-    // ensure we don't exceed the new total.
-    // If you want to force reset on a NEW reason, you could compare 'reasonads.value'.
-    if (adsWatched.value >= total) {
-      adsWatched.value = 0;
+    if (adsWatched >= total) {
+      adsWatched = 0;
     }
 
     if (total == 1) {
@@ -415,13 +400,13 @@ class AdManager extends GetxController {
   }
 
   void _handleAdCompletion(BuildContext context) {
-    adsWatched.value++;
-    if (adsWatched.value < totalAds.value) {
+    adsWatched++;
+    if (adsWatched < totalAds) {
       _showAdProgressDialog(context);
     } else {
-      isShowingAds.value = false;
+      isShowingAds = false;
       _onSequenceComplete();
-      adsWatched.value = 0; // Reset only after successful completion
+      adsWatched = 0; // Reset only after successful completion
     }
   }
 
@@ -432,16 +417,15 @@ class AdManager extends GetxController {
       enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (dialogContext) => AdProgressDialog(
-        completed: adsWatched.value,
-        total: totalAds.value,
-        reason: reasonads.value,
+        completed: adsWatched,
+        total: totalAds,
+        reason: reasonads,
         onTimerFinished: () {
           Navigator.of(dialogContext).pop();
           _playCurrentAd(context);
         },
         onCancel: () {
-          isShowingAds.value = false;
-          // adsWatched.value = 0;
+          isShowingAds = false;
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -466,7 +450,7 @@ class AdManager extends GetxController {
         actions: [
           TextButton(
             onPressed: () {
-              isShowingAds.value = false;
+              isShowingAds = false;
               Navigator.of(dialogContext).pop();
             },
             child: const Text("Cancel", style: TextStyle(color: Color(0xFFF9C304))),
@@ -548,5 +532,9 @@ class AdManager extends GetxController {
     if (!result.status) {
       _showRetryDialog(context);
     }
+  }
+
+  void dispose() {
+    _googleProvider?.dispose();
   }
 }

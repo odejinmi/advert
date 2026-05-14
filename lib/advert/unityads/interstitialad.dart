@@ -1,40 +1,20 @@
-
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
-import '../device.dart';
 import '../event_reporter.dart';
 
-class Unityinterstitialad extends GetxController {
+class Unityinterstitialad {
   var screenUnitId;
-  Unityinterstitialad(this.screenUnitId);
+  Unityinterstitialad(this.screenUnitId, this._reporter);
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
-  final _intersAd1 = [].obs;
-  set intersAd1(value)=> _intersAd1.value = value;
-  get intersAd1 => _intersAd1.value;
-
-  final _numInterstitialLoadAttempts = 0.obs;
-  set numInterstitialLoadAttempts(value)=> _numInterstitialLoadAttempts.value = value;
-  get numInterstitialLoadAttempts => _numInterstitialLoadAttempts.value;
-
-  final _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value)=> _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
-
-  bool showAds = false;
-
-  final _isloading = false.obs;
-  set isloading(value) => _isloading.value = value;
-  get isloading => _isloading.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
-
+  final List<String> intersAd1 = [];
+  int numInterstitialLoadAttempts = 0;
+  int maxFailedLoadAttempts = 3;
+  bool _isloading = false;
+  int currentIndex = 0;
 
   void createInterstitialAd({Function? show}) {
     print("Start Loading rewardedAd");
@@ -42,71 +22,55 @@ class Unityinterstitialad extends GetxController {
       if(show != null){
         show();
       }
-      return; // All ads have been loaded
+      return; 
     }
-    if (isloading) {
-      return; // All ads have been loaded
+    if (_isloading) {
+      return; 
     }
-    isloading = true;
-    // for(int i =0;i < (screenUnitId.length - intersAd1.length); i++ ) {
-      var adunitid = screenUnitId[currentIndex];
-      // if (screenUnitId.length != intersAd1.length) {
-        UnityAds.load(
-          placementId: adunitid,
-          onComplete: (placementId) {
-            debugPrint('Load Complete $placementId');
-            isloading = false;
-            intersAd1.add(placementId);
-            numInterstitialLoadAttempts = 0;
+    _isloading = true;
+    var adunitid = screenUnitId[currentIndex];
+    UnityAds.load(
+      placementId: adunitid,
+      onComplete: (placementId) {
+        debugPrint('Load Complete $placementId');
+        _isloading = false;
+        intersAd1.add(placementId);
+        numInterstitialLoadAttempts = 0;
+        currentIndex++;
+        if (currentIndex < screenUnitId.length) {
+          createInterstitialAd(); 
+        }
+        if (show != null) {
+          show();
+        }
+      },
+      onFailed: (placementId, error, message) {
+          debugPrint('Load Failed $placementId: $error $message');
+          _isloading = false;
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Unity',
+            adType: 'Interstitial',
+            placementId: placementId,
+            errorMessage: '$error: $message',
+          );
+          print("Failed to load rewarded ad: $placementId, error: $error");
+          numInterstitialLoadAttempts += 1;
+          if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
+            createInterstitialAd();
+          } else {
             currentIndex++;
             if (currentIndex < screenUnitId.length) {
-              createInterstitialAd(); // Load the next ad
+              createInterstitialAd(); 
             }
-            if (show != null) {
-              show();
-            }
-          },
-          onFailed: (placementId, error, message) {
-              debugPrint('Load Failed $placementId: $error $message');
-              isloading = false;
-              _reporter.reportEvent(
-                event: AdEvent.failed,
-                adProvider: 'Unity',
-                adType: 'Interstitial',
-                placementId: placementId,
-                errorMessage: '$error: $message',
-              );
-              print("Failed to load rewarded ad: $placementId, error: $error");
-              numInterstitialLoadAttempts += 1;
-              if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-                // Retry loading the specific ad unit
-                createInterstitialAd();
-              } else {
-                currentIndex++;
-                if (currentIndex < intersAd1.length) {
-                  createInterstitialAd(); // Load the next ad
-                }
-              }
-          },
-
-        );
-      // }
-    // }
-  }
-
-
-  @override
-  void onInit() {
-    // TODO: implement onInit
-    super.onInit();
-    // if(deviceallow.allow()) {
-    //   createInterstitialAd();
-    // }
+          }
+      },
+    );
   }
 
   Advertresponse showAd(Function? onclick){
     if (intersAd1.isEmpty) {
-      createInterstitialAd(show: showAd);
+      createInterstitialAd(show: () => showAd(onclick));
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
@@ -121,7 +85,6 @@ class Unityinterstitialad extends GetxController {
           placementId: placementId,
         );
         addispose(placementId);
-        return Advertresponse.showing();
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
@@ -133,7 +96,6 @@ class Unityinterstitialad extends GetxController {
           errorMessage: '$error: $message',
         );
         addispose(placementId);
-        return Advertresponse.defaults();
       },
       onStart: (placementId) {
         addispose(placementId);
@@ -144,7 +106,6 @@ class Unityinterstitialad extends GetxController {
           placementId: placementId,
         );
         debugPrint('Video Ad $placementId started');
-        return Advertresponse.defaults();
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
@@ -157,12 +118,10 @@ class Unityinterstitialad extends GetxController {
         if (onclick != null) {
           onclick();
         }
-        return Advertresponse.defaults();
       },
       onSkipped: (placementId) {
         debugPrint('Video Ad $placementId skipped');
         addispose(placementId);
-        return Advertresponse.defaults();
       },
     );
     return Advertresponse.showing();
@@ -170,8 +129,8 @@ class Unityinterstitialad extends GetxController {
 
 
   void addispose(String ad) {
-    intersAd1.removeWhere((adData) => adData.ad == ad);
+    intersAd1.remove(ad);
     currentIndex--;
-    createInterstitialAd(); // Load a new ad when one is disposed
+    createInterstitialAd(); 
   }
 }

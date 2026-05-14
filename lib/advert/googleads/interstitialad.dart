@@ -1,47 +1,38 @@
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
 import '../event_reporter.dart';
 
-class InterstitialAdManager extends GetxController {
+class InterstitialAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
   static const int TARGET_BUFFER_SIZE = 2;
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
   // Private variables
   final List<String> _adUnitIds;
-  final RxList<InterstitialAd> _loadedAds = <InterstitialAd>[].obs;
-  final RxInt _currentLoadingIndex = 0.obs;
-  final RxInt _failedAttempts = 0.obs;
-  final RxBool _isLoading = false.obs;
+  final List<InterstitialAd> _loadedAds = [];
+  int _currentLoadingIndex = 0;
+  int _failedAttempts = 0;
+  bool _isLoading = false;
 
   // Constructor
-  InterstitialAdManager(this._adUnitIds);
-
-  // Getters
-  bool get isLoading => _isLoading.value;
-  bool get hasAds => _loadedAds.isNotEmpty;
-  int get adsCount => _loadedAds.length;
-
-  @override
-  void onInit() {
-    super.onInit();
-    // Start preloading ads
+  InterstitialAdManager(this._adUnitIds, this._reporter) {
     preloadAds();
   }
 
-  @override
-  void onClose() {
-    // Dispose all ads when controller is closed
+  // Getters
+  bool get isLoading => _isLoading;
+  bool get hasAds => _loadedAds.isNotEmpty;
+  int get adsCount => _loadedAds.length;
+
+  void dispose() {
     for (final ad in _loadedAds) {
       ad.dispose();
     }
     _loadedAds.clear();
-    super.onClose();
   }
 
   /// Preloads ads up to the number of ad unit IDs available
@@ -51,16 +42,21 @@ class InterstitialAdManager extends GetxController {
 
   /// Loads the next ad in the sequence
   void _loadNextAd() {
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0; // wrap to allow continuous loading
+    if (_adUnitIds.isEmpty) {
+      debugPrint('No ad unit IDs provided for Interstitial');
+      return;
     }
 
-    if (_isLoading.value) return;
-    _isLoading.value = true;
-    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+    if (_currentLoadingIndex >= _adUnitIds.length) {
+      _currentLoadingIndex = 0; // wrap to allow continuous loading
+    }
+
+    if (_isLoading) return;
+    _isLoading = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex];
 
     debugPrint(
-        'Loading interstitial ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}');
+        'Loading interstitial ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
     InterstitialAd.load(
       adUnitId: adUnitId,
@@ -76,9 +72,9 @@ class InterstitialAdManager extends GetxController {
   void _onAdLoaded(InterstitialAd ad) {
     debugPrint('Interstitial ad loaded successfully');
     _loadedAds.add(ad);
-    _failedAttempts.value = 0;
-    _currentLoadingIndex.value++;
-    _isLoading.value = false;
+    _failedAttempts = 0;
+    _currentLoadingIndex++;
+    _isLoading = false;
 
     _topUpBuffer();
   }
@@ -94,16 +90,16 @@ class InterstitialAdManager extends GetxController {
       errorMessage: error.message,
     );
 
-    _failedAttempts.value++;
-    _isLoading.value = false;
+    _failedAttempts++;
+    _isLoading = false;
 
-    if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+    if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
       // Retry loading the same ad
       _loadNextAd();
     } else {
       // Move to next ad unit after max retries
-      _failedAttempts.value = 0;
-      _currentLoadingIndex.value++;
+      _failedAttempts = 0;
+      _currentLoadingIndex++;
       _topUpBuffer();
     }
   }

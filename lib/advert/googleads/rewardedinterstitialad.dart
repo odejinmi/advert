@@ -1,51 +1,40 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../model/advertresponse.dart';
 import '../event_reporter.dart';
 
-class RewardedInterstitialAdManager extends GetxController {
+class RewardedInterstitialAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
   static const int TARGET_BUFFER_SIZE = 2;
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
   // Private variables
   final List<String> _adUnitIds;
-  final RxList<RewardedInterstitialAd> _loadedAds =
-      <RewardedInterstitialAd>[].obs;
-  final RxInt _currentLoadingIndex = 0.obs;
-  final RxInt _failedAttempts = 0.obs;
-  final RxBool _isLoading = false.obs;
-  final RxBool _rewardEarned = false.obs;
+  final List<RewardedInterstitialAd> _loadedAds = [];
+  int _currentLoadingIndex = 0;
+  int _failedAttempts = 0;
+  bool _isLoading = false;
+  bool _rewardEarned = false;
 
   // Constructor
-  RewardedInterstitialAdManager(this._adUnitIds);
-
-  // Getters
-  bool get isLoading => _isLoading.value;
-  bool get hasAds => _loadedAds.isNotEmpty;
-  int get adsCount => _loadedAds.length;
-
-  @override
-  void onInit() {
-    super.onInit();
-    // Start preloading ads
+  RewardedInterstitialAdManager(this._adUnitIds, this._reporter) {
     preloadAds();
   }
 
-  @override
-  void onClose() {
-    // Dispose all ads when controller is closed
+  // Getters
+  bool get isLoading => _isLoading;
+  bool get hasAds => _loadedAds.isNotEmpty;
+  int get adsCount => _loadedAds.length;
+
+  void dispose() {
     for (final ad in _loadedAds) {
       ad.dispose();
     }
     _loadedAds.clear();
-    super.onClose();
   }
 
   /// Preloads ads up to the number of ad unit IDs available
@@ -55,27 +44,33 @@ class RewardedInterstitialAdManager extends GetxController {
 
   /// Loads the next ad in the sequence
   void _loadNextAd({Function? onComplete}) {
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
-      _currentLoadingIndex.value = 0; // wrap for continuous loading
+    if (_adUnitIds.isEmpty) {
+      debugPrint('No ad unit IDs provided for RewardedInterstitial');
+      if (onComplete != null) onComplete();
+      return;
     }
 
-    if (_isLoading.value) return;
-    _isLoading.value = true;
-    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+    if (_currentLoadingIndex >= _adUnitIds.length) {
+      _currentLoadingIndex = 0; // wrap for continuous loading
+    }
+
+    if (_isLoading) return;
+    _isLoading = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex];
 
     // Check if an ad already exists for this ad unit ID
     if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
         _loadedAds.any((ad) => ad.adUnitId == adUnitId)) {
       debugPrint('Ad for adUnitId $adUnitId already exists');
-      _isLoading.value = false;
-      _currentLoadingIndex.value++;
+      _isLoading = false;
+      _currentLoadingIndex++;
 
       _topUpBuffer();
       return;
     }
 
     debugPrint(
-        'Loading rewarded interstitial ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}');
+        'Loading rewarded interstitial ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
     RewardedInterstitialAd.load(
       adUnitId: adUnitId,
@@ -84,9 +79,9 @@ class RewardedInterstitialAdManager extends GetxController {
         onAdLoaded: (RewardedInterstitialAd ad) {
           debugPrint('Rewarded interstitial ad loaded successfully: $adUnitId');
           _loadedAds.add(ad);
-          _failedAttempts.value = 0;
-          _currentLoadingIndex.value++;
-          _isLoading.value = false;
+          _failedAttempts = 0;
+          _currentLoadingIndex++;
+          _isLoading = false;
 
           _topUpBuffer();
           if (onComplete != null) onComplete();
@@ -102,16 +97,16 @@ class RewardedInterstitialAdManager extends GetxController {
             errorMessage: error.message,
           );
 
-          _failedAttempts.value++;
-          _isLoading.value = false;
+          _failedAttempts++;
+          _isLoading = false;
 
-          if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
+          if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
             // Retry loading the same ad
             _loadNextAd(onComplete: onComplete);
           } else {
             // Move to next ad unit after max retries
-            _failedAttempts.value = 0;
-            _currentLoadingIndex.value++;
+            _failedAttempts = 0;
+            _currentLoadingIndex++;
 
             _topUpBuffer();
             if (onComplete != null) onComplete();
@@ -145,7 +140,7 @@ class RewardedInterstitialAdManager extends GetxController {
     }
 
     final ad = _loadedAds[0];
-    _rewardEarned.value = false;
+    _rewardEarned = false;
 
     // Set server-side verification options if custom data is provided
     if (customData.isNotEmpty) {
@@ -174,7 +169,7 @@ class RewardedInterstitialAdManager extends GetxController {
           adProvider: 'Google',
           adType: 'RewardedInterstitial',
           placementId: ad.adUnitId,
-          extraData: {'rewardEarned': _rewardEarned.value},
+          extraData: {'rewardEarned': _rewardEarned},
         );
         _disposeCurrentAd(ad);
       },
@@ -220,7 +215,7 @@ class RewardedInterstitialAdManager extends GetxController {
     ad.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         debugPrint('User earned reward: ${reward.amount} ${reward.type}');
-        _rewardEarned.value = true;
+        _rewardEarned = true;
         if (onRewarded != null) {
           onRewarded();
         }
@@ -232,18 +227,8 @@ class RewardedInterstitialAdManager extends GetxController {
 
   /// Disposes the current ad and loads a replacement
   void _disposeCurrentAd(ad) {
-    if (_loadedAds.isNotEmpty) {
-      // final ad = _loadedAds.removeAt(0);
-      ad.dispose();
-
-      // Decrement the index to allow reloading this slot
-      if (_currentLoadingIndex.value > 0) {
-        _currentLoadingIndex.value--;
-      }
-
-      // Load a replacement ad
-      _topUpBuffer();
-    }
+    ad.dispose();
+    _topUpBuffer();
   }
 
   void _topUpBuffer() {

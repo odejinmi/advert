@@ -1,66 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../event_reporter.dart';
 
-class NativeAdManager extends GetxController {
+class NativeAdManager {
   // Constants
   static const int AUTO_CLOSE_DELAY_SECONDS = 20;
   static const String FACTORY_ID = 'adFactoryExample';
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
   // Private variables
   final List<String> _adUnitIds;
-  final Rx<NativeAd?> _nativeAd = Rx<NativeAd?>(null);
-  final RxBool _isAdLoaded = false.obs;
-  final RxInt _currentAdIndex = 0.obs;
-  final RxInt _failedAttempts = 0.obs;
+  NativeAd? _nativeAd;
+  bool _isAdLoaded = false;
+  int _currentAdIndex = 0;
+  int _failedAttempts = 0;
 
   // Constructor
-  NativeAdManager(this._adUnitIds);
-
-  // Getters
-  bool get isAdLoaded => _isAdLoaded.value;
-  NativeAd? get currentAd => _nativeAd.value;
-
-  @override
-  void onInit() {
-    super.onInit();
-    // Load ad if ad unit IDs are available
+  NativeAdManager(this._adUnitIds, this._reporter) {
     if (_adUnitIds.isNotEmpty) {
       loadAd();
     }
   }
 
-  @override
-  void onClose() {
-    // Dispose ad when controller is closed
+  // Getters
+  bool get isAdLoaded => _isAdLoaded;
+  NativeAd? get currentAd => _nativeAd;
+
+  void dispose() {
     _disposeCurrentAd();
-    super.onClose();
   }
 
   /// Loads a native ad using the current ad unit ID
   void loadAd() {
-    // Don't load if we have no ad unit IDs
     if (_adUnitIds.isEmpty) {
       debugPrint('No native ad unit IDs provided');
       return;
     }
 
-    // Dispose any existing ad before creating a new one
     _disposeCurrentAd();
+    _isAdLoaded = false;
 
-    // Reset ad loaded state
-    _isAdLoaded.value = false;
-
-    // Get current ad unit ID (with cycling through available IDs)
-    final adUnitId = _adUnitIds[_currentAdIndex.value % _adUnitIds.length];
+    final adUnitId = _adUnitIds[_currentAdIndex % _adUnitIds.length];
 
     debugPrint('Loading native ad with ID: $adUnitId');
 
-    _nativeAd.value = NativeAd(
+    _nativeAd = NativeAd(
       adUnitId: adUnitId,
       factoryId: FACTORY_ID,
       listener: NativeAdListener(
@@ -104,55 +90,44 @@ class NativeAdManager extends GetxController {
       customOptions: {'custom-option-1': 'custom-value-1'},
     );
 
-    _nativeAd.value!.load();
+    _nativeAd!.load();
   }
 
-  /// Callback when ad is successfully loaded
   void _onAdLoaded(Ad ad) {
     debugPrint('Native ad loaded successfully');
-    _isAdLoaded.value = true;
-    _failedAttempts.value = 0;
-    update();
+    _isAdLoaded = true;
+    _failedAttempts = 0;
   }
 
-  /// Callback when ad fails to load
   void _onAdFailedToLoad(Ad ad, LoadAdError error) {
     debugPrint('Native ad failed to load: ${error.message}');
     ad.dispose();
-    _nativeAd.value = null;
-    _isAdLoaded.value = false;
+    _nativeAd = null;
+    _isAdLoaded = false;
+    _failedAttempts++;
 
-    _failedAttempts.value++;
-
-    // Try the next ad unit ID after failure
-    if (_failedAttempts.value <= 3 && _adUnitIds.length > 1) {
-      _currentAdIndex.value = (_currentAdIndex.value + 1) % _adUnitIds.length;
+    if (_failedAttempts <= 3 && _adUnitIds.length > 1) {
+      _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
       loadAd();
     }
-
-    update();
   }
 
-  /// Disposes the current ad if it exists
   void _disposeCurrentAd() {
-    if (_nativeAd.value != null) {
-      _nativeAd.value!.dispose();
-      _nativeAd.value = null;
+    if (_nativeAd != null) {
+      _nativeAd!.dispose();
+      _nativeAd = null;
     }
   }
 
-  /// Closes the ad dialog and reloads a new ad
   void closeAd(BuildContext context) {
     Navigator.of(context).pop();
     _disposeCurrentAd();
     loadAd();
   }
 
-  /// Returns a widget containing the native ad or an empty container if not loaded
   Widget buildAdWidget(BuildContext context, {bool autoClose = true}) {
-    if (_nativeAd.value != null && _isAdLoaded.value) {
+    if (_nativeAd != null && _isAdLoaded) {
       if (autoClose) {
-        // Set up auto-close timer
         Future.delayed(Duration(seconds: AUTO_CLOSE_DELAY_SECONDS))
             .then((_) {
               if (Navigator.of(context).canPop()) {
@@ -160,15 +135,14 @@ class NativeAdManager extends GetxController {
               }
             });
       }
-      return AdWidget(ad: _nativeAd.value!);
+      return AdWidget(ad: _nativeAd!);
     } else {
       return const SizedBox.shrink();
     }
   }
 
-  /// Shows the ad in a dialog
   void showAdDialog(BuildContext context, {bool autoClose = true}) {
-    if (!_isAdLoaded.value || _nativeAd.value == null) {
+    if (!_isAdLoaded || _nativeAd == null) {
       debugPrint('Cannot show dialog: Native ad not loaded');
       return;
     }
@@ -193,7 +167,7 @@ class NativeAdManager extends GetxController {
               ),
             ),
             Container(
-              height: 300, // Adjust height as needed
+              height: 300,
               padding: const EdgeInsets.all(8.0),
               child: buildAdWidget(context, autoClose: autoClose),
             ),

@@ -1,28 +1,19 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../model/advertresponse.dart';
 import '../model/unity.dart';
+import 'event_reporter.dart';
 import 'unityads/interstitialad.dart';
 import 'unityads/rewardedvideo.dart';
 
 
-class UnityProvider extends GetxController {
+class UnityProvider {
   Unitymodel unitymodel;
-  UnityProvider(this.unitymodel);
-  // var prefs = GetStorage();
-  bool showBanner = false;
-  Map<String, bool> placements = {};
+  final EventReporter _reporter;
 
-  static final _random = Random();
-  late Unityinterstitialad interstitiaad;
-  late Rewardedvideo rewardedvideo;
-  @override
-  void onInit() {
+  UnityProvider(this.unitymodel, this._reporter) {
     UnityAds.init(
       gameId: unitymodel.gameId,
       testMode: true,
@@ -34,8 +25,8 @@ class UnityProvider extends GetxController {
       onFailed: (error, message) =>
           print('Initialization Failed: $error $message'),
     );
-    interstitiaad = Get.put(Unityinterstitialad(unitymodel.interstitialVideoAdPlacementId), permanent: true);
-    rewardedvideo = Get.put(Rewardedvideo(unitymodel.rewardedVideoAdPlacementId), permanent: true);
+    interstitiaad = Unityinterstitialad(unitymodel.interstitialVideoAdPlacementId, _reporter);
+    rewardedvideo = Rewardedvideo(unitymodel.rewardedVideoAdPlacementId, _reporter);
 
     for(int i = 0; i < unitymodel.interstitialVideoAdPlacementId.length; i++){
       placements[unitymodel.interstitialVideoAdPlacementId[i]]= false;
@@ -43,21 +34,13 @@ class UnityProvider extends GetxController {
     for(int i = 0; i < unitymodel.rewardedVideoAdPlacementId.length; i++){
       placements[unitymodel.rewardedVideoAdPlacementId[i]]= false;
     }
-
-    super.onInit();
   }
 
-  bool _footerBannerShow = false;
-  dynamic _bannerAd;
+  Map<String, bool> placements = {};
+  late Unityinterstitialad interstitiaad;
+  late Rewardedvideo rewardedvideo;
 
-  get rewardvideoloaded => rewardedvideo.videoUnitId.isNotEmpty;
-
-  set footBannerShow(bool value) {
-    _footerBannerShow = value;
-    update();
-  }
-
-  get bannerIsAvailable => _bannerAd != null;
+  get rewardvideoloaded => rewardedvideo.intersAd1.isNotEmpty;
 
   get unityintersAd1{
     return interstitiaad.intersAd1.isNotEmpty;
@@ -89,48 +72,5 @@ class UnityProvider extends GetxController {
       onFailed: (placementId, error, message) =>
           debugPrint('Banner Ad $placementId failed: $error $message'),
     );
-    // return BannerAd(adUnitId: bannerId ?? banner1, adSize: adsize);
   }
 }
-
-// class AdManager {
-//   static String get gameId {
-//     if (defaultTargetPlatform == TargetPlatform.android) {
-//       return "3717787";
-//     }
-//     if (defaultTargetPlatform == TargetPlatform.iOS) {
-//       return '3717786';
-//     }
-//     return '';
-//   }
-//
-//   static String get bannerAdPlacementId {
-//     if (defaultTargetPlatform == TargetPlatform.android) {
-//       return 'newandroidbanner';
-//     }
-//     if (defaultTargetPlatform == TargetPlatform.iOS) {
-//       return 'iOS_Banner';
-//     }
-//     return 'newandroidbanner';
-//   }
-//
-//   static String get interstitialVideoAdPlacementId {
-//     if (defaultTargetPlatform == TargetPlatform.android) {
-//       return 'video';
-//     }
-//     if (defaultTargetPlatform == TargetPlatform.iOS) {
-//       return 'iOS_Interstitial';
-//     }
-//     return 'video';
-//   }
-//
-//   static String get rewardedVideoAdPlacementId {
-//     if (defaultTargetPlatform == TargetPlatform.android) {
-//       return 'Android_Rewarded';
-//     }
-//     if (defaultTargetPlatform == TargetPlatform.iOS) {
-//       return 'iOS_Rewarded';
-//     }
-//     return 'Android_Rewarded';
-//   }
-// }

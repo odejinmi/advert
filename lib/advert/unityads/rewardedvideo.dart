@@ -1,41 +1,21 @@
-
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
-import '../device.dart';
 import '../event_reporter.dart';
 
-class Rewardedvideo extends GetxController {
+class Rewardedvideo {
   var videoUnitId;
-  Rewardedvideo(this.videoUnitId);
+  Rewardedvideo(this.videoUnitId, this._reporter);
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
-  final _intersAd1 = [].obs;
-  set intersAd1(value)=> _intersAd1.value = value;
-  get intersAd1 => _intersAd1.value;
-
-  final _numInterstitialLoadAttempts = 0.obs;
-  set numInterstitialLoadAttempts(value)=> _numInterstitialLoadAttempts.value = value;
-  get numInterstitialLoadAttempts => _numInterstitialLoadAttempts.value;
-
-  final _maxFailedLoadAttempts = 3.obs;
-  set maxFailedLoadAttempts(value)=> _maxFailedLoadAttempts.value = value;
-  get maxFailedLoadAttempts => _maxFailedLoadAttempts.value;
-
-  final _isloading = false.obs;
-  set isloading(value) => _isloading.value = value;
-  get isloading => _isloading.value;
-
-  final _currentIndex = 0.obs;
-  set currentIndex(value) => _currentIndex.value = value;
-  get currentIndex => _currentIndex.value;
-
-  bool showAds = false;
+  final List<String> intersAd1 = [];
+  int numInterstitialLoadAttempts = 0;
+  int maxFailedLoadAttempts = 3;
+  bool _isloading = false;
+  int currentIndex = 0;
 
   void createInterstitialAd({Function? show}) {
     print("Start Loading rewardedAd");
@@ -43,24 +23,23 @@ class Rewardedvideo extends GetxController {
       if(show != null){
         show();
       }
-      return; // All ads have been loaded
+      return; 
     }
-    if (isloading) {
-      return; // All ads have been loaded
+    if (_isloading) {
+      return; 
     }
-    isloading = true;
-    print("we are loading");
+    _isloading = true;
     var adunitid = videoUnitId[currentIndex];
     UnityAds.load(
       placementId: adunitid,
       onComplete: (placementId) {
         debugPrint('Load Complete $placementId');
         intersAd1.add(placementId);
-        isloading = false;
+        _isloading = false;
         numInterstitialLoadAttempts = 0;
         currentIndex++;
         if (currentIndex < videoUnitId.length) {
-          createInterstitialAd(); // Load the next ad
+          createInterstitialAd(); 
         }
         if (show != null) {
           show();
@@ -68,7 +47,7 @@ class Rewardedvideo extends GetxController {
       },
       onFailed: (placementId, error, message) {
           debugPrint('Load Failed $placementId: $error $message');
-          isloading = false;
+          _isloading = false;
           _reporter.reportEvent(
             event: AdEvent.failed,
             adProvider: 'Unity',
@@ -78,31 +57,20 @@ class Rewardedvideo extends GetxController {
           );
           numInterstitialLoadAttempts += 1;
           if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-            // Retry loading the specific ad unit
             createInterstitialAd();
           } else {
             currentIndex++;
             if (currentIndex < videoUnitId.length) {
-              createInterstitialAd(); // Load the next ad
+              createInterstitialAd(); 
             }
           }
       },
     );
   }
 
-
-  @override
-  void onInit() {
-    // TODO: implement onInit
-    super.onInit();
-    // if(deviceallow.allow()) {
-    //   createInterstitialAd();
-    // }
-  }
-
   Advertresponse showAd(Function? rewarded, Function? onClicked){
     if (intersAd1.isEmpty) {
-      createInterstitialAd(show: showAd);
+      createInterstitialAd(show: () => showAd(rewarded, onClicked));
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
@@ -120,7 +88,6 @@ class Rewardedvideo extends GetxController {
         if (rewarded != null) {
           rewarded();
         }
-        return Advertresponse.showing();
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
@@ -135,7 +102,6 @@ class Rewardedvideo extends GetxController {
           createInterstitialAd();
         });
         addispose(placementId);
-        return Advertresponse.defaults();
       },
       onStart: (placementId) {
         addispose(placementId);
@@ -145,9 +111,7 @@ class Rewardedvideo extends GetxController {
           adType: 'Rewarded',
           placementId: placementId,
         );
-        // intersAd1.remove(placementId);
         debugPrint('Video Ad $placementId started');
-        return Advertresponse.defaults();
       },
       onClick: (placementId) {
         debugPrint('Video Ad $placementId click');
@@ -160,37 +124,22 @@ class Rewardedvideo extends GetxController {
         if (onClicked != null) {
           onClicked();
         }
-        return Advertresponse.defaults();
       },
       onSkipped: (placementId) {
         debugPrint('Video Ad $placementId skipped');
         addispose(placementId);
-        return Advertresponse.defaults();
       },
     );
     return Advertresponse.showing();
-
   }
 
   void addispose(String ad) {
-    intersAd1.removeWhere((adData) => adData.ad == ad);
+    intersAd1.remove(ad);
     currentIndex--;
-    createInterstitialAd(); // Load a new ad when one is disposed
+    createInterstitialAd(); 
   }
 
   static String get appId => Platform.isAndroid
-  // old
-  // ? 'ca-app-pub-6117361441866120~5829948546'
-  // ? 'ca-app-pub-1598206053668309~2044155939'
       ? 'ca-app-pub-6117361441866120~5829948546'
-  // : 'ca-app-pub-3940256099942544~1458002511';
-  // : 'ca-app-pub-1598206053668309~7710581439';
       : 'ca-app-pub-6117361441866120~7211527566';
-
-// static String get videoUnitId => Platform.isAndroid
-// // ? 'ca-app-pub-3940256099942544/5224354917'
-// // ? 'ca-app-pub-1598206053668309/5275989781'
-//     ? 'ca-app-pub-6117361441866120/4412338366'
-// // : 'ca-app-pub-1598206053668309/3667378733';
-//     : 'ca-app-pub-6117361441866120/2609953488';
 }

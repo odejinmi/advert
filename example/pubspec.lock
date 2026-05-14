@@ -153,14 +153,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  get:
-    dependency: transitive
-    description:
-      name: get
-      sha256: "5ed34a7925b85336e15d472cc4cfe7d9ebf4ab8e8b9f688585bf6b50f4c3d79a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.7.3"
   glob:
     dependency: transitive
     description:
@@ -173,10 +165,10 @@ packages:
     dependency: transitive
     description:
       name: google_mobile_ads
-      sha256: a4f59019f2c32769fb6c60ed8aa321e9c21a36297e2c4f23452b3e779a3e7a26
+      sha256: "50549f6c945d7a445d53c04f34d025b1a1723fbd02719de9e67de432e2597f40"
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.0"
+    version: "8.0.0"
   hooks:
     dependency: transitive
     description:
@@ -415,10 +407,10 @@ packages:
     dependency: transitive
     description:
       name: unity_ads_plugin
-      sha256: af43cfe45ee056758c37077beffd683631416f7c180cc96bcf610e342f4e5e52
+      sha256: "4ef07e4ccc0cd6a0b9291a5e1b98601931e8e5589abd97c9b1a602648ce0c79e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.29"
+    version: "0.3.30"
   vector_math:
     dependency: transitive
     description:

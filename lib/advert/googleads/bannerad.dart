@@ -1,46 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../device.dart';
 import '../event_reporter.dart';
 
-class BannerAdManager extends GetxController {
+class BannerAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
 
-  final EventReporter _reporter = Get.find();
+  final EventReporter _reporter;
 
   // Private variables
   final List<String> _adUnitIds;
-  final RxList<BannerAd> _loadedAds = <BannerAd>[].obs;
-  final RxInt _currentLoadingIndex = 0.obs;
-  final RxInt _failedAttempts = 0.obs;
-  final RxBool _isLoading = false.obs;
-  final RxBool _bannerReady = false.obs;
+  final List<BannerAd> _loadedAds = [];
+  int _currentLoadingIndex = 0;
+  int _failedAttempts = 0;
+  bool _isLoading = false;
+  bool _bannerReady = false;
 
   // Constructor
-  BannerAdManager(this._adUnitIds);
+  BannerAdManager(this._adUnitIds, this._reporter) {
+    _initializeListener();
+  }
 
   // Getters
-  bool get isLoading => _isLoading.value;
-  bool get bannerReady => _bannerReady.value && _loadedAds.isNotEmpty;
+  bool get isLoading => _isLoading;
+  bool get bannerReady => _bannerReady && _loadedAds.isNotEmpty;
   bool get hasAds => _loadedAds.isNotEmpty;
 
   // Banner ad listener
   late final BannerAdListener _listener;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _initializeListener();
-  }
-
-  @override
-  void onClose() {
-    // Dispose all ads when controller is closed
+  void dispose() {
     _disposeAllAds();
-    super.onClose();
   }
 
   /// Initializes the banner ad listener
@@ -53,16 +45,15 @@ class BannerAdManager extends GetxController {
           event: AdEvent.displayed,
           adProvider: 'Google',
           adType: 'Banner',
-          placementId: (ad as BannerAd).adUnitId,
+          placementId: (ad).adUnitId,
         );
-        _loadedAds.add(ad as BannerAd);
-        _bannerReady.value = true;
-        _failedAttempts.value = 0;
-        _isLoading.value = false;
-        _currentLoadingIndex.value++;
+        _loadedAds.add(ad);
+        _bannerReady = true;
+        _failedAttempts = 0;
+        _isLoading = false;
+        _currentLoadingIndex++;
 
-        // Continue loading the next ad if there are more ad units
-        if (_currentLoadingIndex.value < _adUnitIds.length) {
+        if (_currentLoadingIndex < _adUnitIds.length) {
           loadAd();
         }
       },
@@ -76,18 +67,16 @@ class BannerAdManager extends GetxController {
           errorMessage: error.message,
         );
         ad.dispose();
-        _failedAttempts.value++;
-        _isLoading.value = false;
+        _failedAttempts++;
+        _isLoading = false;
 
-        if (_failedAttempts.value < MAX_FAILED_LOAD_ATTEMPTS) {
-          // Retry loading the same ad
+        if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
           loadAd();
         } else {
-          // Move to next ad unit after max retries
-          _failedAttempts.value = 0;
-          _currentLoadingIndex.value++;
+          _failedAttempts = 0;
+          _currentLoadingIndex++;
 
-          if (_currentLoadingIndex.value < _adUnitIds.length) {
+          if (_currentLoadingIndex < _adUnitIds.length) {
             loadAd();
           }
         }
@@ -117,31 +106,27 @@ class BannerAdManager extends GetxController {
 
   /// Loads a banner ad using the current ad unit ID
   void loadAd() {
-    // Don't load if we have no ad unit IDs
     if (_adUnitIds.isEmpty) {
       debugPrint('No banner ad unit IDs provided');
       return;
     }
 
-    // Don't start a new load if one is in progress
-    if (_isLoading.value) {
+    if (_isLoading) {
       debugPrint('Banner ad load already in progress');
       return;
     }
 
-    // Don't load more ads if we've gone through all ad unit IDs
-    if (_currentLoadingIndex.value >= _adUnitIds.length) {
+    if (_currentLoadingIndex >= _adUnitIds.length) {
       debugPrint('All banner ad units attempted');
       return;
     }
 
-    _isLoading.value = true;
-    final adUnitId = _adUnitIds[_currentLoadingIndex.value];
+    _isLoading = true;
+    final adUnitId = _adUnitIds[_currentLoadingIndex];
 
     debugPrint(
-        'Loading banner ad ${_currentLoadingIndex.value + 1}/${_adUnitIds.length}: $adUnitId');
+        'Loading banner ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}: $adUnitId');
 
-    // Create and load the banner ad
     BannerAd(
       adUnitId: adUnitId,
       request: const AdRequest(),
@@ -158,9 +143,8 @@ class BannerAdManager extends GetxController {
       _loadedAds.removeAt(index);
       ad.dispose();
 
-      // Adjust the current index to reload this slot
-      if (_currentLoadingIndex.value > 0) {
-        _currentLoadingIndex.value--;
+      if (_currentLoadingIndex > 0) {
+        _currentLoadingIndex--;
       }
 
       loadAd();
@@ -177,18 +161,16 @@ class BannerAdManager extends GetxController {
 
   /// Returns a widget displaying the banner ad
   Widget adWidget() {
-    return Obx(() {
-      if (bannerReady && deviceallow.allow()) {
-        return Container(
-          alignment: Alignment.center,
-          width: _loadedAds.first.size.width.toDouble(),
-          height: _loadedAds.first.size.height.toDouble(),
-          child: AdWidget(ad: _loadedAds.first),
-        );
-      } else {
-        return const SizedBox.shrink();
-      }
-    });
+    if (bannerReady && deviceallow.allow()) {
+      return Container(
+        alignment: Alignment.center,
+        width: _loadedAds.first.size.width.toDouble(),
+        height: _loadedAds.first.size.height.toDouble(),
+        child: AdWidget(ad: _loadedAds.first),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 
   /// Creates and returns a banner ad widget with specified size
@@ -197,10 +179,8 @@ class BannerAdManager extends GetxController {
       return const SizedBox.shrink();
     }
 
-    // Use the first ad unit ID and rotate it to the end of the list
     final adUnitId = _adUnitIds.first;
 
-    // Create the banner ad
     final banner = BannerAd(
       adUnitId: adUnitId,
       size: adSize,
@@ -208,12 +188,10 @@ class BannerAdManager extends GetxController {
       request: const AdRequest(),
     );
 
-    // Load the ad and return a widget
     return FutureBuilder(
       future: banner.load(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          // Rotate the ad unit ID to the end of the list
           _adUnitIds.removeAt(0);
           _adUnitIds.add(adUnitId);
 

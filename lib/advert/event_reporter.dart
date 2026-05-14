@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:get/get.dart';
 import 'device_info.dart';
 
 enum AdEvent {
@@ -11,8 +10,8 @@ enum AdEvent {
   clicked,
 }
 
-class EventReporter extends GetxService {
-  final String? reportingUrl = "https:// ww.5starcompany.com.ng";
+class EventReporter {
+  final String reportingUrl = "https://example.com/ad-events";
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
 
 
@@ -24,10 +23,6 @@ class EventReporter extends GetxService {
     String? errorMessage,
     Map<String, dynamic>? extraData,
   }) async {
-    if (reportingUrl == null || reportingUrl!.isEmpty) {
-      debugPrint('EventReporter: No reporting URL configured. Skipping report.');
-      return;
-    }
 
     try {
       final deviceInfo = await _deviceInfoService.getDeviceInfo();
@@ -49,7 +44,7 @@ class EventReporter extends GetxService {
       debugPrint('EventReporter: Sending event ${event.name} for $adProvider');
       
       final response = await http.post(
-        Uri.parse(reportingUrl!),
+        Uri.parse(reportingUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );

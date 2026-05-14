@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:advert/model/google.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 
 import '../advert_platform_interface.dart';
 import '../model/adsmodel.dart';
@@ -38,9 +37,14 @@ class _AdConfig {
 }
 
 class Advert {
+  static final Advert _instance = Advert._internal();
+  factory Advert() => _instance;
+  Advert._internal();
+
   bool _sdkInitialized = false;
-  // static late PlatformInfo platformInfo;
   Adsmodel _adsmodel = Adsmodel();
+  AdManager? _adsProv;
+
   Future<String?> getPlatformVersion() {
     return AdvertPlatform.instance.getPlatformVersion();
   }
@@ -114,67 +118,44 @@ class Advert {
       debugPrint('Initializing Advert SDK in ${testmode ? 'TEST' : 'PRODUCTION'} mode');
       debugPrint('Platform: ${Platform.operatingSystem}');
     }
-    assert(() {
-      Googlemodel googlemodel = Googlemodel()
-        ..bannerAdUnitId = banneradUnitId
-        ..nativeAdUnitId = _nativeadUnitId
-        ..rewardedInterstitialAdUnitId = adUnitId
-        ..rewardedAdUnitId = videoUnitId
-        ..spinAndWin = videoUnitId
-        ..freemoney = videoUnitId
-        ..interstitialAdUnitId = screenUnitId;
-      Unitymodel? unitymodel = Platform.isAndroid
-          ? (Unitymodel()
-            ..gameId = gameid
-            ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
-            ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
-            ..bannerAdPlacementId = bannerAdPlacementId)
-          : null;
-      if (testmode) {
-        adsmodel = Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel);
-      }
-      if (adsmodel == null || adsmodel!.adsempty) {
-        throw DuploException('you must supply atleast one adunit');
-        // } else if (!publicKey.startsWith("pk_")) {
-        //   throw DuploException(Utils.getKeyErrorMsg('public'));
-        // } else if (secretKey.isEmpty) {
-        //   throw DuploException('secretKey cannot be null or empty');
-        // } else if (!secretKey.startsWith("sk_")) {
-        //   throw DuploException(Utils.getKeyErrorMsg('secret'));
-      } else {
-        return true;
-      }
-    }());
 
-    if (sdkInitialized) return;
+    Googlemodel googlemodel = Googlemodel()
+      ..bannerAdUnitId = banneradUnitId
+      ..nativeAdUnitId = _nativeadUnitId
+      ..rewardedInterstitialAdUnitId = adUnitId
+      ..rewardedAdUnitId = videoUnitId
+      ..spinAndWin = videoUnitId
+      ..freemoney = videoUnitId
+      ..interstitialAdUnitId = screenUnitId;
+    Unitymodel? unitymodel = Platform.isAndroid
+        ? (Unitymodel()
+          ..gameId = gameid
+          ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
+          ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
+          ..bannerAdPlacementId = bannerAdPlacementId)
+        : null;
 
-    // publicKey = publicKey;
+    if (testmode) {
+      adsmodel = Adsmodel(googlemodel: googlemodel, unitymodel: unitymodel);
+    }
 
-    // Using cascade notation to build the platform specific info
+    if (adsmodel == null || adsmodel.adsempty) {
+      throw DuploException('you must supply atleast one adunit');
+    }
+
     try {
-      // platformInfo = (await PlatformInfo.getinfo())!;
-      _adsmodel = adsmodel!;
-      // _screenUnitId = googlemodel.screenUnitId;
-      // _videoUnitId = googlemodel.videoUnitId;
-      // _adUnitId = googlemodel.adUnitId;
-      // _nativeadUnitId = googlemodel.nativeadUnitId;
-      // _banneradadUnitId = googlemodel.banneradadUnitId;
+      _adsmodel = adsmodel;
       _sdkInitialized = true;
-      adsProv = Get.put(
-        AdManager(_adsmodel),
-        tag: 'ad_manager',
-      );
+      _adsProv = AdManager(_adsmodel);
     } on PlatformException {
       rethrow;
     }
   }
 
-  var _adsProv = Rx<AdManager?> (null);
-  set adsProv(value) => _adsProv.value = value;
   /// Gets the ad manager instance, initializing it if necessary
   AdManager get adsProv {
     validateSdkInitialized();
-    return _adsProv.value!;
+    return _adsProv!;
   }
 
   bool get sdkInitialized => _sdkInitialized;
