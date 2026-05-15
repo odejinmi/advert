@@ -95,34 +95,50 @@ class AdManager {
 
   /// Shows an interstitial ad
   Future<Advertresponse> showInterstitialAd({
-    Function? onclick,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
   }) async {
     _preloadInterstitialAds();
-    if (_unityProvider != null &&
-        _unityProvider!.unityintersAd1 &&
-        _interstitialProviderIndex == 1) {
-      _advanceInterstitialProvider();
-      _interstitialRetryAttempts = 0;
-      return _unityProvider!.showAd1(onclick);
-    } else if (_googleProvider != null &&
-        _googleProvider!.hasInterstitialAd &&
-        _interstitialProviderIndex == 2) {
-      _advanceInterstitialProvider();
-      _interstitialRetryAttempts = 0;
-      return _googleProvider!.showInterstitialAd();
+    
+    int turn = _interstitialProviderIndex;
+    
+    if (turn == 1) {
+      // Try Unity first
+      if (_unityProvider != null && _unityProvider!.unityintersAd1) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _unityProvider!.showAd1(onAdClicked);
+      } 
+      // Fallback to Google
+      else if (_googleProvider != null && _googleProvider!.hasInterstitialAd) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _googleProvider!.showInterstitialAd(onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+      }
     } else {
-      return await _handleInterstitialRetry(
-        onclick: onclick,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-      );
+      // Try Google first
+      if (_googleProvider != null && _googleProvider!.hasInterstitialAd) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _googleProvider!.showInterstitialAd(onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+      }
+      // Fallback to Unity
+      else if (_unityProvider != null && _unityProvider!.unityintersAd1) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _unityProvider!.showAd1(onAdClicked);
+      }
     }
+
+    // Both failed or not ready, try retry logic
+    return await _handleInterstitialRetry(
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+    );
   }
 
   Future<Advertresponse> _handleInterstitialRetry({
-    Function? onclick,
     Function? onAdClicked,
     Function? onAdImpression,
   }) async {
@@ -131,7 +147,6 @@ class AdManager {
       _interstitialRetryAttempts++;
       await Future.delayed(DEFAULT_RETRY_DELAY);
       return showInterstitialAd(
-        onclick: onclick,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
       );

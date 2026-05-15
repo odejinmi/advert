@@ -41,7 +41,7 @@ class EventReporter {
         ...?extraData,
       };
 
-      debugPrint('EventReporter: Sending event ${event.name} for $adProvider');
+      debugPrint('EventReporter: $payload Sending event ${event.name} for $adProvider');
       
       final response = await http.post(
         Uri.parse(reportingUrl),

@@ -134,8 +134,16 @@ class GoogleAdProvider {
   }
 
   /// Shows an interstitial ad
-  Advertresponse showInterstitialAd() {
-    return _interstitialAdManager.showAd();
+  Advertresponse showInterstitialAd({
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) {
+    return _interstitialAdManager.showAd(
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      onAdDismissed: onAdDismissed,
+    );
   }
 
   /// Shows a rewarded ad with reward callback

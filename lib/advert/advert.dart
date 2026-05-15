@@ -8,6 +8,9 @@ import '../advert_platform_interface.dart';
 import '../model/adsmodel.dart';
 import '../model/unity.dart';
 import 'adsProvider.dart';
+import 'device_manager.dart';
+
+/// Configuration constants for test ad units
 
 /// Configuration constants for test ad units
 class _AdConfig {
@@ -44,6 +47,7 @@ class Advert {
   bool _sdkInitialized = false;
   Adsmodel _adsmodel = Adsmodel();
   AdManager? _adsProv;
+  final DeviceManager _deviceManager = DeviceManager();
 
   Future<String?> getPlatformVersion() {
     return AdvertPlatform.instance.getPlatformVersion();
@@ -157,6 +161,9 @@ class Advert {
     validateSdkInitialized();
     return _adsProv!;
   }
+
+  /// Gets the device manager instance
+  DeviceManager get deviceManager => _deviceManager;
 
   bool get sdkInitialized => _sdkInitialized;
 

@@ -108,6 +108,7 @@ class InterstitialAdManager {
   Advertresponse showAd({
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
   }) {
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show interstitial ad before loaded.');
@@ -138,6 +139,7 @@ class InterstitialAdManager {
           placementId: ad.adUnitId,
         );
         ad.dispose();
+        if (onAdDismissed != null) onAdDismissed();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
         debugPrint('Interstitial ad failed to show: ${error.message}');
