@@ -150,7 +150,7 @@ class Advert {
     try {
       _adsmodel = adsmodel;
       _sdkInitialized = true;
-      _adsProv = AdManager(_adsmodel);
+      _adsProv = AdManager(_adsmodel, testmode);
     } on PlatformException {
       rethrow;
     }

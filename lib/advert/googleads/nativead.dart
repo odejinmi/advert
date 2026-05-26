@@ -48,7 +48,23 @@ class NativeAdManager {
 
     _nativeAd = NativeAd(
       adUnitId: adUnitId,
-      factoryId: FACTORY_ID,
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.small,
+        mainBackgroundColor: Colors.white12,
+        cornerRadius: 12.0,
+        primaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white,
+          size: 16.0,
+        ),
+        secondaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white70,
+          size: 14.0,
+        ),
+        tertiaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white54,
+          size: 12.0,
+        ),
+      ),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
           _reporter.reportEvent(
@@ -87,7 +103,6 @@ class NativeAdManager {
             debugPrint('Native ad paid event: $currencyCode $valueMicros'),
       ),
       request: const AdRequest(),
-      customOptions: {'custom-option-1': 'custom-value-1'},
     );
 
     _nativeAd!.load();
@@ -135,7 +150,10 @@ class NativeAdManager {
               }
             });
       }
-      return AdWidget(ad: _nativeAd!);
+      return SizedBox(
+        height: 90,
+        child: AdWidget(ad: _nativeAd!),
+      );
     } else {
       return const SizedBox.shrink();
     }

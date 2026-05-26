@@ -11,7 +11,7 @@ enum AdEvent {
 }
 
 class EventReporter {
-  final String reportingUrl = "https://example.com/ad-events";
+  final String reportingUrl = "https://adrevapi.dev.5starcompany.com.ng/api/ad-event";
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
 
 

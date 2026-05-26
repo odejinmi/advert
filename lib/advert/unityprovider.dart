@@ -12,11 +12,12 @@ import 'unityads/rewardedvideo.dart';
 class UnityProvider {
   Unitymodel unitymodel;
   final EventReporter _reporter;
+  final bool testmode;
 
-  UnityProvider(this.unitymodel, this._reporter) {
+  UnityProvider(this.unitymodel, this._reporter, this.testmode) {
     UnityAds.init(
       gameId: unitymodel.gameId,
-      testMode: true,
+      testMode: testmode,
       onComplete: () {
         print('Initialization Complete');
         loadinterrtitialad();

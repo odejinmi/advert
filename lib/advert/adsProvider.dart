@@ -17,6 +17,7 @@ class AdManager {
 
   // Configuration
   final Adsmodel _adsConfig;
+  final bool testmode;
   late final EventReporter _eventReporter;
 
   // Ad providers
@@ -44,7 +45,7 @@ class AdManager {
   Function? _onAdImpression;
 
   // Constructor
-  AdManager(this._adsConfig) {
+  AdManager(this._adsConfig, this.testmode) {
     _eventReporter = EventReporter();
     _initializeAdProviders();
     _startBannerRotation();
@@ -58,7 +59,7 @@ class AdManager {
     }
 
     if (_adsConfig.unitymodel != null) {
-      _unityProvider = UnityProvider(_adsConfig.unitymodel!, _eventReporter);
+      _unityProvider = UnityProvider(_adsConfig.unitymodel!, _eventReporter, testmode);
     }
   }
 
@@ -415,6 +416,7 @@ class AdManager {
   }
 
   void _handleAdCompletion(BuildContext context) {
+    if (!context.mounted) return;
     adsWatched++;
     if (adsWatched < totalAds) {
       _showAdProgressDialog(context);
@@ -426,6 +428,7 @@ class AdManager {
   }
 
   void _showAdProgressDialog(BuildContext context) {
+    if (!context.mounted) return;
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -448,6 +451,7 @@ class AdManager {
   }
 
   void _showRetryDialog(BuildContext context) {
+    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -545,7 +549,9 @@ class AdManager {
     }
 
     if (!result.status) {
-      _showRetryDialog(context);
+      if (context.mounted) {
+        _showRetryDialog(context);
+      }
     }
   }
 
