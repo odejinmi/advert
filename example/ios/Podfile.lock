@@ -1,63 +1,29 @@
 PODS:
-  - advert (0.0.1):
-    - Flutter
   - Flutter (1.0.0)
-  - Google-Mobile-Ads-SDK (12.2.0):
-    - GoogleUserMessagingPlatform (>= 1.1)
-  - google_mobile_ads (6.0.0):
-    - Flutter
-    - Google-Mobile-Ads-SDK (~> 12.2.0)
-    - webview_flutter_wkwebview
-  - GoogleUserMessagingPlatform (3.1.0)
-  - integration_test (0.0.1):
-    - Flutter
   - unity_ads_plugin (0.0.1):
     - Flutter
-    - UnityAds (= 4.16.6)
-  - UnityAds (4.16.6)
-  - webview_flutter_wkwebview (0.0.1):
-    - Flutter
-    - FlutterMacOS
+    - UnityAds (= 4.17.0)
+  - UnityAds (4.17.0)
 
 DEPENDENCIES:
-  - advert (from `.symlinks/plugins/advert/ios`)
   - Flutter (from `Flutter`)
-  - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
-  - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - unity_ads_plugin (from `.symlinks/plugins/unity_ads_plugin/ios`)
-  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
   trunk:
-    - Google-Mobile-Ads-SDK
-    - GoogleUserMessagingPlatform
     - UnityAds
 
 EXTERNAL SOURCES:
-  advert:
-    :path: ".symlinks/plugins/advert/ios"
   Flutter:
     :path: Flutter
-  google_mobile_ads:
-    :path: ".symlinks/plugins/google_mobile_ads/ios"
-  integration_test:
-    :path: ".symlinks/plugins/integration_test/ios"
   unity_ads_plugin:
     :path: ".symlinks/plugins/unity_ads_plugin/ios"
-  webview_flutter_wkwebview:
-    :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
 SPEC CHECKSUMS:
-  advert: eb59be6d845eb32bb9e41c446060d39c41264de2
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  Google-Mobile-Ads-SDK: 1dfb0c3cb46c7e2b00b0f4de74a1e06d9ea25d67
-  google_mobile_ads: cab27248050510554aa646195eacc393ce7406ad
-  GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
-  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  unity_ads_plugin: d085cb47a1e30517e7d223e3a7537c12d55fbb70
-  UnityAds: 37544c41dd6916fa9074bf68cf07fce793460b84
-  webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
+  unity_ads_plugin: 438fc05360aa026b7cd353f9bdaf8d6a4be194f9
+  UnityAds: adbe0d522fd14b8298c5e159164fc43396165843
 
-PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
+PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
 
 COCOAPODS: 1.16.2
