@@ -15,6 +15,7 @@ class RewardedInterstitialAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<RewardedInterstitialAd> _loadedAds = [];
+  final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
   bool _isLoading = false;
@@ -83,6 +84,7 @@ class RewardedInterstitialAdManager {
           _currentLoadingIndex++;
           _isLoading = false;
 
+          _triggerPendingCallbacks();
           _topUpBuffer();
           if (onComplete != null) onComplete();
         },
@@ -116,6 +118,16 @@ class RewardedInterstitialAdManager {
     );
   }
 
+  void _triggerPendingCallbacks() {
+    if (_pendingCallbacks.isNotEmpty) {
+      final callbacks = List<Function>.from(_pendingCallbacks);
+      _pendingCallbacks.clear();
+      for (var cb in callbacks) {
+        cb();
+      }
+    }
+  }
+
   /// Shows a rewarded interstitial ad if available, returns the result
   Advertresponse showAd({
     Function? onRewarded,
@@ -126,16 +138,13 @@ class RewardedInterstitialAdManager {
     if (_loadedAds.isEmpty) {
       debugPrint(
           'Warning: attempt to show rewarded interstitial ad before loaded.');
-      _loadNextAd(onComplete: () {
-        if (_loadedAds.isNotEmpty) {
-          showAd(
+      _pendingCallbacks.add(() => showAd(
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
             customData: customData,
-          );
-        }
-      });
+          ));
+      _loadNextAd();
       return Advertresponse.defaults();
     }
 

@@ -11,37 +11,47 @@ class Unityinterstitialad {
   final EventReporter _reporter;
 
   final List<String> intersAd1 = [];
+  final List<Function> _pendingShowCallbacks = [];
   int numInterstitialLoadAttempts = 0;
   int maxFailedLoadAttempts = 3;
   bool _isloading = false;
   int currentIndex = 0;
 
   void createInterstitialAd({Function? show}) {
-    print("Start Loading rewardedAd");
-    if (currentIndex >= screenUnitId.length) {
-      if(show != null){
-        show();
-      }
-      return; 
+    if (show != null) {
+      _pendingShowCallbacks.add(show);
     }
+    
     if (_isloading) {
       return; 
     }
+    
+    if (currentIndex >= screenUnitId.length) {
+      if (intersAd1.isEmpty && _pendingShowCallbacks.isNotEmpty) {
+        currentIndex = 0;
+      } else {
+        _triggerPendingCallbacks();
+        return; 
+      }
+    }
+
     _isloading = true;
     var adunitid = screenUnitId[currentIndex];
     UnityAds.load(
       placementId: adunitid,
       onComplete: (placementId) {
         debugPrint('Load Complete $placementId');
+        if (!intersAd1.contains(placementId)) {
+          intersAd1.add(placementId);
+        }
         _isloading = false;
-        intersAd1.add(placementId);
         numInterstitialLoadAttempts = 0;
         currentIndex++;
-        if (currentIndex < screenUnitId.length) {
+        
+        _triggerPendingCallbacks();
+        
+        if (currentIndex < screenUnitId.length && intersAd1.length < 2) {
           createInterstitialAd(); 
-        }
-        if (show != null) {
-          show();
         }
       },
       onFailed: (placementId, error, message) {
@@ -54,18 +64,26 @@ class Unityinterstitialad {
             placementId: placementId,
             errorMessage: '$error: $message',
           );
-          print("Failed to load rewarded ad: $placementId, error: $error");
           numInterstitialLoadAttempts += 1;
           if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
             createInterstitialAd();
           } else {
+            numInterstitialLoadAttempts = 0;
             currentIndex++;
-            if (currentIndex < screenUnitId.length) {
-              createInterstitialAd(); 
-            }
+            createInterstitialAd(); 
           }
       },
     );
+  }
+
+  void _triggerPendingCallbacks() {
+    if (_pendingShowCallbacks.isNotEmpty) {
+      final callbacks = List<Function>.from(_pendingShowCallbacks);
+      _pendingShowCallbacks.clear();
+      for (var cb in callbacks) {
+        cb();
+      }
+    }
   }
 
   Advertresponse showAd(Function? onclick){
@@ -84,7 +102,7 @@ class Unityinterstitialad {
           adType: 'Interstitial',
           placementId: placementId,
         );
-        addispose(placementId);
+        // addispose already called in onStart
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
@@ -130,7 +148,11 @@ class Unityinterstitialad {
 
   void addispose(String ad) {
     intersAd1.remove(ad);
-    currentIndex--;
-    createInterstitialAd(); 
+    if (intersAd1.length < 2) {
+      if (currentIndex >= screenUnitId.length) {
+        currentIndex = 0;
+      }
+      createInterstitialAd();
+    }
   }
 }

@@ -14,6 +14,7 @@ class InterstitialAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<InterstitialAd> _loadedAds = [];
+  final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
   bool _isLoading = false;
@@ -76,7 +77,18 @@ class InterstitialAdManager {
     _currentLoadingIndex++;
     _isLoading = false;
 
+    _triggerPendingCallbacks();
     _topUpBuffer();
+  }
+
+  void _triggerPendingCallbacks() {
+    if (_pendingCallbacks.isNotEmpty) {
+      final callbacks = List<Function>.from(_pendingCallbacks);
+      _pendingCallbacks.clear();
+      for (var cb in callbacks) {
+        cb();
+      }
+    }
   }
 
   /// Callback when ad fails to load
@@ -112,7 +124,12 @@ class InterstitialAdManager {
   }) {
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show interstitial ad before loaded.');
-      preloadAds();
+      _pendingCallbacks.add(() => showAd(
+            onAdClicked: onAdClicked,
+            onAdImpression: onAdImpression,
+            onAdDismissed: onAdDismissed,
+          ));
+      _loadNextAd();
       return Advertresponse.defaults();
     }
 

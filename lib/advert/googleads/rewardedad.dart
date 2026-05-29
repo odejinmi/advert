@@ -23,6 +23,7 @@ class RewardedAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<_LoadedAd> _loadedAds = [];
+  final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
   bool _isLoading = false;
@@ -101,7 +102,18 @@ class RewardedAdManager {
     _currentLoadingIndex++;
     _isLoading = false;
 
+    _triggerPendingCallbacks();
     _topUpBuffer();
+  }
+
+  void _triggerPendingCallbacks() {
+    if (_pendingCallbacks.isNotEmpty) {
+      final callbacks = List<Function>.from(_pendingCallbacks);
+      _pendingCallbacks.clear();
+      for (var cb in callbacks) {
+        cb();
+      }
+    }
   }
 
   void _onAdFailedToLoad(LoadAdError error) {
@@ -148,16 +160,13 @@ class RewardedAdManager {
     }
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
-      _loadNextAd(onComplete: () {
-        if (_loadedAds.isNotEmpty) {
-          showRewardedAd(
+      _pendingCallbacks.add(() => showRewardedAd(
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
             customData: customData,
-          );
-        }
-      });
+          ));
+      _loadNextAd();
       return Advertresponse.defaults();
     }
 

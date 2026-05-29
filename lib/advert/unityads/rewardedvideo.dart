@@ -12,37 +12,47 @@ class Rewardedvideo {
   final EventReporter _reporter;
 
   final List<String> intersAd1 = [];
+  final List<Function> _pendingShowCallbacks = [];
   int numInterstitialLoadAttempts = 0;
   int maxFailedLoadAttempts = 3;
   bool _isloading = false;
   int currentIndex = 0;
 
   void createInterstitialAd({Function? show}) {
-    print("Start Loading rewardedAd");
-    if (currentIndex >= videoUnitId.length) {
-      if(show != null){
-        show();
-      }
-      return; 
+    if (show != null) {
+      _pendingShowCallbacks.add(show);
     }
+    
     if (_isloading) {
       return; 
     }
+    
+    if (currentIndex >= videoUnitId.length) {
+      if (intersAd1.isEmpty && _pendingShowCallbacks.isNotEmpty) {
+        currentIndex = 0; // Try looping back if we have nothing and someone is waiting
+      } else {
+        _triggerPendingCallbacks();
+        return; 
+      }
+    }
+
     _isloading = true;
     var adunitid = videoUnitId[currentIndex];
     UnityAds.load(
       placementId: adunitid,
       onComplete: (placementId) {
         debugPrint('Load Complete $placementId');
-        intersAd1.add(placementId);
+        if (!intersAd1.contains(placementId)) {
+          intersAd1.add(placementId);
+        }
         _isloading = false;
         numInterstitialLoadAttempts = 0;
         currentIndex++;
-        if (currentIndex < videoUnitId.length) {
+        
+        _triggerPendingCallbacks();
+        
+        if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
           createInterstitialAd(); 
-        }
-        if (show != null) {
-          show();
         }
       },
       onFailed: (placementId, error, message) {
@@ -59,13 +69,22 @@ class Rewardedvideo {
           if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
             createInterstitialAd();
           } else {
+            numInterstitialLoadAttempts = 0;
             currentIndex++;
-            if (currentIndex < videoUnitId.length) {
-              createInterstitialAd(); 
-            }
+            createInterstitialAd(); 
           }
       },
     );
+  }
+
+  void _triggerPendingCallbacks() {
+    if (_pendingShowCallbacks.isNotEmpty) {
+      final callbacks = List<Function>.from(_pendingShowCallbacks);
+      _pendingShowCallbacks.clear();
+      for (var cb in callbacks) {
+        cb();
+      }
+    }
   }
 
   Advertresponse showAd(Function? rewarded, Function? onClicked){
@@ -135,8 +154,12 @@ class Rewardedvideo {
 
   void addispose(String ad) {
     intersAd1.remove(ad);
-    currentIndex--;
-    createInterstitialAd(); 
+    if (intersAd1.length < 2) {
+      if (currentIndex >= videoUnitId.length) {
+        currentIndex = 0;
+      }
+      createInterstitialAd();
+    }
   }
 
   static String get appId => Platform.isAndroid
