@@ -9,8 +9,32 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     project.evaluationDependsOn(':app')
+}
+
+subprojects {
+    project.plugins.withId('com.android.application') {
+        configureAndroid(project)
+    }
+    project.plugins.withId('com.android.library') {
+        configureAndroid(project)
+    }
+}
+
+def configureAndroid(project) {
+    project.android {
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_17
+            targetCompatibility JavaVersion.VERSION_17
+        }
+    }
+    project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

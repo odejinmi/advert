@@ -16,8 +16,8 @@ dependencies:
   unity_ads_plugin: ^0.3.30
   google_mobile_ads: ^8.0.0
   http: ^1.6.0
-  device_info_plus: ^12.0.0
-  package_info_plus: ^8.1.2
+  device_info_plus: ^13.1.0
+  package_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:
