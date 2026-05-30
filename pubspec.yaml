@@ -17,7 +17,8 @@ dependencies:
   google_mobile_ads: ^8.0.0
   http: ^1.6.0
   device_info_plus: ^13.1.0
-  package_info_plus: ^10.1.0
+  package_info_plus: ^8.1.0
+  get: ^4.7.3
 
 dev_dependencies:
   flutter_test:

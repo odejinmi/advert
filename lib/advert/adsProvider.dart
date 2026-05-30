@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../model/adsmodel.dart';
 import '../model/advertresponse.dart';
@@ -10,7 +11,7 @@ import 'googleads/banner_admob.dart';
 import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
 
-class AdManager {
+class AdManager extends GetxController {
   // Constants
   static const int MAX_RETRY_ATTEMPTS = 3;
   static const Duration DEFAULT_RETRY_DELAY = Duration(seconds: 1);
@@ -35,7 +36,7 @@ class AdManager {
   // Ad Sequence State
   int adsWatched = 0;
   int totalAds = 0;
-  bool isShowingAds = false;
+  final RxBool isShowingAds = false.obs;
   
   late String _currentAdType;
   String reasonads = "";
@@ -402,7 +403,7 @@ class AdManager {
     _onSequenceComplete = onComplete;
     _onAdClicked = onAdClicked;
     _onAdImpression = onAdImpression;
-    isShowingAds = true;
+    isShowingAds.value = true;
 
     if (adsWatched >= total) {
       adsWatched = 0;
@@ -421,7 +422,7 @@ class AdManager {
     if (adsWatched < totalAds) {
       _showAdProgressDialog(context);
     } else {
-      isShowingAds = false;
+      isShowingAds.value = false;
       _onSequenceComplete();
       adsWatched = 0; // Reset only after successful completion
     }
@@ -443,7 +444,7 @@ class AdManager {
           _playCurrentAd(context);
         },
         onCancel: () {
-          isShowingAds = false;
+          isShowingAds.value = false;
           Navigator.of(dialogContext).pop();
         },
       ),
@@ -469,7 +470,7 @@ class AdManager {
         actions: [
           TextButton(
             onPressed: () {
-              isShowingAds = false;
+              isShowingAds.value = false;
               Navigator.of(dialogContext).pop();
             },
             child: const Text("Cancel", style: TextStyle(color: Color(0xFFF9C304))),
