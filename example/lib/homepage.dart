@@ -88,27 +88,27 @@ class _HomepageState extends State<Homepage> {
               if (_showNativeAd) _buildNativeAdWidget(),
               
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('mergeRewarded', "Use general Market",1),
+                onPressed: isShowing.value ? null : () => _startSequence('mergeRewarded', "Use general Market",1),
                 child: const Text("Show mergeRewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('googleMergeRewarded', "Earn card",1),
+                onPressed: isShowing.value ? null : () => _startSequence('googleMergeRewarded', "Earn card",1),
                 child: const Text("Show googlemergeRewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('rewarded', "Receive \$1",1),
+                onPressed: isShowing.value ? null : () => _startSequence('rewarded', "Receive \$1",1),
                 child: const Text("Show Rewarded Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('rewardedInterstitial', "Earn \#6",2),
+                onPressed: isShowing.value ? null : () => _startSequence('rewardedInterstitial', "Earn \#6",2),
                 child: const Text("Show Rewarded Insterstitial Ad"),
               ),
               TextButton(
-                onPressed: isShowing ? null : () => _startSequence('spinAndWin', "Earn \$100",5),
+                onPressed: isShowing.value ? null : () => _startSequence('spinAndWin', "Earn \$100",5),
                 child: const Text("Show SpinandWin Ad"),
               ),
               
-              if (isShowing)
+              if (isShowing.value)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
