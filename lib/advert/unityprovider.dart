@@ -73,5 +73,6 @@ class UnityProvider {
       onFailed: (placementId, error, message) =>
           debugPrint('Banner Ad $placementId failed: $error $message'),
     );
+    return Container();
   }
 }

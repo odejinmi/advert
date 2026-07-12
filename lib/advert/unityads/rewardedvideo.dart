@@ -48,11 +48,11 @@ class Rewardedvideo {
         _isloading = false;
         numInterstitialLoadAttempts = 0;
         currentIndex++;
-        
+
         _triggerPendingCallbacks();
-        
+
         if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
-          createInterstitialAd(); 
+          createInterstitialAd();
         }
       },
       onFailed: (placementId, error, message) {
@@ -71,7 +71,7 @@ class Rewardedvideo {
           } else {
             numInterstitialLoadAttempts = 0;
             currentIndex++;
-            createInterstitialAd(); 
+            createInterstitialAd();
           }
       },
     );
