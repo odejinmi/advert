@@ -202,7 +202,7 @@ class AdManager extends GetxController {
         if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 1; 
           _rewardedRetryAttempts = 0;
-          return _googleProvider!.showmergeRewardedAd(
+          return _googleProvider!.showRewardedAd(
             type: type,
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
@@ -262,7 +262,7 @@ class AdManager extends GetxController {
   }) async {
     if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
       _rewardedRetryAttempts = 0;
-      return _googleProvider!.showmergeRewardedAd(
+      return _googleProvider!.showRewardedAd(
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
@@ -287,31 +287,6 @@ class AdManager extends GetxController {
       }
     }
   }
-
-  // Backward compatibility wrappers
-  Future<Advertresponse> showmergeRewardedAd({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-    int retryDelaySeconds = 1,
-  }) => showRewardedAd(type: 'rewarded', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, retryDelaySeconds: retryDelaySeconds);
-
-  Future<Advertresponse> showspinAndWin({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-  }) => showRewardedAd(type: 'spinAndWin', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, useProviderCycling: false);
-
-  Future<Advertresponse> showgooglemergeRewardedAd({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-    int retryDelaySeconds = 1,
-  }) => showRewardedAd(type: 'rewarded', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, retryDelaySeconds: retryDelaySeconds, useProviderCycling: false);
-
   Future<Advertresponse> showRewardedInterstitialAd({
     String type = 'rewardedInterstitial',
     Function? onRewarded,
@@ -331,13 +306,6 @@ class AdManager extends GetxController {
     }
     return Advertresponse.defaults();
   }
-
-  Future<Advertresponse> showfreemoney({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-  }) => showRewardedAd(type: 'freemoney', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, useProviderCycling: false);
 
   // Note: showRewardedAd(Map) already exists, I should rename the unified one or replace it.
   // The original showRewardedAd(Map) was Google-only and didn't have type parameter.
@@ -386,7 +354,7 @@ class AdManager extends GetxController {
   // --- Unified Ad Sequence Logic ---
 
   /// Starts a sequence of multiple ads.
-  /// [adType] can be: 'mergeRewarded', 'rewarded', 'googleMergeRewarded', 'rewardedInterstitial', 'spinAndWin'
+  /// [adType] can be any registered placement name (e.g., 'rewarded', 'freemoney', 'giveaway')
   void startAdSequence(BuildContext context, {
     required int total,
     required String adType,

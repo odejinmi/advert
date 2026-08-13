@@ -86,30 +86,47 @@ void initializeAds() async {
     ..rewardedAdUnitId = ["high_rewarded_id"]
     ..rewardedAdUnitIdLow = ["low_rewarded_id"]
     ..bannerAdUnitId = ["high_banner_id"]
-    ..bannerAdUnitIdLow = ["low_banner_id"]
-    ..freemoney = ["fm_high_id"]
-    ..freemoneyLow = ["fm_low_id"]
-    ..freemoneyInterstitial = ["fm_inters_fallback_id"];
+    ..bannerAdUnitIdLow = ["low_banner_id"];
 
-  // 2. Configure Unity Units
+  // 2. Add Dynamic Placements (No SDK changes needed!)
+  // This automatically creates a new placement named "giveaway"
+  googleConfig.addRewardedPlacement(
+    'giveaway', 
+    high: ["your_high_placement_id"], 
+    low: ["your_low_placement_id"]
+  );
+
+  // 3. Configure Unity Units
   final unityConfig = Unitymodel()
     ..gameId = "your_unity_game_id"
-    ..rewardedVideoAdPlacementId = ["rewardedVideo", "Android_Rewarded"]
-    ..interstitialVideoAdPlacementId = ["video"]
-    ..bannerAdPlacementId = ["banner"];
+    ..rewardedVideoAdPlacementId = ["rewardedVideo"]
+    ..interstitialVideoAdPlacementId = ["video"];
 
-  // 3. Wrap in Adsmodel
-  final adsConfig = Adsmodel(
-    googlemodel: googleConfig,
-    unitymodel: unityConfig,
-  );
-
-  // 4. Initialize with custom config
-  await advert.initialize(
-    testmode: false, // Set to false for production
-    adsmodel: adsConfig,
-  );
+  // 4. Wrap in Adsmodel and Initialize
+  final adsConfig = Adsmodel(googlemodel: googleConfig, unitymodel: unityConfig);
+  await advert.initialize(testmode: false, adsmodel: adsConfig);
 }
+```
+
+### Usage for Dynamic Placements
+
+Once a placement is registered in the config, you can call it anywhere using the generic API:
+
+```dart
+// Showing the dynamic "giveaway" rewarded ad
+advert.adsProv.showRewardedAd(
+  type: 'giveaway', 
+  onRewarded: () => print("Giveaway reward earned!"),
+);
+
+// It even works with ad sequences!
+advert.adsProv.startAdSequence(
+  context,
+  total: 5,
+  adType: 'giveaway',
+  reason: "Watch 5 videos for a Mega Giveaway entry!",
+  onComplete: () => print("Sequence complete"),
+);
 ```
 
 ### High/Low Waterfall Logic
@@ -175,8 +192,9 @@ advert.adsProv.startAdSequence(
 
 | Type | Waterfall Behavior |
 | :--- | :--- |
-| `freemoney` | **High Rewarded** → **Low Rewarded** → **FM Interstitial** |
-| `rewarded` | **High Rewarded** → **Low Rewarded** → **Rewarded Interstitial** |
+| Any Custom Name | Uses generic **High** → **Low** waterfall for that name. |
+| `freemoney` | Special 3-tier: **High Rewarded** → **Low Rewarded** → **FM Interstitial** |
+| `rewarded` | Standard: **High Rewarded** → **Low Rewarded** → **Rewarded Interstitial** |
 | `interstitial` | **High Interstitial** → **Low Interstitial** |
 | `banner` | **High Banner** → **Low Banner** |
 | `native` | **High Native** → **Low Native** |

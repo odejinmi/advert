@@ -1,82 +1,83 @@
 class Googlemodel {
-  List<String> _interstitialAdUnitId = [];
-  List<String> _interstitialAdUnitIdLow = [];
+  // Map of ad types to their high/low unit IDs
+  final Map<String, List<String>> rewardedHigh = {};
+  final Map<String, List<String>> rewardedLow = {};
   
-  List<String> _rewardedAdUnitId = [];
-  List<String> _rewardedAdUnitIdLow = [];
+  final Map<String, List<String>> interstitialHigh = {};
+  final Map<String, List<String>> interstitialLow = {};
   
-  List<String> _spinAndWin = [];
-  List<String> _spinAndWinLow = [];
+  final Map<String, List<String>> nativeHigh = {};
+  final Map<String, List<String>> nativeLow = {};
   
-  List<String> _freemoney = [];
-  List<String> _freemoneyLow = [];
-  List<String> _freemoneyInterstitial = [];
+  final Map<String, List<String>> bannerHigh = {};
+  final Map<String, List<String>> bannerLow = {};
   
-  List<String> _rewardedInterstitialAdUnitId = [];
-  List<String> _rewardedInterstitialAdUnitIdLow = [];
-  
-  List<String> _nativeAdUnitId = [];
-  List<String> _nativeAdUnitIdLow = [];
-  
-  List<String> _bannerAdUnitId = [];
-  List<String> _bannerAdUnitIdLow = [];
+  final Map<String, List<String>> rewardedInterstitialHigh = {};
+  final Map<String, List<String>> rewardedInterstitialLow = {};
+
 
   Googlemodel();
 
   bool get googleempty {
-    return _interstitialAdUnitId.isEmpty &&
-        _rewardedAdUnitId.isEmpty &&
-        _rewardedInterstitialAdUnitId.isEmpty &&
-        _nativeAdUnitId.isEmpty &&
-        _bannerAdUnitId.isEmpty &&
-        _freemoney.isEmpty &&
-        _spinAndWin.isEmpty;
+    return rewardedHigh.isEmpty &&
+        interstitialHigh.isEmpty &&
+        nativeHigh.isEmpty &&
+        bannerHigh.isEmpty &&
+        rewardedInterstitialHigh.isEmpty;
   }
 
-  // Getters and Setters for High/Normal
-  List<String> get interstitialAdUnitId => _interstitialAdUnitId;
-  set interstitialAdUnitId(List<String> value) => _interstitialAdUnitId = value;
+  // Generic methods to add placements
+  void addRewardedPlacement(String type, {required List<String> high, List<String>? low}) {
+    rewardedHigh[type] = high;
+    if (low != null) rewardedLow[type] = low;
+  }
 
-  List<String> get rewardedAdUnitId => _rewardedAdUnitId;
-  set rewardedAdUnitId(List<String> value) => _rewardedAdUnitId = value;
+  void addInterstitialPlacement(String type, {required List<String> high, List<String>? low}) {
+    interstitialHigh[type] = high;
+    if (low != null) interstitialLow[type] = low;
+  }
 
-  List<String> get spinAndWin => _spinAndWin;
-  set spinAndWin(List<String> value) => _spinAndWin = value;
+  void addNativePlacement(String type, {required List<String> high, List<String>? low}) {
+    nativeHigh[type] = high;
+    if (low != null) nativeLow[type] = low;
+  }
 
-  List<String> get freemoney => _freemoney;
-  set freemoney(List<String> value) => _freemoney = value;
+  void addBannerPlacement(String type, {required List<String> high, List<String>? low}) {
+    bannerHigh[type] = high;
+    if (low != null) bannerLow[type] = low;
+  }
 
-  List<String> get rewardedInterstitialAdUnitId => _rewardedInterstitialAdUnitId;
-  set rewardedInterstitialAdUnitId(List<String> value) => _rewardedInterstitialAdUnitId = value;
+  void addRewardedInterstitialPlacement(String type, {required List<String> high, List<String>? low}) {
+    rewardedInterstitialHigh[type] = high;
+    if (low != null) rewardedInterstitialLow[type] = low;
+  }
 
-  List<String> get nativeAdUnitId => _nativeAdUnitId;
-  set nativeAdUnitId(List<String> value) => _nativeAdUnitId = value;
+  // Legacy compatibility setters
+  set interstitialAdUnitId(List<String> value) => addInterstitialPlacement('interstitial', high: value);
+  set interstitialAdUnitIdLow(List<String> value) => interstitialLow['interstitial'] = value;
 
-  List<String> get bannerAdUnitId => _bannerAdUnitId;
-  set bannerAdUnitId(List<String> value) => _bannerAdUnitId = value;
+  set rewardedAdUnitId(List<String> value) => addRewardedPlacement('rewarded', high: value);
+  set rewardedAdUnitIdLow(List<String> value) => rewardedLow['rewarded'] = value;
 
-  // Getters and Setters for Low
-  List<String> get interstitialAdUnitIdLow => _interstitialAdUnitIdLow;
-  set interstitialAdUnitIdLow(List<String> value) => _interstitialAdUnitIdLow = value;
+  set rewardedInterstitialAdUnitId(List<String> value) => addRewardedInterstitialPlacement('rewardedInterstitial', high: value);
+  set rewardedInterstitialAdUnitIdLow(List<String> value) => rewardedInterstitialLow['rewardedInterstitial'] = value;
 
-  List<String> get rewardedAdUnitIdLow => _rewardedAdUnitIdLow;
-  set rewardedAdUnitIdLow(List<String> value) => _rewardedAdUnitIdLow = value;
+  set nativeAdUnitId(List<String> value) => addNativePlacement('native', high: value);
+  set nativeAdUnitIdLow(List<String> value) => nativeLow['native'] = value;
 
-  List<String> get spinAndWinLow => _spinAndWinLow;
-  set spinAndWinLow(List<String> value) => _spinAndWinLow = value;
+  set bannerAdUnitId(List<String> value) => addBannerPlacement('banner', high: value);
+  set bannerAdUnitIdLow(List<String> value) => bannerLow['banner'] = value;
 
-  List<String> get freemoneyLow => _freemoneyLow;
-  set freemoneyLow(List<String> value) => _freemoneyLow = value;
-
+  // Legacy compatibility getters
+  List<String> get interstitialAdUnitId => interstitialHigh['interstitial'] ?? [];
+  List<String> get interstitialAdUnitIdLow => interstitialLow['interstitial'] ?? [];
+  List<String> get rewardedAdUnitId => rewardedHigh['rewarded'] ?? [];
+  List<String> get rewardedAdUnitIdLow => rewardedLow['rewarded'] ?? [];
   List<String> get freemoneyInterstitial => _freemoneyInterstitial;
-  set freemoneyInterstitial(List<String> value) => _freemoneyInterstitial = value;
-
-  List<String> get rewardedInterstitialAdUnitIdLow => _rewardedInterstitialAdUnitIdLow;
-  set rewardedInterstitialAdUnitIdLow(List<String> value) => _rewardedInterstitialAdUnitIdLow = value;
-
-  List<String> get nativeAdUnitIdLow => _nativeAdUnitIdLow;
-  set nativeAdUnitIdLow(List<String> value) => _nativeAdUnitIdLow = value;
-
-  List<String> get bannerAdUnitIdLow => _bannerAdUnitIdLow;
-  set bannerAdUnitIdLow(List<String> value) => _bannerAdUnitIdLow = value;
+  List<String> get rewardedInterstitialAdUnitId => rewardedInterstitialHigh['rewardedInterstitial'] ?? [];
+  List<String> get rewardedInterstitialAdUnitIdLow => rewardedInterstitialLow['rewardedInterstitial'] ?? [];
+  List<String> get nativeAdUnitId => nativeHigh['native'] ?? [];
+  List<String> get nativeAdUnitIdLow => nativeLow['native'] ?? [];
+  List<String> get bannerAdUnitId => bannerHigh['banner'] ?? [];
+  List<String> get bannerAdUnitIdLow => bannerLow['banner'] ?? [];
 }

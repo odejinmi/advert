@@ -43,48 +43,50 @@ class GoogleAdProvider {
   /// Initializes all ad managers
   void _initializeAdManagers() {
     // Interstitials
-    _interstitialManagers['interstitial_high'] =
-        InterstitialAdManager(_adConfig.interstitialAdUnitId, _reporter, adType: 'Interstitial_High');
-    _interstitialManagers['interstitial_low'] =
-        InterstitialAdManager(_adConfig.interstitialAdUnitIdLow, _reporter, adType: 'Interstitial_Low');
+    _adConfig.interstitialHigh.forEach((type, ids) {
+      _interstitialManagers['${type}_high'] =
+          InterstitialAdManager(ids, _reporter, adType: '${type}_High');
+      _interstitialManagers['${type}_low'] =
+          InterstitialAdManager(_adConfig.interstitialLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
 
     // Rewarded
-    _rewardedManagers['rewarded_high'] =
-        RewardedAdManager(_adConfig.rewardedAdUnitId, _reporter, adType: 'Rewarded_High');
-    _rewardedManagers['rewarded_low'] =
-        RewardedAdManager(_adConfig.rewardedAdUnitIdLow, _reporter, adType: 'Rewarded_Low');
-    
-    _rewardedManagers['spinAndWin_high'] =
-        RewardedAdManager(_adConfig.spinAndWin, _reporter, adType: 'SpinAndWin_High');
-    _rewardedManagers['spinAndWin_low'] =
-        RewardedAdManager(_adConfig.spinAndWinLow, _reporter, adType: 'SpinAndWin_Low');
-
-    _rewardedManagers['freemoney_high'] =
-        RewardedAdManager(_adConfig.freemoney, _reporter, adType: 'Freemoney_High');
-    _rewardedManagers['freemoney_low'] =
-        RewardedAdManager(_adConfig.freemoneyLow, _reporter, adType: 'Freemoney_Low');
+    _adConfig.rewardedHigh.forEach((type, ids) {
+      _rewardedManagers['${type}_high'] =
+          RewardedAdManager(ids, _reporter, adType: '${type}_High');
+      _rewardedManagers['${type}_low'] =
+          RewardedAdManager(_adConfig.rewardedLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
 
     // Native
-    _nativeManagers['native_high'] =
-        NativeAdManager(_adConfig.nativeAdUnitId, _reporter, adType: 'Native_High');
-    _nativeManagers['native_low'] =
-        NativeAdManager(_adConfig.nativeAdUnitIdLow, _reporter, adType: 'Native_Low');
+    _adConfig.nativeHigh.forEach((type, ids) {
+      _nativeManagers['${type}_high'] =
+          NativeAdManager(ids, _reporter, adType: '${type}_High');
+      _nativeManagers['${type}_low'] =
+          NativeAdManager(_adConfig.nativeLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
 
     // Banner
-    _bannerManagers['banner_high'] =
-        BannerAdManager(_adConfig.bannerAdUnitId, _reporter, adType: 'Banner_High');
-    _bannerManagers['banner_low'] =
-        BannerAdManager(_adConfig.bannerAdUnitIdLow, _reporter, adType: 'Banner_Low');
+    _adConfig.bannerHigh.forEach((type, ids) {
+      _bannerManagers['${type}_high'] =
+          BannerAdManager(ids, _reporter, adType: '${type}_High');
+      _bannerManagers['${type}_low'] =
+          BannerAdManager(_adConfig.bannerLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
 
     // Rewarded Interstitials
-    _rewardedInterstitialManagers['rewardedInterstitial_high'] = 
-        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId, _reporter, adType: 'RewardedInterstitial_High');
-    _rewardedInterstitialManagers['rewardedInterstitial_low'] = 
-        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitIdLow, _reporter, adType: 'RewardedInterstitial_Low');
+    _adConfig.rewardedInterstitialHigh.forEach((type, ids) {
+      _rewardedInterstitialManagers['${type}_high'] =
+          RewardedInterstitialAdManager(ids, _reporter, adType: '${type}_High');
+      _rewardedInterstitialManagers['${type}_low'] =
+          RewardedInterstitialAdManager(_adConfig.rewardedInterstitialLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
     
     // Special Interstitial fallbacks
-    _interstitialManagers['freemoney_inters'] =
-        InterstitialAdManager(_adConfig.freemoneyInterstitial, _reporter, adType: 'Freemoney_Inters');
+    if (_adConfig.freemoneyInterstitial.isNotEmpty) {
+      _interstitialManagers['freemoney_inters'] =
+          InterstitialAdManager(_adConfig.freemoneyInterstitial, _reporter, adType: 'Freemoney_Inters');
+    }
   }
 
   // Getters
@@ -192,7 +194,7 @@ class GoogleAdProvider {
     ) ?? Advertresponse.defaults();
   }
 
-  /// Shows a rewarded ad with reward callback
+  /// Shows a rewarded ad with reward callback and fallbacks (High -> Low -> Interstitial)
   Advertresponse showRewardedAd({
     String type = 'rewarded',
     Function? onRewarded,
@@ -200,35 +202,7 @@ class GoogleAdProvider {
     Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
-    final managerHigh = _rewardedManagers['${type}_high'];
-    if (managerHigh != null && managerHigh.hasAds) {
-      return managerHigh.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    final managerLow = _rewardedManagers['${type}_low'];
-    if (managerLow != null && managerLow.hasAds) {
-      return managerLow.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    return Advertresponse.defaults();
-  }
-
-  /// Shows a rewarded ad with reward callback and fallbacks
-  Advertresponse showmergeRewardedAd({
-    String type = 'rewarded',
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    Map<String, String> customData = const {},
-  }) {
+    // 1. Try High Priority
     final managerHigh = _rewardedManagers['${type}_high'];
     if (managerHigh != null && managerHigh.hasAds) {
       return managerHigh.showRewardedAd(
@@ -239,6 +213,7 @@ class GoogleAdProvider {
       );
     }
 
+    // 2. Try Low Priority
     final managerLow = _rewardedManagers['${type}_low'];
     if (managerLow != null && managerLow.hasAds) {
       return managerLow.showRewardedAd(
@@ -249,6 +224,7 @@ class GoogleAdProvider {
       );
     }
 
+    // 3. Fallback to Rewarded Interstitial (if standard rewarded fails)
     if (type == 'rewarded' && hasRewardedInterstitialAd) {
       return _rewardedInterstitialManagers['rewardedInterstitial_high']!.showAd(
         onRewarded: onRewarded,
@@ -258,6 +234,7 @@ class GoogleAdProvider {
       );
     }
 
+    // 4. Special case for 'freemoney': High -> Low -> Interstitial fallback
     if (type == 'freemoney' && (_interstitialManagers['freemoney_inters']?.hasAds ?? false)) {
       return _interstitialManagers['freemoney_inters']!.showAd(
         onAdClicked: onAdClicked,
@@ -268,21 +245,6 @@ class GoogleAdProvider {
 
     return Advertresponse.defaults();
   }
-
-  // Keep these for backward compatibility
-  Advertresponse showspinAndWin({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    Map<String, String> customData = const {},
-  }) => showmergeRewardedAd(type: 'spinAndWin', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData);
-
-  Advertresponse showfreemoney({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    Map<String, String> customData = const {},
-  }) => showmergeRewardedAd(type: 'freemoney', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData);
 
   /// Shows a rewarded interstitial ad with reward callback
   Advertresponse showRewardedInterstitialAd({

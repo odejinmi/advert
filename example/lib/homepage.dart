@@ -1,6 +1,6 @@
 import 'dart:developer' as dev;
 
-import 'package:advert/advert/advert.dart';
+import 'package:advert/advert.dart';
 import 'package:flutter/material.dart';
 import 'device_management_page.dart';
 
@@ -20,7 +20,18 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
-    _advertPlugin.initialize(testmode: true).then((_) {
+    
+    // Example of dynamic configuration (Adding a "giveaway" placement)
+    final googleConfig = Googlemodel()
+      ..addRewardedPlacement(
+        'giveaway', 
+        high: ['ca-app-pub-3940256099942544/5224354917'], // Test ID
+        low: ['ca-app-pub-3940256099942544/5224354917'],
+      );
+    
+    final adsModel = Adsmodel(googlemodel: googleConfig);
+
+    _advertPlugin.initialize(testmode: true, adsmodel: adsModel).then((_) {
       if (mounted) setState(() {});
     });
   }
@@ -128,6 +139,7 @@ class _HomepageState extends State<Homepage> {
                     _buildAdButton("Google Only", () => _startSequence('googleMergeRewarded', "Earn card", 1), isShowing.value),
                     _buildAdButton("Interstitial", () => _startSequence('rewardedInterstitial', "Earn Points", 1), isShowing.value),
                     _buildAdButton("Spin & Win (x5)", () => _startSequence('spinAndWin', "Earn \$100", 5), isShowing.value),
+                    _buildAdButton("Giveaway (Dynamic)", () => _startSequence('giveaway', "Entry to Win", 1), isShowing.value),
                   ],
                 ),
                 if (isShowing.value)
