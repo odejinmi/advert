@@ -81,12 +81,6 @@ class GoogleAdProvider {
       _rewardedInterstitialManagers['${type}_low'] =
           RewardedInterstitialAdManager(_adConfig.rewardedInterstitialLow[type] ?? [], _reporter, adType: '${type}_Low');
     });
-    
-    // Special Interstitial fallbacks
-    if (_adConfig.freemoneyInterstitial.isNotEmpty) {
-      _interstitialManagers['freemoney_inters'] =
-          InterstitialAdManager(_adConfig.freemoneyInterstitial, _reporter, adType: 'Freemoney_Inters');
-    }
   }
 
   // Getters

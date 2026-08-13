@@ -73,7 +73,6 @@ class Googlemodel {
   List<String> get interstitialAdUnitIdLow => interstitialLow['interstitial'] ?? [];
   List<String> get rewardedAdUnitId => rewardedHigh['rewarded'] ?? [];
   List<String> get rewardedAdUnitIdLow => rewardedLow['rewarded'] ?? [];
-  List<String> get freemoneyInterstitial => _freemoneyInterstitial;
   List<String> get rewardedInterstitialAdUnitId => rewardedInterstitialHigh['rewardedInterstitial'] ?? [];
   List<String> get rewardedInterstitialAdUnitIdLow => rewardedInterstitialLow['rewardedInterstitial'] ?? [];
   List<String> get nativeAdUnitId => nativeHigh['native'] ?? [];

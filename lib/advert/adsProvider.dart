@@ -215,7 +215,7 @@ class AdManager extends GetxController {
       if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
         _rewardedProviderIndex = 1; 
         _rewardedRetryAttempts = 0;
-        return _googleProvider!.showmergeRewardedAd(
+        return _googleProvider!.showRewardedAd(
           type: type,
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
@@ -287,6 +287,7 @@ class AdManager extends GetxController {
       }
     }
   }
+
   Future<Advertresponse> showRewardedInterstitialAd({
     String type = 'rewardedInterstitial',
     Function? onRewarded,
