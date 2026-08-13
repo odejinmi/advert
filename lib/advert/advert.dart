@@ -185,11 +185,6 @@ class Advert {
       ..rewardedInterstitialAdUnitIdLow = adUnitIdLow
       ..rewardedAdUnitId = videoUnitId
       ..rewardedAdUnitIdLow = videoUnitIdLow
-      ..spinAndWin = videoUnitId
-      ..spinAndWinLow = videoUnitIdLow
-      ..freemoney = freemoneyHigh
-      ..freemoneyLow = freemoneyLow
-      ..freemoneyInterstitial = freemoneyInters
       ..interstitialAdUnitId = screenUnitId
       ..interstitialAdUnitIdLow = screenUnitIdLow;
     Unitymodel? unitymodel = Platform.isAndroid
