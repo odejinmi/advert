@@ -19,6 +19,7 @@ class RewardedAdManager {
   static const int TARGET_BUFFER_SIZE = 3;
 
   final EventReporter _reporter;
+  final String _adType;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -32,7 +33,8 @@ class RewardedAdManager {
   int _pendingShowRequests = 0;
 
   // Constructor
-  RewardedAdManager(this._adUnitIds, this._reporter) {
+  RewardedAdManager(this._adUnitIds, this._reporter, {String adType = 'Rewarded'})
+      : _adType = adType {
     preloadAds();
   }
 
@@ -122,7 +124,7 @@ class RewardedAdManager {
     _reporter.reportEvent(
       event: AdEvent.failed,
       adProvider: 'Google',
-      adType: 'Rewarded',
+      adType: _adType,
       errorMessage: error.message,
     );
 
@@ -215,7 +217,7 @@ class RewardedAdManager {
           _reporter.reportEvent(
             event: AdEvent.displayed,
             adProvider: 'Google',
-            adType: 'Rewarded',
+            adType: _adType,
             placementId: ad.adUnitId,
           );
           _loadedAds.removeWhere((adData) => adData.ad == ad);
@@ -227,7 +229,7 @@ class RewardedAdManager {
         _reporter.reportEvent(
           event: AdEvent.completed,
           adProvider: 'Google',
-          adType: 'Rewarded',
+          adType: _adType,
           placementId: ad.adUnitId,
           extraData: {'rewardEarned': _rewardEarned},
         );
@@ -253,7 +255,7 @@ class RewardedAdManager {
         _reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Google',
-          adType: 'Rewarded',
+          adType: _adType,
           placementId: ad.adUnitId,
           errorMessage: error.message,
         );
@@ -285,7 +287,7 @@ class RewardedAdManager {
         _reporter.reportEvent(
           event: AdEvent.clicked,
           adProvider: 'Google',
-          adType: 'Rewarded',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         if (onAdClicked != null) onAdClicked();

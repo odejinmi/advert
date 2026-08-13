@@ -1,14 +1,15 @@
 # Advert SDK Plugin
 
-A Flutter plugin for seamlessly integrating various advertising networks (Google Mobile Ads and Unity Ads) into your applications. This plugin provides a unified interface for displaying banner, interstitial, and rewarded video ads, with built-in support for ad sequences and progress tracking.
+A powerful, production-ready Flutter plugin for integrating **Google Mobile Ads** and **Unity Ads** with advanced revenue optimization features.
 
-## Features
+## Key Features
 
-*   **Multiple Ad Networks**: Integrated support for Google Mobile Ads and Unity Ads.
-*   **Unified Interface**: Simple API to show ads from different providers using a single manager.
-*   **Ad Sequences**: Easily show multiple ads in a row (e.g., "Watch 3 ads to earn reward") with built-in progress dialogs.
-*   **Cross-Platform**: Supports Android and iOS.
-*   **State Management**: Uses GetX for reactive ad status tracking.
+*   🚀 **High/Low Priority Waterfall**: Automatically prioritizes high-CPM ad placements and seamlessly falls back to lower tiers if they aren't available.
+*   🔄 **Generic Ad Placements**: Create any number of custom placements (e.g., `Shop`, `GameOver`) for any ad format without modifying the SDK.
+*   📦 **Unified Interface**: A single, clean API for Banner, Interstitial, Rewarded, and Native ads.
+*   🎬 **Ad Sequences**: Built-in support for multi-ad sequences with customizable progress tracking UI.
+*   📉 **Cross-Provider Rotation**: Intelligently cycles between Google and Unity to maximize fill rates.
+*   📊 **Granular Event Reporting**: Automatically reports detailed events (e.g., `Freemoney_High`, `Banner_Low`) for precise analytics.
 
 ---
 
@@ -22,7 +23,7 @@ Add `advert` to your `pubspec.yaml`:
 dependencies:
   advert:
     path: # path to your advert plugin
-  get: ^4.6.6
+  get: ^4.7.3
 ```
 
 ### 2. Platform Setup
@@ -33,7 +34,7 @@ Add your AdMob App ID to `android/app/src/main/AndroidManifest.xml`:
 ```xml
 <meta-data
     android:name="com.google.android.gms.ads.APPLICATION_ID"
-    android:value="ca-app-pub-3940256099942544~3347511713"/>
+    android:value="YOUR_ADMOB_APP_ID"/>
 ```
 
 #### iOS
@@ -41,7 +42,7 @@ Add your AdMob App ID to `ios/Runner/Info.plist`:
 
 ```xml
 <key>GADApplicationIdentifier</key>
-<string>ca-app-pub-3940256099942544~1458002511</string>
+<string>YOUR_ADMOB_APP_ID</string>
 ```
 
 ---
@@ -50,7 +51,7 @@ Add your AdMob App ID to `ios/Runner/Info.plist`:
 
 ### Initialization
 
-Initialize the SDK early in your app (e.g., in `main.dart` or your root widget).
+Initialize the SDK early in your app.
 
 ```dart
 import 'package:advert/advert.dart';
@@ -59,64 +60,136 @@ final advert = Advert();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Basic initialization (uses default test units if testmode: true)
   await advert.initialize(testmode: true);
+  
   runApp(MyApp());
 }
 ```
 
+### Advanced Configuration (Custom Unit IDs)
+
+To use your own production Ad Units, configure the `Adsmodel` before initialization:
+
+```dart
+import 'package:advert/advert.dart';
+import 'package:advert/model/adsmodel.dart';
+import 'package:advert/model/google.dart';
+import 'package:advert/model/unity.dart';
+
+void initializeAds() async {
+  // 1. Configure Google (AdMob) Units
+  final googleConfig = Googlemodel()
+    ..interstitialAdUnitId = ["high_inters_id"]
+    ..interstitialAdUnitIdLow = ["low_inters_id"]
+    ..rewardedAdUnitId = ["high_rewarded_id"]
+    ..rewardedAdUnitIdLow = ["low_rewarded_id"]
+    ..bannerAdUnitId = ["high_banner_id"]
+    ..bannerAdUnitIdLow = ["low_banner_id"]
+    ..freemoney = ["fm_high_id"]
+    ..freemoneyLow = ["fm_low_id"]
+    ..freemoneyInterstitial = ["fm_inters_fallback_id"];
+
+  // 2. Configure Unity Units
+  final unityConfig = Unitymodel()
+    ..gameId = "your_unity_game_id"
+    ..rewardedVideoAdPlacementId = ["rewardedVideo", "Android_Rewarded"]
+    ..interstitialVideoAdPlacementId = ["video"]
+    ..bannerAdPlacementId = ["banner"];
+
+  // 3. Wrap in Adsmodel
+  final adsConfig = Adsmodel(
+    googlemodel: googleConfig,
+    unitymodel: unityConfig,
+  );
+
+  // 4. Initialize with custom config
+  await advert.initialize(
+    testmode: false, // Set to false for production
+    adsmodel: adsConfig,
+  );
+}
+```
+
+### High/Low Waterfall Logic
+
+The SDK implements an automated waterfall for all ad types. When you request an ad, it will:
+1.  Attempt to show the **High Placement** unit.
+2.  Fallback to the **Low Placement** unit if High is not ready.
+3.  (For specific types like `freemoney`) Fallback to an **Interstitial** if no rewarded ads are ready.
+
 ### Showing Ads
 
-Access ad methods through `advert.adsProv`.
+Access all ad methods through `advert.adsProv`.
 
 #### Interstitial Ad
 ```dart
+// Show default interstitial
 advert.adsProv.showInterstitialAd();
+
+// Show a specific custom placement
+advert.adsProv.showInterstitialAd(type: 'LevelComplete');
 ```
 
 #### Rewarded Ad
 ```dart
 advert.adsProv.showRewardedAd(
-  () => print("Reward earned!"),
-  {"user_id": "user123"}
+  type: 'rewarded', // Optional custom type
+  customData: {"user_id": "123"}, // For SSV
+  onRewarded: () => print("Reward earned!"),
 );
 ```
 
-#### Banner Ad (Widget)
+#### Native Ad
 ```dart
-Column(
-  children: [
-    Expanded(child: MyContent()),
-    advert.adsProv.showBannerAd(),
-  ],
-)
+advert.adsProv.showNativeAd(context, type: 'MyPlacement');
+```
+
+#### Banner Ad
+```dart
+// Automatically uses the High -> Low waterfall
+advert.adsProv.showBannerAd();
 ```
 
 ### Ad Sequences
 
-Show a series of ads with a progress dialog:
+Show a series of ads with a built-in progress dialog:
 
 ```dart
 advert.adsProv.startAdSequence(
   context,
   total: 3,
-  adType: 'rewarded',
-  reason: "Watch 3 ads to unlock premium feature",
+  adType: 'freemoney', // Uses the full 3-tier waterfall
+  reason: "Watch 3 videos to get 500 coins!",
+  customData: {"goal": "coins"},
   onComplete: () {
-    print("Sequence finished! Granting premium.");
+    print("Sequence finished!");
   },
 );
 ```
 
 ---
 
-## Ad Types Reference
+## Ad Types & Waterfalls Reference
 
-| Type | Description |
+| Type | Waterfall Behavior |
 | :--- | :--- |
-| `rewarded` | Standard Google Rewarded Ad |
-| `mergeRewarded` | Rotates between Unity and Google |
-| `rewardedInterstitial` | Google Rewarded Interstitial |
-| `spinAndWin` | Specialized rewarded placement |
+| `freemoney` | **High Rewarded** → **Low Rewarded** → **FM Interstitial** |
+| `rewarded` | **High Rewarded** → **Low Rewarded** → **Rewarded Interstitial** |
+| `interstitial` | **High Interstitial** → **Low Interstitial** |
+| `banner` | **High Banner** → **Low Banner** |
+| `native` | **High Native** → **Low Native** |
+
+---
+
+## Preloading
+
+You can bulk-preload ads for all configured tiers at any time:
+
+```dart
+advert.adsProv.preloadAllAds();
+```
 
 ## Contributing
 

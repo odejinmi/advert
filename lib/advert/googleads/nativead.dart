@@ -9,6 +9,7 @@ class NativeAdManager {
   static const String FACTORY_ID = 'adFactoryExample';
 
   final EventReporter _reporter;
+  final String _adType;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -18,7 +19,8 @@ class NativeAdManager {
   int _failedAttempts = 0;
 
   // Constructor
-  NativeAdManager(this._adUnitIds, this._reporter) {
+  NativeAdManager(this._adUnitIds, this._reporter, {String adType = 'Native'})
+      : _adType = adType {
     if (_adUnitIds.isNotEmpty) {
       loadAd();
     }
@@ -70,7 +72,7 @@ class NativeAdManager {
           _reporter.reportEvent(
             event: AdEvent.displayed,
             adProvider: 'Google',
-            adType: 'Native',
+            adType: _adType,
             placementId: ad.adUnitId,
           );
           _onAdLoaded(ad);
@@ -79,7 +81,7 @@ class NativeAdManager {
           _reporter.reportEvent(
             event: AdEvent.failed,
             adProvider: 'Google',
-            adType: 'Native',
+            adType: _adType,
             placementId: ad.adUnitId,
             errorMessage: error.message,
           );
@@ -90,7 +92,7 @@ class NativeAdManager {
           _reporter.reportEvent(
             event: AdEvent.clicked,
             adProvider: 'Google',
-            adType: 'Native',
+            adType: _adType,
             placementId: ad.adUnitId,
           );
         },

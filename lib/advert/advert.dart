@@ -14,14 +14,34 @@ import 'device_manager.dart';
 
 /// Configuration constants for test ad units
 class _AdConfig {
-  // Android ad unit IDs
+  // Production Free Money High
+  static const String androidFMHigh = 'ca-app-pub-6117361441866120/7295608188';
+  static const String iosFMHigh = 'ca-app-pub-6117361441866120/4202540985';
+
+  // Production Free Money Low
+  static const String androidFMLow = 'ca-app-pub-6117361441866120/5165063317';
+  static const String iosFMLow = 'ca-app-pub-6117361441866120/9202838992';
+
+  // Production FM Interstitial
+  static const String androidFMInters = 'ca-app-pub-6117361441866120/2544949196';
+  static const String iosFMInters = 'ca-app-pub-6117361441866120/2980063466';
+
+  // Production Banner High
+  static const String androidBannerHigh = 'ca-app-pub-6117361441866120/2869480303';
+  static const String iosBannerHigh = 'ca-app-pub-6117361441866120/8620500430';
+
+  // Production Banner Low
+  static const String androidBannerLow = 'ca-app-pub-6117361441866120/2869480303';
+  static const String iosBannerLow = 'ca-app-pub-6117361441866120/1488443500';
+
+  // Android ad unit IDs (Test/Defaults)
   static const List<String> androidBannerIds = ['ca-app-pub-3940256099942544/6300978111'];
   static const List<String> androidInterstitialIds = ['ca-app-pub-3940256099942544/1033173712'];
   static const List<String> androidNativeIds = ['ca-app-pub-3940256099942544/2247696110'];
   static const List<String> androidRewardedIds = ['ca-app-pub-3940256099942544/5224354917'];
   static const List<String> androidRewardedInterstitialIds = ['ca-app-pub-3940256099942544/5354046379'];
   
-  // iOS ad unit IDs
+  // iOS ad unit IDs (Test/Defaults)
   static const List<String> iosBannerIds = ['ca-app-pub-3940256099942544/2934735716'];
   static const List<String> iosInterstitialIds = ['ca-app-pub-3940256099942544/4411468910'];
   static const List<String> iosNativeIds = ['ca-app-pub-3940256099942544/3986624511'];
@@ -55,10 +75,24 @@ class Advert {
 
   // Lazy-loaded ad unit IDs
   late final List<String> banneradUnitId;
+  late final List<String> banneradUnitIdLow;
+  
   late final List<String> screenUnitId;
+  late final List<String> screenUnitIdLow;
+  
   late final List<String> _nativeadUnitId;
+  late final List<String> _nativeadUnitIdLow;
+  
   late final List<String> videoUnitId;
+  late final List<String> videoUnitIdLow;
+  
   late final List<String> adUnitId;
+  late final List<String> adUnitIdLow;
+  
+  late final List<String> freemoneyHigh;
+  late final List<String> freemoneyLow;
+  late final List<String> freemoneyInters;
+
   late final String gameid;
   late final List<String> bannerAdPlacementId;
   late final List<String> interstitialVideoAdPlacementId;
@@ -66,25 +100,44 @@ class Advert {
   
   // Initialize ad unit IDs based on platform
   void _initializeAdUnits() {
+    // Standard/High Banners
     banneradUnitId = Platform.isAndroid 
-        ? List.from(_AdConfig.androidBannerIds) 
-        : List.from(_AdConfig.iosBannerIds);
+        ? [ _AdConfig.androidBannerHigh, ..._AdConfig.androidBannerIds ] 
+        : [ _AdConfig.iosBannerHigh, ..._AdConfig.iosBannerIds ];
+    
+    banneradUnitIdLow = Platform.isAndroid
+        ? [ _AdConfig.androidBannerLow ]
+        : [ _AdConfig.iosBannerLow ];
         
+    // Interstitials
     screenUnitId = Platform.isAndroid
         ? List.from(_AdConfig.androidInterstitialIds)
         : List.from(_AdConfig.iosInterstitialIds);
+    
+    screenUnitIdLow = []; // Placeholder for low priority interstitials
         
     _nativeadUnitId = Platform.isAndroid
         ? List.from(_AdConfig.androidNativeIds)
         : List.from(_AdConfig.iosNativeIds);
+    
+    _nativeadUnitIdLow = [];
         
     videoUnitId = Platform.isAndroid
         ? List.from(_AdConfig.androidRewardedIds)
         : List.from(_AdConfig.iosRewardedIds);
+    
+    videoUnitIdLow = [];
         
     adUnitId = Platform.isAndroid
         ? List.from(_AdConfig.androidRewardedInterstitialIds)
         : List.from(_AdConfig.iosRewardedInterstitialIds);
+    
+    adUnitIdLow = [];
+
+    // Freemoney specific
+    freemoneyHigh = Platform.isAndroid ? [_AdConfig.androidFMHigh] : [_AdConfig.iosFMHigh];
+    freemoneyLow = Platform.isAndroid ? [_AdConfig.androidFMLow] : [_AdConfig.iosFMLow];
+    freemoneyInters = Platform.isAndroid ? [_AdConfig.androidFMInters] : [_AdConfig.iosFMInters];
         
     gameid = Platform.isAndroid ? _AdConfig.androidGameId : _AdConfig.iosGameId;
     
@@ -125,12 +178,20 @@ class Advert {
 
     Googlemodel googlemodel = Googlemodel()
       ..bannerAdUnitId = banneradUnitId
+      ..bannerAdUnitIdLow = banneradUnitIdLow
       ..nativeAdUnitId = _nativeadUnitId
+      ..nativeAdUnitIdLow = _nativeadUnitIdLow
       ..rewardedInterstitialAdUnitId = adUnitId
+      ..rewardedInterstitialAdUnitIdLow = adUnitIdLow
       ..rewardedAdUnitId = videoUnitId
+      ..rewardedAdUnitIdLow = videoUnitIdLow
       ..spinAndWin = videoUnitId
-      ..freemoney = videoUnitId
-      ..interstitialAdUnitId = screenUnitId;
+      ..spinAndWinLow = videoUnitIdLow
+      ..freemoney = freemoneyHigh
+      ..freemoneyLow = freemoneyLow
+      ..freemoneyInterstitial = freemoneyInters
+      ..interstitialAdUnitId = screenUnitId
+      ..interstitialAdUnitIdLow = screenUnitIdLow;
     Unitymodel? unitymodel = Platform.isAndroid
         ? (Unitymodel()
           ..gameId = gameid

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+// import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../model/advertresponse.dart';
 import '../model/unity.dart';
@@ -15,64 +15,55 @@ class UnityProvider {
   final bool testmode;
 
   UnityProvider(this.unitymodel, this._reporter, this.testmode) {
-    UnityAds.init(
-      gameId: unitymodel.gameId,
-      testMode: testmode,
-      onComplete: () {
-        print('Initialization Complete');
-        loadinterrtitialad();
-        loadrewardedad();
-      },
-      onFailed: (error, message) =>
-          print('Initialization Failed: $error $message'),
-    );
-    interstitiaad = Unityinterstitialad(unitymodel.interstitialVideoAdPlacementId, _reporter);
-    rewardedvideo = Rewardedvideo(unitymodel.rewardedVideoAdPlacementId, _reporter);
+    _initializeAdManagers();
+  }
 
-    for(int i = 0; i < unitymodel.interstitialVideoAdPlacementId.length; i++){
-      placements[unitymodel.interstitialVideoAdPlacementId[i]]= false;
+  final Map<String, Unityinterstitialad> _interstitialManagers = {};
+  final Map<String, Rewardedvideo> _rewardedManagers = {};
+
+  void _initializeAdManagers() {
+    _interstitialManagers['interstitial'] =
+        Unityinterstitialad(unitymodel.interstitialVideoAdPlacementId, _reporter, adType: 'Interstitial');
+    
+    _rewardedManagers['rewarded'] =
+        Rewardedvideo(unitymodel.rewardedVideoAdPlacementId, _reporter, adType: 'Rewarded');
+  }
+
+  bool hasInterstitialAdByType(String type) => _interstitialManagers[type]?.intersAd1.isNotEmpty ?? false;
+  get unityintersAd1 => hasInterstitialAdByType('interstitial');
+
+  bool hasRewardedAdByType(String type) => _rewardedManagers[type]?.intersAd1.isNotEmpty ?? false;
+  get unityrewardedAd => hasRewardedAdByType('rewarded');
+
+  Advertresponse showAd1(Function? onclick, {String type = 'interstitial'}) {
+    return _interstitialManagers[type]?.showAd(onclick) ?? Advertresponse.defaults();
+  }
+
+  void loadrewardedad({String? type}) {
+    if (type != null) {
+      _rewardedManagers[type]?.createInterstitialAd();
+    } else {
+      for (var manager in _rewardedManagers.values) {
+        manager.createInterstitialAd();
+      }
     }
-    for(int i = 0; i < unitymodel.rewardedVideoAdPlacementId.length; i++){
-      placements[unitymodel.rewardedVideoAdPlacementId[i]]= false;
+  }
+
+  void loadinterrtitialad({String? type}) {
+    if (type != null) {
+      _interstitialManagers[type]?.createInterstitialAd();
+    } else {
+      for (var manager in _interstitialManagers.values) {
+        manager.createInterstitialAd();
+      }
     }
   }
 
-  Map<String, bool> placements = {};
-  late Unityinterstitialad interstitiaad;
-  late Rewardedvideo rewardedvideo;
-
-  get rewardvideoloaded => rewardedvideo.intersAd1.isNotEmpty;
-
-  get unityintersAd1{
-    return interstitiaad.intersAd1.isNotEmpty;
-  }
-
-  Advertresponse showAd1(Function? onclick){
-    return interstitiaad.showAd(onclick);
-  }
-
-  get unityrewardedAd{
-    return rewardedvideo.intersAd1.isNotEmpty;
-  }
-
-  loadrewardedad(){
-    rewardedvideo.createInterstitialAd();
-  }
-  loadinterrtitialad(){
-    interstitiaad.createInterstitialAd();
-  }
-  Advertresponse showRewardedAd(rewarded,Function? onclick){
-    return rewardedvideo.showAd(rewarded, onclick);
+  Advertresponse showRewardedAd(rewarded, Function? onclick, {String type = 'rewarded'}) {
+    return _rewardedManagers[type]?.showAd(rewarded, onclick) ?? Advertresponse.defaults();
   }
 
   Widget adWidget() {
-    return UnityBannerAd(
-      placementId: unitymodel.bannerAdPlacementId[0],
-      onLoad: (placementId) => debugPrint('Banner loaded: $placementId'),
-      onClick: (placementId) => debugPrint('Banner clicked: $placementId'),
-      onFailed: (placementId, error, message) =>
-          debugPrint('Banner Ad $placementId failed: $error $message'),
-    );
     return Container();
   }
 }

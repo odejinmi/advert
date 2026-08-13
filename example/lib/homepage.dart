@@ -54,80 +54,146 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Advert Plugin Example'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              adsProv.preloadAllAds();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Preloading all ads...')),
+              );
+            },
+            tooltip: 'Preload All Ads',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DeviceManagementPage()),
-                  ),
-                  icon: const Icon(Icons.devices),
-                  label: const Text("Device Management"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
-                    foregroundColor: Colors.white,
-                  ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DeviceManagementPage()),
+              ),
+              icon: const Icon(Icons.devices),
+              label: const Text("Device Management"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            _buildSection(
+              title: "Interstitial Ads",
+              children: [
+                ElevatedButton(
+                  onPressed: () => adsProv.showInterstitialAd(),
+                  child: const Text("Show Default Interstitial"),
                 ),
-              ),
-              const Divider(),
-              TextButton(
-                onPressed: () => adsProv.showInterstitialAd(),
-                child: const Text("Show Interstitial Ad"),
-              ),
-              TextButton(
-                onPressed: _toggleNativeAd,
-                child: Text("${_showNativeAd ? 'Hide' : 'Show'} Native Ad"),
-              ),
-              if (_showNativeAd) _buildNativeAdWidget(),
-              
-              TextButton(
-                onPressed: isShowing.value ? null : () => _startSequence('mergeRewarded', "Use general Market",1),
-                child: const Text("Show mergeRewarded Ad"),
-              ),
-              TextButton(
-                onPressed: isShowing.value ? null : () => _startSequence('googleMergeRewarded', "Earn card",1),
-                child: const Text("Show googlemergeRewarded Ad"),
-              ),
-              TextButton(
-                onPressed: isShowing.value ? null : () => _startSequence('rewarded', "Receive \$1",1),
-                child: const Text("Show Rewarded Ad"),
-              ),
-              TextButton(
-                onPressed: isShowing.value ? null : () => _startSequence('rewardedInterstitial', "Earn \#6",2),
-                child: const Text("Show Rewarded Insterstitial Ad"),
-              ),
-              TextButton(
-                onPressed: isShowing.value ? null : () => _startSequence('spinAndWin', "Earn \$100",5),
-                child: const Text("Show SpinandWin Ad"),
-              ),
-              
-              if (isShowing.value)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 10),
-                      Text("Ad Sequence: ${adsProv.adsWatched}/${adsProv.totalAds} completed"),
-                    ],
-                  ),
+                OutlinedButton(
+                  onPressed: () => adsProv.showInterstitialAd(type: 'CustomPlacement'),
+                  child: const Text("Show Custom Type Interstitial"),
                 ),
-              TextButton(
-                onPressed: _toggleBannerAd,
-                child: Text("${_showBannerAd ? 'Hide' : 'Show'} Banner Ad"),
-              ),
-              if (_showBannerAd) adsProv.showBannerAd(),
-            ],
-          ),
+              ],
+            ),
+
+            _buildSection(
+              title: "Waterfall / High Priority",
+              children: [
+                ElevatedButton(
+                  onPressed: isShowing.value ? null : () => _startSequence('freemoney', "High Priority Waterfall", 3),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+                  child: const Text("Show Free Money (Waterfall)"),
+                ),
+                const Text(
+                  "Attempts: High Rewarded -> Low Rewarded -> FM Interstitial",
+                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+
+            _buildSection(
+              title: "Rewarded Sequences",
+              children: [
+                Wrap(
+                  spacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildAdButton("Rewarded", () => _startSequence('rewarded', "Receive \$1", 1), isShowing.value),
+                    _buildAdButton("Merge", () => _startSequence('mergeRewarded', "General Market", 1), isShowing.value),
+                    _buildAdButton("Google Only", () => _startSequence('googleMergeRewarded', "Earn card", 1), isShowing.value),
+                    _buildAdButton("Interstitial", () => _startSequence('rewardedInterstitial', "Earn Points", 1), isShowing.value),
+                    _buildAdButton("Spin & Win (x5)", () => _startSequence('spinAndWin', "Earn \$100", 5), isShowing.value),
+                  ],
+                ),
+                if (isShowing.value)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Column(
+                      children: [
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 8),
+                        Text("Progress: ${adsProv.adsWatched}/${adsProv.totalAds}"),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+
+            _buildSection(
+              title: "Native & Banner Ads",
+              children: [
+                SwitchListTile(
+                  title: const Text("Show Native Ad"),
+                  value: _showNativeAd,
+                  onChanged: (val) => setState(() => _showNativeAd = val),
+                ),
+                if (_showNativeAd) _buildNativeAdWidget(),
+                
+                SwitchListTile(
+                  title: const Text("Show Banner Ad (Waterfall)"),
+                  value: _showBannerAd,
+                  onChanged: (val) => setState(() => _showBannerAd = val),
+                ),
+                if (_showBannerAd) 
+                  Center(child: adsProv.showBannerAd()),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSection({required String title, required List<Widget> children}) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdButton(String label, VoidCallback onPressed, bool disabled) {
+    return ElevatedButton(
+      onPressed: disabled ? null : onPressed,
+      child: Text(label),
     );
   }
 
@@ -147,11 +213,5 @@ class _HomepageState extends State<Homepage> {
       ),
       child: _advertPlugin.adsProv.showNativeAd(context),
     );
-  }
-
-  void _toggleBannerAd() {
-    setState(() {
-      _showBannerAd = !_showBannerAd;
-    });
   }
 }

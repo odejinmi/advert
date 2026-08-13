@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:advert/advert/googleads/freemoney.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -12,7 +11,6 @@ import 'googleads/interstitialad.dart';
 import 'googleads/nativead.dart';
 import 'googleads/rewardedad.dart';
 import 'googleads/rewardedinterstitialad.dart';
-import 'googleads/spinandwin.dart';
 
 class GoogleAdProvider {
   // Constants
@@ -26,21 +24,15 @@ class GoogleAdProvider {
   // Private variables
   final Googlemodel _adConfig;
   final EventReporter _reporter;
-  int _rewardShowPosition = 1;
-  int _spinAndWinShowPosition = 1;
-  int _freemoneyShowPosition = 1;
-  int _retryAttempts = 0;
-  int _spinAndWinretryAttempts = 0;
-  int _freemoneyretryAttempts = 0;
+  final Map<String, int> _showPositionMap = {};
+  final Map<String, int> _retryAttemptsMap = {};
 
   // Ad managers
-  late final InterstitialAdManager _interstitialAdManager;
-  late final RewardedAdManager _rewardedAdManager;
-  late final SpinAndWin _spinAndWin;
-  late final Freemoney _freemoney;
-  late final NativeAdManager _nativeAdManager;
-  late final BannerAdManager _bannerAdManager;
-  late final RewardedInterstitialAdManager _rewardedInterstitialAdManager;
+  final Map<String, InterstitialAdManager> _interstitialManagers = {};
+  final Map<String, RewardedAdManager> _rewardedManagers = {};
+  final Map<String, NativeAdManager> _nativeManagers = {};
+  final Map<String, BannerAdManager> _bannerManagers = {};
+  final Map<String, RewardedInterstitialAdManager> _rewardedInterstitialManagers = {};
 
   // Constructor
   GoogleAdProvider(this._adConfig, this._reporter) {
@@ -50,300 +42,277 @@ class GoogleAdProvider {
 
   /// Initializes all ad managers
   void _initializeAdManagers() {
-    _interstitialAdManager =
-        InterstitialAdManager(_adConfig.interstitialAdUnitId, _reporter);
+    // Interstitials
+    _interstitialManagers['interstitial_high'] =
+        InterstitialAdManager(_adConfig.interstitialAdUnitId, _reporter, adType: 'Interstitial_High');
+    _interstitialManagers['interstitial_low'] =
+        InterstitialAdManager(_adConfig.interstitialAdUnitIdLow, _reporter, adType: 'Interstitial_Low');
 
-    _rewardedAdManager =
-        RewardedAdManager(_adConfig.rewardedAdUnitId, _reporter);
+    // Rewarded
+    _rewardedManagers['rewarded_high'] =
+        RewardedAdManager(_adConfig.rewardedAdUnitId, _reporter, adType: 'Rewarded_High');
+    _rewardedManagers['rewarded_low'] =
+        RewardedAdManager(_adConfig.rewardedAdUnitIdLow, _reporter, adType: 'Rewarded_Low');
+    
+    _rewardedManagers['spinAndWin_high'] =
+        RewardedAdManager(_adConfig.spinAndWin, _reporter, adType: 'SpinAndWin_High');
+    _rewardedManagers['spinAndWin_low'] =
+        RewardedAdManager(_adConfig.spinAndWinLow, _reporter, adType: 'SpinAndWin_Low');
 
-    _nativeAdManager =
-        NativeAdManager(_adConfig.nativeAdUnitId, _reporter);
+    _rewardedManagers['freemoney_high'] =
+        RewardedAdManager(_adConfig.freemoney, _reporter, adType: 'Freemoney_High');
+    _rewardedManagers['freemoney_low'] =
+        RewardedAdManager(_adConfig.freemoneyLow, _reporter, adType: 'Freemoney_Low');
 
-    _bannerAdManager =
-        BannerAdManager(_adConfig.bannerAdUnitId, _reporter);
+    // Native
+    _nativeManagers['native_high'] =
+        NativeAdManager(_adConfig.nativeAdUnitId, _reporter, adType: 'Native_High');
+    _nativeManagers['native_low'] =
+        NativeAdManager(_adConfig.nativeAdUnitIdLow, _reporter, adType: 'Native_Low');
 
-    _spinAndWin =
-        SpinAndWin(_adConfig.spinAndWin, _reporter);
+    // Banner
+    _bannerManagers['banner_high'] =
+        BannerAdManager(_adConfig.bannerAdUnitId, _reporter, adType: 'Banner_High');
+    _bannerManagers['banner_low'] =
+        BannerAdManager(_adConfig.bannerAdUnitIdLow, _reporter, adType: 'Banner_Low');
 
-    _freemoney =
-        Freemoney(_adConfig.freemoney, _reporter);
-
-    _rewardedInterstitialAdManager = 
-        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId, _reporter);
+    // Rewarded Interstitials
+    _rewardedInterstitialManagers['rewardedInterstitial_high'] = 
+        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitId, _reporter, adType: 'RewardedInterstitial_High');
+    _rewardedInterstitialManagers['rewardedInterstitial_low'] = 
+        RewardedInterstitialAdManager(_adConfig.rewardedInterstitialAdUnitIdLow, _reporter, adType: 'RewardedInterstitial_Low');
+    
+    // Special Interstitial fallbacks
+    _interstitialManagers['freemoney_inters'] =
+        InterstitialAdManager(_adConfig.freemoneyInterstitial, _reporter, adType: 'Freemoney_Inters');
   }
 
   // Getters
-  bool get hasInterstitialAd => _interstitialAdManager.hasAds;
-  bool get hasRewardedAd => _rewardedAdManager.hasAds;
-  bool get hasspinAndWin => _spinAndWin.hasAds;
-  bool get hasfreemoney => _freemoney.hasAds;
-  bool get hasRewardedInterstitialAd => _rewardedInterstitialAdManager.hasAds;
+  bool hasInterstitialAdByType(String type) {
+    return (_interstitialManagers['${type}_high']?.hasAds ?? false) || 
+           (_interstitialManagers['${type}_low']?.hasAds ?? false);
+  }
+  bool get hasInterstitialAd => hasInterstitialAdByType('interstitial');
+  
+  bool hasRewardedAdByType(String type) {
+    return (_rewardedManagers['${type}_high']?.hasAds ?? false) || 
+           (_rewardedManagers['${type}_low']?.hasAds ?? false);
+  }
+  bool get hasRewardedAd => hasRewardedAdByType('rewarded');
+  bool get hasspinAndWin => hasRewardedAdByType('spinAndWin');
+  bool get hasfreemoney => hasRewardedAdByType('freemoney') || (_interstitialManagers['freemoney_inters']?.hasAds ?? false);
+  
+  bool hasNativeAdByType(String type) {
+    return (_nativeManagers['${type}_high']?.isAdLoaded ?? false) || 
+           (_nativeManagers['${type}_low']?.isAdLoaded ?? false);
+  }
+  bool get hasNativeAd => hasNativeAdByType('native');
+
+  bool hasRewardedInterstitialAdByType(String type) {
+    return (_rewardedInterstitialManagers['${type}_high']?.hasAds ?? false) || 
+           (_rewardedInterstitialManagers['${type}_low']?.hasAds ?? false);
+  }
+  bool get hasRewardedInterstitialAd => hasRewardedInterstitialAdByType('rewardedInterstitial');
+
   int get adProviderCount => 2; 
 
   /// Preloads all ad types
   void preloadAllAds() {
-    loadInterstitialAd();
-    loadRewardedAd();
-    loadNativeAd();
-    loadspinAndWin();
-    loadfreemoney();
-    loadRewardedInterstitialAd();
+    for (var manager in _interstitialManagers.values) manager.preloadAds();
+    for (var manager in _rewardedManagers.values) manager.preloadAds();
+    for (var manager in _nativeManagers.values) manager.loadAd();
+    for (var manager in _bannerManagers.values) manager.loadAd();
+    for (var manager in _rewardedInterstitialManagers.values) manager.preloadAds();
   }
 
   /// Loads a native ad
-  void loadNativeAd() {
-    _nativeAdManager.loadAd();
+  void loadNativeAd({String type = 'native'}) {
+    _nativeManagers['${type}_high']?.loadAd();
+    _nativeManagers['${type}_low']?.loadAd();
   }
 
   /// Loads an interstitial ad
-  void loadInterstitialAd() {
-    _interstitialAdManager.preloadAds();
+  void loadInterstitialAd({String type = 'interstitial'}) {
+    _interstitialManagers['${type}_high']?.preloadAds();
+    _interstitialManagers['${type}_low']?.preloadAds();
+    if (type == 'freemoney') _interstitialManagers['freemoney_inters']?.preloadAds();
   }
 
   /// Loads a rewarded ad
-  void loadRewardedAd() {
-    _rewardedAdManager.preloadAds();
-  }
-
-  /// Loads a spinAndWin ad
-  void loadspinAndWin() {
-    _spinAndWin.preloadAds();
-  }
-
-  /// Loads a spinAndWin ad
-  void loadfreemoney() {
-    _freemoney.preloadAds();
+  void loadRewardedAd({String? type}) {
+    if (type != null) {
+      _rewardedManagers['${type}_high']?.preloadAds();
+      _rewardedManagers['${type}_low']?.preloadAds();
+    } else {
+      for (var manager in _rewardedManagers.values) {
+        manager.preloadAds();
+      }
+    }
   }
 
   /// Loads a rewarded interstitial ad
-  void loadRewardedInterstitialAd() {
-    _rewardedInterstitialAdManager.preloadAds();
+  void loadRewardedInterstitialAd({String type = 'rewardedInterstitial'}) {
+    _rewardedInterstitialManagers['${type}_high']?.preloadAds();
+    _rewardedInterstitialManagers['${type}_low']?.preloadAds();
   }
 
   /// Loads all rewarded ad types
   void loadRewardAds() {
     loadRewardedAd();
     loadRewardedInterstitialAd();
-    loadfreemoney();
-    loadspinAndWin();
+    loadInterstitialAd(type: 'freemoney');
   }
 
   /// Shows a native ad
-  Widget showNativeAd(BuildContext context) {
-    return _nativeAdManager.buildAdWidget(context, autoClose: false);
+  Widget showNativeAd(BuildContext context, {String type = 'native'}) {
+    if (_nativeManagers['${type}_high']?.isAdLoaded ?? false) {
+      return _nativeManagers['${type}_high']!.buildAdWidget(context, autoClose: false);
+    }
+    return _nativeManagers['${type}_low']?.buildAdWidget(context, autoClose: false) ?? Container();
   }
 
   /// Shows an interstitial ad
   Advertresponse showInterstitialAd({
+    String type = 'interstitial',
     Function? onAdClicked,
     Function? onAdImpression,
     Function? onAdDismissed,
   }) {
-    return _interstitialAdManager.showAd(
+    if (_interstitialManagers['${type}_high']?.hasAds ?? false) {
+      return _interstitialManagers['${type}_high']!.showAd(
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
+      );
+    }
+    return _interstitialManagers['${type}_low']?.showAd(
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
       onAdDismissed: onAdDismissed,
-    );
+    ) ?? Advertresponse.defaults();
   }
 
   /// Shows a rewarded ad with reward callback
   Advertresponse showRewardedAd({
+    String type = 'rewarded',
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
-    return _rewardedAdManager.showRewardedAd(
-      onRewarded: onRewarded,
-      onAdClicked: onAdClicked,
-      onAdImpression: onAdImpression,
-      customData: customData,
-    );
+    final managerHigh = _rewardedManagers['${type}_high'];
+    if (managerHigh != null && managerHigh.hasAds) {
+      return managerHigh.showRewardedAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    final managerLow = _rewardedManagers['${type}_low'];
+    if (managerLow != null && managerLow.hasAds) {
+      return managerLow.showRewardedAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
   }
 
-  /// Shows a rewarded ad with reward callback
+  /// Shows a rewarded ad with reward callback and fallbacks
   Advertresponse showmergeRewardedAd({
+    String type = 'rewarded',
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     Map<String, String> customData = const {},
   }) {
-    // Reset retry counter if we're switching ad types
-    if (_rewardShowPosition != 1) {
-      _retryAttempts = 0;
-    }
-
-    // Try to show rewarded ad if available
-    if (_rewardedAdManager.hasAds && _rewardShowPosition == 1) {
-      debugPrint(
-          'Showing rewarded ad (${_rewardedAdManager.adsCount} available)');
-      _rewardShowPosition = 2; // Move to next ad type for next attempt
-      _retryAttempts = 0;
-      return _rewardedAdManager.showRewardedAd(
+    final managerHigh = _rewardedManagers['${type}_high'];
+    if (managerHigh != null && managerHigh.hasAds) {
+      return managerHigh.showRewardedAd(
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
         customData: customData,
       );
     }
-    // Try rewarded interstitial as fallback
-    else if (_rewardedInterstitialAdManager.hasAds &&
-        _rewardShowPosition == 2) {
-      debugPrint(
-          'Showing rewarded interstitial ad (${_rewardedInterstitialAdManager.adsCount} available)');
-      _rewardShowPosition = 1; // Reset to first ad type for next attempt
-      _retryAttempts = 0;
-      return _rewardedInterstitialAdManager.showAd(
+
+    final managerLow = _rewardedManagers['${type}_low'];
+    if (managerLow != null && managerLow.hasAds) {
+      return managerLow.showRewardedAd(
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
         customData: customData,
       );
     }
-    // Handle case when no ads are available
-    else {
-      // Cycle through ad providers
-      _rewardShowPosition =
-          _rewardShowPosition % adProviderCount + 1;
 
-      // Retry with limited attempts
-      if (_retryAttempts < MAX_RETRY_ATTEMPTS) {
-        _retryAttempts += 1;
-        return showmergeRewardedAd(
-          onRewarded: onRewarded,
-          onAdClicked: onAdClicked,
-          onAdImpression: onAdImpression,
-          customData: customData,
-        );
-      } else {
-        _retryAttempts = 0;
-        return Advertresponse.defaults();
-      }
+    if (type == 'rewarded' && hasRewardedInterstitialAd) {
+      return _rewardedInterstitialManagers['rewardedInterstitial_high']!.showAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
     }
+
+    if (type == 'freemoney' && (_interstitialManagers['freemoney_inters']?.hasAds ?? false)) {
+      return _interstitialManagers['freemoney_inters']!.showAd(
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onRewarded,
+      );
+    }
+
+    return Advertresponse.defaults();
   }
 
+  // Keep these for backward compatibility
   Advertresponse showspinAndWin({
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     Map<String, String> customData = const {},
-  }) {
-    // Reset retry counter if we're switching ad types
-    if (_spinAndWinShowPosition != 1) {
-      _spinAndWinretryAttempts = 0;
-    }
-
-    // Try to show rewarded ad if available
-    if (_spinAndWin.hasAds && _spinAndWinShowPosition == 1) {
-      debugPrint('Showing rewarded ad (${_spinAndWin.adsCount} available)');
-      _spinAndWinShowPosition =
-          2; // Move to next ad type for next attempt
-      _spinAndWinretryAttempts = 0;
-      return _spinAndWin.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    // Handle case when no ads are available
-    else {
-      // Cycle through ad providers
-      _spinAndWinShowPosition =
-          _spinAndWinShowPosition % adProviderCount + 1;
-
-      // Retry with limited attempts
-      if (_spinAndWinretryAttempts < MAX_RETRY_ATTEMPTS) {
-        _spinAndWinretryAttempts += 1;
-        return showspinAndWin(
-          onRewarded: onRewarded,
-          onAdClicked: onAdClicked,
-          onAdImpression: onAdImpression,
-          customData: customData,
-        );
-      } else {
-        _spinAndWinretryAttempts = 0;
-        return Advertresponse.defaults();
-      }
-    }
-  }
+  }) => showmergeRewardedAd(type: 'spinAndWin', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData);
 
   Advertresponse showfreemoney({
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     Map<String, String> customData = const {},
-  }) {
-    // Reset retry counter if we're switching ad types
-    if (_freemoneyShowPosition != 1) {
-      _freemoneyretryAttempts = 0;
-    }
-
-    // Try to show rewarded ad if available
-    if (_freemoney.hasAds && _freemoneyShowPosition == 1) {
-      debugPrint('Showing rewarded ad (${_freemoney.adsCount} available)');
-      _freemoneyShowPosition =
-          2; // Move to next ad type for next attempt
-      _freemoneyretryAttempts = 0;
-      return _freemoney.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    // Handle case when no ads are available
-    else {
-      debugPrint(
-          'No fremoney ads new available, retrying (attempt ${_freemoneyretryAttempts + 1}/${MAX_RETRY_ATTEMPTS})');
-
-      // Cycle through ad providers
-      _freemoneyShowPosition =
-          _freemoneyShowPosition % adProviderCount + 1;
-
-      // Retry with limited attempts
-      if (_freemoneyretryAttempts < MAX_RETRY_ATTEMPTS) {
-        _freemoneyretryAttempts++;
-        return showfreemoney(
-          onRewarded: onRewarded,
-          onAdClicked: onAdClicked,
-          onAdImpression: onAdImpression,
-          customData: customData,
-        );
-      } else {
-        _freemoneyretryAttempts = 0;
-        return Advertresponse.defaults();
-      }
-    }
-  }
+  }) => showmergeRewardedAd(type: 'freemoney', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData);
 
   /// Shows a rewarded interstitial ad with reward callback
   Advertresponse showRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
-    Map<String, String> customData = const {},
+    required Map<String, String> customData,
   }) {
-    return _rewardedInterstitialAdManager.showAd(
+    return _rewardedInterstitialManagers[type]?.showAd(
       onRewarded: onRewarded,
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
       customData: customData,
-    );
+    ) ?? Advertresponse.defaults();
   }
 
   /// Returns a banner ad widget
-  Widget showBannerAd() {
-    return _bannerAdManager.adWidget();
+  Widget showBannerAd({String type = 'banner'}) {
+    if (_bannerManagers['${type}_high']?.bannerReady ?? false) {
+      return _bannerManagers['${type}_high']!.adWidget();
+    }
+    return _bannerManagers['${type}_low']?.adWidget() ?? Container();
   }
 
   void dispose() {
-    _interstitialAdManager.dispose();
-    _rewardedAdManager.dispose();
-    _spinAndWin.dispose();
-    _freemoney.dispose();
-    _nativeAdManager.dispose();
-    _bannerAdManager.dispose();
-    _rewardedInterstitialAdManager.dispose();
+    for (var m in _interstitialManagers.values) m.dispose();
+    for (var m in _rewardedManagers.values) m.dispose();
+    for (var m in _nativeManagers.values) m.dispose();
+    for (var m in _bannerManagers.values) m.dispose();
+    for (var m in _rewardedInterstitialManagers.values) m.dispose();
   }
 }

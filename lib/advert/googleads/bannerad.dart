@@ -9,6 +9,7 @@ class BannerAdManager {
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
 
   final EventReporter _reporter;
+  final String _adType;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -19,7 +20,8 @@ class BannerAdManager {
   bool _bannerReady = false;
 
   // Constructor
-  BannerAdManager(this._adUnitIds, this._reporter) {
+  BannerAdManager(this._adUnitIds, this._reporter, {String adType = 'Banner'})
+      : _adType = adType {
     _initializeListener();
   }
 
@@ -44,7 +46,7 @@ class BannerAdManager {
         _reporter.reportEvent(
           event: AdEvent.displayed,
           adProvider: 'Google',
-          adType: 'Banner',
+          adType: _adType,
           placementId: (ad).adUnitId,
         );
         _loadedAds.add(ad);
@@ -62,7 +64,7 @@ class BannerAdManager {
         _reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Google',
-          adType: 'Banner',
+          adType: _adType,
           placementId: (ad as BannerAd).adUnitId,
           errorMessage: error.message,
         );
@@ -86,7 +88,7 @@ class BannerAdManager {
         _reporter.reportEvent(
           event: AdEvent.clicked,
           adProvider: 'Google',
-          adType: 'Banner',
+          adType: _adType,
           placementId: (ad as BannerAd).adUnitId,
         );
       },

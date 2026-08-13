@@ -11,6 +11,7 @@ class RewardedInterstitialAdManager {
   static const int TARGET_BUFFER_SIZE = 2;
 
   final EventReporter _reporter;
+  final String _adType;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -22,7 +23,8 @@ class RewardedInterstitialAdManager {
   bool _rewardEarned = false;
 
   // Constructor
-  RewardedInterstitialAdManager(this._adUnitIds, this._reporter) {
+  RewardedInterstitialAdManager(this._adUnitIds, this._reporter, {String adType = 'RewardedInterstitial'})
+      : _adType = adType {
     preloadAds();
   }
 
@@ -95,7 +97,7 @@ class RewardedInterstitialAdManager {
           _reporter.reportEvent(
             event: AdEvent.failed,
             adProvider: 'Google',
-            adType: 'RewardedInterstitial',
+            adType: _adType,
             errorMessage: error.message,
           );
 
@@ -166,7 +168,7 @@ class RewardedInterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.displayed,
           adProvider: 'Google',
-          adType: 'RewardedInterstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         _topUpBuffer();
@@ -176,7 +178,7 @@ class RewardedInterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.completed,
           adProvider: 'Google',
-          adType: 'RewardedInterstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
           extraData: {'rewardEarned': _rewardEarned},
         );
@@ -187,7 +189,7 @@ class RewardedInterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Google',
-          adType: 'RewardedInterstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
           errorMessage: error.message,
         );
@@ -210,7 +212,7 @@ class RewardedInterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.clicked,
           adProvider: 'Google',
-          adType: 'RewardedInterstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         if (onAdClicked != null) onAdClicked();

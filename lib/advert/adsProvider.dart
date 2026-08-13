@@ -97,6 +97,7 @@ class AdManager extends GetxController {
 
   /// Shows an interstitial ad
   Future<Advertresponse> showInterstitialAd({
+    String type = 'interstitial',
     Function? onAdClicked,
     Function? onAdImpression,
     Function? onAdDismissed,
@@ -107,40 +108,42 @@ class AdManager extends GetxController {
     
     if (turn == 1) {
       // Try Unity first
-      if (_unityProvider != null && _unityProvider!.unityintersAd1) {
+      if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _unityProvider!.showAd1(onAdClicked);
+        return _unityProvider!.showAd1(onAdClicked, type: type);
       } 
       // Fallback to Google
-      else if (_googleProvider != null && _googleProvider!.hasInterstitialAd) {
+      else if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+        return _googleProvider!.showInterstitialAd(type: type, onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
       }
     } else {
       // Try Google first
-      if (_googleProvider != null && _googleProvider!.hasInterstitialAd) {
+      if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+        return _googleProvider!.showInterstitialAd(type: type, onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
       }
       // Fallback to Unity
-      else if (_unityProvider != null && _unityProvider!.unityintersAd1) {
+      else if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _unityProvider!.showAd1(onAdClicked);
+        return _unityProvider!.showAd1(onAdClicked, type: type);
       }
     }
 
     // Both failed or not ready, try retry logic
     return await _handleInterstitialRetry(
+      type: type,
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
     );
   }
 
   Future<Advertresponse> _handleInterstitialRetry({
+    required String type,
     Function? onAdClicked,
     Function? onAdImpression,
   }) async {
@@ -149,6 +152,7 @@ class AdManager extends GetxController {
       _interstitialRetryAttempts++;
       await Future.delayed(DEFAULT_RETRY_DELAY);
       return showInterstitialAd(
+        type: type,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
       );
@@ -164,30 +168,42 @@ class AdManager extends GetxController {
 
   /// --- Standard Ad Show Methods ---
 
-  Future<Advertresponse> showmergeRewardedAd({
+  Future<Advertresponse> showRewardedAd({
+    String type = 'rewarded',
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     required Map<String, String> customData,
     int retryDelaySeconds = 1,
+    bool useProviderCycling = true,
   }) async {
     _preloadRewardedAds();
+
+    if (!useProviderCycling) {
+      return _showGoogleRewardedOnly(
+        type: type,
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+        retryDelaySeconds: retryDelaySeconds,
+      );
+    }
 
     // 1: Unity, 2: Google
     int turn = _rewardedProviderIndex;
 
-    // TRY CURRENT TURN
     if (turn == 1) {
       if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
-        _rewardedProviderIndex = 2; // Success: Next turn Google
+        _rewardedProviderIndex = 2; 
         _rewardedRetryAttempts = 0;
         return _unityProvider!.showRewardedAd(onRewarded, () {});
       } else {
-        // Fallback to Google immediately if Unity is not ready
-        if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-          _rewardedProviderIndex = 1; // Google played: Next turn Unity
+        if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
+          _rewardedProviderIndex = 1; 
           _rewardedRetryAttempts = 0;
           return _googleProvider!.showmergeRewardedAd(
+            type: type,
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
@@ -196,35 +212,34 @@ class AdManager extends GetxController {
         }
       }
     } else {
-      if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-        _rewardedProviderIndex = 1; // Success: Next turn Unity
+      if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
+        _rewardedProviderIndex = 1; 
         _rewardedRetryAttempts = 0;
         return _googleProvider!.showmergeRewardedAd(
+          type: type,
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
           customData: customData,
         );
       } else {
-        // Fallback to Unity immediately if Google is not ready
         if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
-          _rewardedProviderIndex = 2; // Unity played: Next turn Google
+          _rewardedProviderIndex = 2; 
           _rewardedRetryAttempts = 0;
           return _unityProvider!.showRewardedAd(onRewarded, () {});
         }
       }
     }
 
-    // BOTH FAILED: RETRY LOGIC
+    // RETRY LOGIC
     if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
       _rewardedRetryAttempts++;
-      // Switch the turn for the next retry attempt
       _rewardedProviderIndex = (turn == 1) ? 2 : 1;
 
-      debugPrint(
-          'No rewarded ads ready. Retry attempt ${_rewardedRetryAttempts}/$MAX_RETRY_ATTEMPTS');
+      debugPrint('No rewarded ads ($type) ready. Retry attempt ${_rewardedRetryAttempts}/$MAX_RETRY_ATTEMPTS');
       await Future.delayed(Duration(seconds: retryDelaySeconds));
-      return showmergeRewardedAd(
+      return showRewardedAd(
+        type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
@@ -237,53 +252,18 @@ class AdManager extends GetxController {
     }
   }
 
-  Future<Advertresponse> showspinAndWin({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-  }) async {
-    _preloadRewardedAds();
-    if (_googleProvider != null && _googleProvider!.hasspinAndWin) {
-      return _googleProvider!.showspinAndWin(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    return Advertresponse.defaults();
-  }
-
-  Future<Advertresponse> showRewardedAd({
-    Function? onRewarded,
-    Function? onAdClicked,
-    Function? onAdImpression,
-    required Map<String, String> customData,
-  }) async {
-    _preloadRewardedAds();
-    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
-      return _googleProvider!.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    return Advertresponse.defaults();
-  }
-
-  Future<Advertresponse> showgooglemergeRewardedAd({
+  Future<Advertresponse> _showGoogleRewardedOnly({
+    required String type,
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     required Map<String, String> customData,
     int retryDelaySeconds = 1,
   }) async {
-    _preloadRewardedAds();
-    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+    if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
       _rewardedRetryAttempts = 0;
       return _googleProvider!.showmergeRewardedAd(
+        type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
@@ -293,7 +273,8 @@ class AdManager extends GetxController {
       if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
         _rewardedRetryAttempts++;
         await Future.delayed(Duration(seconds: retryDelaySeconds));
-        return showgooglemergeRewardedAd(
+        return _showGoogleRewardedOnly(
+          type: type,
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
@@ -307,15 +288,41 @@ class AdManager extends GetxController {
     }
   }
 
+  // Backward compatibility wrappers
+  Future<Advertresponse> showmergeRewardedAd({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+    int retryDelaySeconds = 1,
+  }) => showRewardedAd(type: 'rewarded', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, retryDelaySeconds: retryDelaySeconds);
+
+  Future<Advertresponse> showspinAndWin({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) => showRewardedAd(type: 'spinAndWin', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, useProviderCycling: false);
+
+  Future<Advertresponse> showgooglemergeRewardedAd({
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+    int retryDelaySeconds = 1,
+  }) => showRewardedAd(type: 'rewarded', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, retryDelaySeconds: retryDelaySeconds, useProviderCycling: false);
+
   Future<Advertresponse> showRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
     required Map<String, String> customData,
   }) async {
     _preloadRewardedAds();
-    if (_googleProvider != null && _googleProvider!.hasRewardedAd) {
+    if (_googleProvider != null) {
       return _googleProvider!.showRewardedInterstitialAd(
+        type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
@@ -330,34 +337,27 @@ class AdManager extends GetxController {
     Function? onAdClicked,
     Function? onAdImpression,
     required Map<String, String> customData,
-  }) async {
-    _preloadRewardedAds();
-    if (_googleProvider != null && _googleProvider!.hasfreemoney) {
-      return _googleProvider!.showfreemoney(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
-    return Advertresponse.defaults();
-  }
+  }) => showRewardedAd(type: 'freemoney', onRewarded: onRewarded, onAdClicked: onAdClicked, onAdImpression: onAdImpression, customData: customData, useProviderCycling: false);
+
+  // Note: showRewardedAd(Map) already exists, I should rename the unified one or replace it.
+  // The original showRewardedAd(Map) was Google-only and didn't have type parameter.
+  // I will replace it.
 
   void _advanceRewardedProvider() {
     _rewardedProviderIndex = _rewardedProviderIndex % providerCount + 1;
   }
 
-  Widget showNativeAd(BuildContext context) {
+  Widget showNativeAd(BuildContext context, {String type = 'native'}) {
     if (_googleProvider != null) {
-      _googleProvider!.loadNativeAd();
-      return _googleProvider!.showNativeAd(context);
+      _googleProvider!.loadNativeAd(type: type);
+      return _googleProvider!.showNativeAd(context, type: type);
     }
     return Container();
   }
 
-  Widget showBannerAd() {
-    if (_googleProvider != null && _adsConfig.googlemodel != null) {
-      return BannerAdWidget(adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId);
+  Widget showBannerAd({String type = 'banner'}) {
+    if (_googleProvider != null) {
+      return _googleProvider!.showBannerAd(type: type);
     }
     return const SizedBox.shrink();
   }
@@ -493,7 +493,8 @@ class AdManager extends GetxController {
 
     switch (_currentAdType) {
       case 'mergeRewarded':
-        result = await showmergeRewardedAd(
+        result = await showRewardedAd(
+          type: 'rewarded',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
@@ -502,18 +503,22 @@ class AdManager extends GetxController {
         break;
       case 'rewarded':
         result = await showRewardedAd(
+          type: 'rewarded',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
+          useProviderCycling: false,
         );
         break;
       case 'googleMergeRewarded':
-        result = await showgooglemergeRewardedAd(
+        result = await showRewardedAd(
+          type: 'rewarded',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
+          useProviderCycling: false,
         );
         break;
       case 'rewardedInterstitial':
@@ -525,23 +530,28 @@ class AdManager extends GetxController {
         );
         break;
       case 'spinAndWin':
-        result = await showspinAndWin(
+        result = await showRewardedAd(
+          type: 'spinAndWin',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
+          useProviderCycling: false,
         );
         break;
       case 'freemoney':
-        result = await showfreemoney(
+        result = await showRewardedAd(
+          type: 'freemoney',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
+          useProviderCycling: false,
         );
         break;
       default:
         result = await showRewardedAd(
+          type: 'rewarded',
           onRewarded: onRewarded,
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,

@@ -10,6 +10,7 @@ class InterstitialAdManager {
   static const int TARGET_BUFFER_SIZE = 2;
 
   final EventReporter _reporter;
+  final String _adType;
 
   // Private variables
   final List<String> _adUnitIds;
@@ -20,7 +21,8 @@ class InterstitialAdManager {
   bool _isLoading = false;
 
   // Constructor
-  InterstitialAdManager(this._adUnitIds, this._reporter) {
+  InterstitialAdManager(this._adUnitIds, this._reporter, {String adType = 'Interstitial'})
+      : _adType = adType {
     preloadAds();
   }
 
@@ -98,7 +100,7 @@ class InterstitialAdManager {
     _reporter.reportEvent(
       event: AdEvent.failed,
       adProvider: 'Google',
-      adType: 'Interstitial',
+      adType: _adType,
       errorMessage: error.message,
     );
 
@@ -141,7 +143,7 @@ class InterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.displayed,
           adProvider: 'Google',
-          adType: 'Interstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         // Preload the next ad as soon as the current one is shown
@@ -152,7 +154,7 @@ class InterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.completed,
           adProvider: 'Google',
-          adType: 'Interstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         ad.dispose();
@@ -163,7 +165,7 @@ class InterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Google',
-          adType: 'Interstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
           errorMessage: error.message,
         );
@@ -176,7 +178,7 @@ class InterstitialAdManager {
         _reporter.reportEvent(
           event: AdEvent.clicked,
           adProvider: 'Google',
-          adType: 'Interstitial',
+          adType: _adType,
           placementId: ad.adUnitId,
         );
         if (onAdClicked != null) onAdClicked();
