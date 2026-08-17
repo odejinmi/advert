@@ -131,10 +131,46 @@ advert.adsProv.startAdSequence(
 
 ### High/Low Waterfall Logic
 
-The SDK implements an automated waterfall for all ad types. When you request an ad, it will:
-1.  Attempt to show the **High Placement** unit.
-2.  Fallback to the **Low Placement** unit if High is not ready.
-3.  (For specific types like `freemoney`) Fallback to an **Interstitial** if no rewarded ads are ready.
+The SDK implements an automated waterfall for all ad types. When you request an ad using the standard methods, it will automatically follow this priority logic:
+
+1.  **Attempt High Priority**: The SDK tries the highest-paying unit first.
+2.  **Fallback to Low Priority**: If High is unavailable, it immediately tries the Low tier.
+3.  **Cross-Network Fallback**: If Google units fail, it attempts Unity Ads (if configured).
+4.  **Final Fallback**: For rewarded types like `freemoney`, it can even fall back to an Interstitial ad as a last resort.
+
+#### Example: Automatic Waterfall Call
+You don't need special code for the waterfall; it's the default behavior of the main methods:
+
+```dart
+// This single call will automatically try High -> Low -> Unity -> Interstitial
+advert.adsProv.showRewardedAd(
+  type: 'freemoney',
+  onRewarded: () => print("Reward granted via waterfall!"),
+  customData: {"placement": "bonus_chest"},
+);
+```
+
+#### Independent Tier Access
+If you want to bypass the automatic waterfall and call a specific priority tier independently (e.g., for different reward levels), use the prioritized methods:
+
+```dart
+// Only try the high-priority rewarded ad
+advert.adsProv.showHighRewardedAd(type: 'freemoney', customData: {});
+
+// Only try the low-priority rewarded ad
+advert.adsProv.showLowRewardedAd(type: 'freemoney', customData: {});
+
+// Also available for interstitials and banners
+advert.adsProv.showHighInterstitialAd();
+advert.adsProv.showLowInterstitialAd();
+
+advert.adsProv.showHighBannerAd();
+advert.adsProv.showLowBannerAd();
+
+// And rewarded interstitials
+advert.adsProv.showHighRewardedInterstitialAd(customData: {});
+advert.adsProv.showLowRewardedInterstitialAd(customData: {});
+```
 
 ### Showing Ads
 

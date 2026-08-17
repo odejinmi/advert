@@ -166,8 +166,7 @@ class AdManager extends GetxController {
     _interstitialProviderIndex = _interstitialProviderIndex % providerCount + 1;
   }
 
-  /// --- Standard Ad Show Methods ---
-
+  /// Shows a rewarded ad with fallback logic (High -> Low -> ...).
   Future<Advertresponse> showRewardedAd({
     String type = 'rewarded',
     Function? onRewarded,
@@ -180,7 +179,7 @@ class AdManager extends GetxController {
     _preloadRewardedAds();
 
     if (!useProviderCycling) {
-      return _showGoogleRewardedOnly(
+      return _showGoogleRewardedWaterfall(
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
@@ -189,6 +188,7 @@ class AdManager extends GetxController {
         retryDelaySeconds: retryDelaySeconds,
       );
     }
+    // ... existing cycling logic
 
     // 1: Unity, 2: Google
     int turn = _rewardedProviderIndex;
@@ -252,7 +252,7 @@ class AdManager extends GetxController {
     }
   }
 
-  Future<Advertresponse> _showGoogleRewardedOnly({
+  Future<Advertresponse> _showGoogleRewardedWaterfall({
     required String type,
     Function? onRewarded,
     Function? onAdClicked,
@@ -273,7 +273,7 @@ class AdManager extends GetxController {
       if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
         _rewardedRetryAttempts++;
         await Future.delayed(Duration(seconds: retryDelaySeconds));
-        return _showGoogleRewardedOnly(
+        return _showGoogleRewardedWaterfall(
           type: type,
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
@@ -288,6 +288,86 @@ class AdManager extends GetxController {
     }
   }
 
+  /// Shows only the high priority rewarded ad (independent call)
+  Future<Advertresponse> showHighRewardedAd({
+    String type = 'rewarded',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showHighRewardedAd(
+        type: type,
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority rewarded ad (independent call)
+  Future<Advertresponse> showLowRewardedAd({
+    String type = 'rewarded',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showLowRewardedAd(
+        type: type,
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the high priority interstitial ad (independent call)
+  Future<Advertresponse> showHighInterstitialAd({
+    String type = 'interstitial',
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) async {
+    _preloadInterstitialAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showHighInterstitialAd(
+        type: type,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority interstitial ad (independent call)
+  Future<Advertresponse> showLowInterstitialAd({
+    String type = 'interstitial',
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) async {
+    _preloadInterstitialAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showLowInterstitialAd(
+        type: type,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
   Future<Advertresponse> showRewardedInterstitialAd({
     String type = 'rewardedInterstitial',
     Function? onRewarded,
@@ -298,6 +378,48 @@ class AdManager extends GetxController {
     _preloadRewardedAds();
     if (_googleProvider != null) {
       return _googleProvider!.showRewardedInterstitialAd(
+        type: type,
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the high priority rewarded interstitial ad (independent call)
+  Future<Advertresponse> showHighRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showHighRewardedInterstitialAd(
+        type: type,
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority rewarded interstitial ad (independent call)
+  Future<Advertresponse> showLowRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) async {
+    _preloadRewardedAds();
+    if (_googleProvider != null) {
+      return _googleProvider!.showLowRewardedInterstitialAd(
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
@@ -327,6 +449,22 @@ class AdManager extends GetxController {
   Widget showBannerAd({String type = 'banner'}) {
     if (_googleProvider != null) {
       return _googleProvider!.showBannerAd(type: type);
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Returns only the high priority banner ad widget (independent call)
+  Widget showHighBannerAd({String type = 'banner'}) {
+    if (_googleProvider != null) {
+      return _googleProvider!.showHighBannerAd(type: type);
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Returns only the low priority banner ad widget (independent call)
+  Widget showLowBannerAd({String type = 'banner'}) {
+    if (_googleProvider != null) {
+      return _googleProvider!.showLowBannerAd(type: type);
     }
     return const SizedBox.shrink();
   }

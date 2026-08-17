@@ -167,27 +167,6 @@ class GoogleAdProvider {
     return _nativeManagers['${type}_low']?.buildAdWidget(context, autoClose: false) ?? Container();
   }
 
-  /// Shows an interstitial ad
-  Advertresponse showInterstitialAd({
-    String type = 'interstitial',
-    Function? onAdClicked,
-    Function? onAdImpression,
-    Function? onAdDismissed,
-  }) {
-    if (_interstitialManagers['${type}_high']?.hasAds ?? false) {
-      return _interstitialManagers['${type}_high']!.showAd(
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        onAdDismissed: onAdDismissed,
-      );
-    }
-    return _interstitialManagers['${type}_low']?.showAd(
-      onAdClicked: onAdClicked,
-      onAdImpression: onAdImpression,
-      onAdDismissed: onAdDismissed,
-    ) ?? Advertresponse.defaults();
-  }
-
   /// Shows a rewarded ad with reward callback and fallbacks (High -> Low -> Interstitial)
   Advertresponse showRewardedAd({
     String type = 'rewarded',
@@ -197,26 +176,24 @@ class GoogleAdProvider {
     Map<String, String> customData = const {},
   }) {
     // 1. Try High Priority
-    final managerHigh = _rewardedManagers['${type}_high'];
-    if (managerHigh != null && managerHigh.hasAds) {
-      return managerHigh.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
+    final resHigh = showHighRewardedAd(
+      type: type,
+      onRewarded: onRewarded,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      customData: customData,
+    );
+    if (resHigh.status) return resHigh;
 
     // 2. Try Low Priority
-    final managerLow = _rewardedManagers['${type}_low'];
-    if (managerLow != null && managerLow.hasAds) {
-      return managerLow.showRewardedAd(
-        onRewarded: onRewarded,
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        customData: customData,
-      );
-    }
+    final resLow = showLowRewardedAd(
+      type: type,
+      onRewarded: onRewarded,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      customData: customData,
+    );
+    if (resLow.status) return resLow;
 
     // 3. Fallback to Rewarded Interstitial (if standard rewarded fails)
     if (type == 'rewarded' && hasRewardedInterstitialAd) {
@@ -228,19 +205,109 @@ class GoogleAdProvider {
       );
     }
 
-    // 4. Special case for 'freemoney': High -> Low -> Interstitial fallback
-    if (type == 'freemoney' && (_interstitialManagers['freemoney_inters']?.hasAds ?? false)) {
-      return _interstitialManagers['freemoney_inters']!.showAd(
-        onAdClicked: onAdClicked,
-        onAdImpression: onAdImpression,
-        onAdDismissed: onRewarded,
-      );
-    }
-
     return Advertresponse.defaults();
   }
 
-  /// Shows a rewarded interstitial ad with reward callback
+  /// Shows only the high priority rewarded ad
+  Advertresponse showHighRewardedAd({
+    String type = 'rewarded',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
+    final manager = _rewardedManagers['${type}_high'];
+    if (manager != null && manager.hasAds) {
+      return manager.showRewardedAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority rewarded ad
+  Advertresponse showLowRewardedAd({
+    String type = 'rewarded',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Map<String, String> customData = const {},
+  }) {
+    final manager = _rewardedManagers['${type}_low'];
+    if (manager != null && manager.hasAds) {
+      return manager.showRewardedAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows an interstitial ad with fallback (High -> Low)
+  Advertresponse showInterstitialAd({
+    String type = 'interstitial',
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) {
+    final resHigh = showHighInterstitialAd(
+      type: type,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      onAdDismissed: onAdDismissed,
+    );
+    if (resHigh.status) return resHigh;
+
+    return showLowInterstitialAd(
+      type: type,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      onAdDismissed: onAdDismissed,
+    );
+  }
+
+  /// Shows only the high priority interstitial ad
+  Advertresponse showHighInterstitialAd({
+    String type = 'interstitial',
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) {
+    final manager = _interstitialManagers['${type}_high'];
+    if (manager != null && manager.hasAds) {
+      return manager.showAd(
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority interstitial ad
+  Advertresponse showLowInterstitialAd({
+    String type = 'interstitial',
+    Function? onAdClicked,
+    Function? onAdImpression,
+    Function? onAdDismissed,
+  }) {
+    final manager = _interstitialManagers['${type}_low'];
+    if (manager != null && manager.hasAds) {
+      return manager.showAd(
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Shows a rewarded interstitial ad with fallback (High -> Low)
   Advertresponse showRewardedInterstitialAd({
     String type = 'rewardedInterstitial',
     Function? onRewarded,
@@ -248,20 +315,88 @@ class GoogleAdProvider {
     Function? onAdImpression,
     required Map<String, String> customData,
   }) {
-    return _rewardedInterstitialManagers[type]?.showAd(
+    final resHigh = showHighRewardedInterstitialAd(
+      type: type,
       onRewarded: onRewarded,
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
       customData: customData,
-    ) ?? Advertresponse.defaults();
+    );
+    if (resHigh.status) return resHigh;
+
+    return showLowRewardedInterstitialAd(
+      type: type,
+      onRewarded: onRewarded,
+      onAdClicked: onAdClicked,
+      onAdImpression: onAdImpression,
+      customData: customData,
+    );
   }
 
-  /// Returns a banner ad widget
-  Widget showBannerAd({String type = 'banner'}) {
-    if (_bannerManagers['${type}_high']?.bannerReady ?? false) {
-      return _bannerManagers['${type}_high']!.adWidget();
+  /// Shows only the high priority rewarded interstitial ad
+  Advertresponse showHighRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) {
+    final manager = _rewardedInterstitialManagers['${type}_high'];
+    if (manager != null && manager.hasAds) {
+      return manager.showAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
     }
-    return _bannerManagers['${type}_low']?.adWidget() ?? Container();
+    return Advertresponse.defaults();
+  }
+
+  /// Shows only the low priority rewarded interstitial ad
+  Advertresponse showLowRewardedInterstitialAd({
+    String type = 'rewardedInterstitial',
+    Function? onRewarded,
+    Function? onAdClicked,
+    Function? onAdImpression,
+    required Map<String, String> customData,
+  }) {
+    final manager = _rewardedInterstitialManagers['${type}_low'];
+    if (manager != null && manager.hasAds) {
+      return manager.showAd(
+        onRewarded: onRewarded,
+        onAdClicked: onAdClicked,
+        onAdImpression: onAdImpression,
+        customData: customData,
+      );
+    }
+    return Advertresponse.defaults();
+  }
+
+  /// Returns a banner ad widget with fallback (High -> Low)
+  Widget showBannerAd({String type = 'banner'}) {
+    final highBanner = showHighBannerAd(type: type);
+    if (highBanner is! SizedBox) return highBanner;
+
+    return showLowBannerAd(type: type);
+  }
+
+  /// Returns only the high priority banner ad widget
+  Widget showHighBannerAd({String type = 'banner'}) {
+    final manager = _bannerManagers['${type}_high'];
+    if (manager != null && manager.bannerReady) {
+      return manager.adWidget();
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Returns only the low priority banner ad widget
+  Widget showLowBannerAd({String type = 'banner'}) {
+    final manager = _bannerManagers['${type}_low'];
+    if (manager != null && manager.bannerReady) {
+      return manager.adWidget();
+    }
+    return const SizedBox.shrink();
   }
 
   void dispose() {
