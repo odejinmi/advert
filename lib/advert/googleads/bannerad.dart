@@ -7,6 +7,7 @@ import '../event_reporter.dart';
 class BannerAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+  static const Duration retryDelay = Duration(seconds: 5);
 
   final EventReporter _reporter;
   final String _adType;
@@ -72,16 +73,18 @@ class BannerAdManager {
         _failedAttempts++;
         _isLoading = false;
 
-        if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
-          loadAd();
-        } else {
-          _failedAttempts = 0;
-          _currentLoadingIndex++;
-
-          if (_currentLoadingIndex < _adUnitIds.length) {
+        Future.delayed(retryDelay, () {
+          if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
             loadAd();
+          } else {
+            _failedAttempts = 0;
+            _currentLoadingIndex++;
+
+            if (_currentLoadingIndex < _adUnitIds.length) {
+              loadAd();
+            }
           }
-        }
+        });
       },
       onAdOpened: (ad) {
         debugPrint('Banner ad opened');

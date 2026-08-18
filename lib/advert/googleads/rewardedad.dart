@@ -17,6 +17,7 @@ class RewardedAdManager {
   static const int maxFailedLoadAttempts = 3;
   static const Duration adExpiration = Duration(hours: 1);
   static const int TARGET_BUFFER_SIZE = 3;
+  static const Duration retryDelay = Duration(seconds: 5);
 
   final EventReporter _reporter;
   final String _adType;
@@ -131,13 +132,15 @@ class RewardedAdManager {
     _failedAttempts++;
     _isLoading = false;
 
-    if (_failedAttempts < maxFailedLoadAttempts) {
-      _loadNextAd();
-    } else {
-      _failedAttempts = 0;
-      _currentLoadingIndex++;
-      _topUpBuffer();
-    }
+    Future.delayed(retryDelay, () {
+      if (_failedAttempts < maxFailedLoadAttempts) {
+        _loadNextAd();
+      } else {
+        _failedAttempts = 0;
+        _currentLoadingIndex++;
+        _topUpBuffer();
+      }
+    });
   }
 
   void _handleAdAlreadyExists(String adUnitId) {

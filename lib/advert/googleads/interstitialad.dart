@@ -8,6 +8,7 @@ class InterstitialAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
   static const int TARGET_BUFFER_SIZE = 2;
+  static const Duration retryDelay = Duration(seconds: 5);
 
   final EventReporter _reporter;
   final String _adType;
@@ -107,15 +108,17 @@ class InterstitialAdManager {
     _failedAttempts++;
     _isLoading = false;
 
-    if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
-      // Retry loading the same ad
-      _loadNextAd();
-    } else {
-      // Move to next ad unit after max retries
-      _failedAttempts = 0;
-      _currentLoadingIndex++;
-      _topUpBuffer();
-    }
+    Future.delayed(retryDelay, () {
+      if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
+        // Retry loading the same ad
+        _loadNextAd();
+      } else {
+        // Move to next ad unit after max retries
+        _failedAttempts = 0;
+        _currentLoadingIndex++;
+        _topUpBuffer();
+      }
+    });
   }
 
   /// Shows an ad if available, returns the result

@@ -7,6 +7,7 @@ class NativeAdManager {
   // Constants
   static const int AUTO_CLOSE_DELAY_SECONDS = 20;
   static const String FACTORY_ID = 'adFactoryExample';
+  static const Duration retryDelay = Duration(seconds: 5);
 
   final EventReporter _reporter;
   final String _adType;
@@ -123,10 +124,12 @@ class NativeAdManager {
     _isAdLoaded = false;
     _failedAttempts++;
 
-    if (_failedAttempts <= 3 && _adUnitIds.length > 1) {
-      _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
-      loadAd();
-    }
+    Future.delayed(retryDelay, () {
+      if (_failedAttempts <= 3 && _adUnitIds.length > 1) {
+        _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
+        loadAd();
+      }
+    });
   }
 
   void _disposeCurrentAd() {
