@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -14,10 +15,15 @@ class _LoadedAd {
 
 class RewardedAdManager {
   // Constants
-  static const int maxFailedLoadAttempts = 3;
+  static const int maxFailedLoadAttempts = 5; // Increased slightly for more robust retries
   static const Duration adExpiration = Duration(hours: 1);
   static const int TARGET_BUFFER_SIZE = 3;
-  static const Duration retryDelay = Duration(seconds: 5);
+  static const Duration initialRetryDelay = Duration(seconds: 5);
+  static const Duration maxRetryDelay = Duration(seconds: 60);
+  static const Duration minRequestInterval = Duration(seconds: 10);
+
+  // Global tracker to prevent overlapping requests for the same ID across all instances
+  static final Map<String, DateTime> _globalLastRequestTimes = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -36,7 +42,9 @@ class RewardedAdManager {
   // Constructor
   RewardedAdManager(this._adUnitIds, this._reporter, {String adType = 'Rewarded'})
       : _adType = adType {
-    preloadAds();
+    // Staggered initialization to avoid "thundering herd" effect on startup
+    final jitter = Duration(milliseconds: Random().nextInt(2000));
+    Future.delayed(jitter, preloadAds);
   }
 
   // Getters
@@ -71,6 +79,19 @@ class RewardedAdManager {
     if (_isLoading) return;
     _isLoading = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+
+    // GLOBAL THROTTLING CHECK: Ensure any single ID is not requested more than once per interval
+    final now = DateTime.now();
+    final lastRequest = _globalLastRequestTimes[adUnitId];
+    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
+      final waitTime = minRequestInterval - now.difference(lastRequest);
+      debugPrint('Global Throttling (Rewarded): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
+      _isLoading = false;
+      Future.delayed(waitTime, () => _loadNextAd(onComplete: onComplete));
+      return;
+    }
+
+    _globalLastRequestTimes[adUnitId] = now;
 
     if (_loadedAds.length >= TARGET_BUFFER_SIZE &&
         _loadedAds.any((adData) => adData.ad.adUnitId == adUnitId)) {
@@ -132,7 +153,14 @@ class RewardedAdManager {
     _failedAttempts++;
     _isLoading = false;
 
-    Future.delayed(retryDelay, () {
+    // Exponential Backoff: initialDelay * 2^(failedAttempts-1)
+    final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+    final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
+    final actualDelay = Duration(seconds: backoffSeconds.toInt()).clamp(initialRetryDelay, maxRetryDelay);
+
+    debugPrint('Backing off (Rewarded: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    Future.delayed(actualDelay, () {
       if (_failedAttempts < maxFailedLoadAttempts) {
         _loadNextAd();
       } else {

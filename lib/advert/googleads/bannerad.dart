@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -6,8 +7,13 @@ import '../event_reporter.dart';
 
 class BannerAdManager {
   // Constants
-  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
-  static const Duration retryDelay = Duration(seconds: 5);
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 5;
+  static const Duration initialRetryDelay = Duration(seconds: 5);
+  static const Duration maxRetryDelay = Duration(seconds: 60);
+  static const Duration minRequestInterval = Duration(seconds: 10);
+
+  // Global tracker
+  static final Map<String, DateTime> _globalLastRequestTimes = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -24,6 +30,8 @@ class BannerAdManager {
   BannerAdManager(this._adUnitIds, this._reporter, {String adType = 'Banner'})
       : _adType = adType {
     _initializeListener();
+    final jitter = Duration(milliseconds: Random().nextInt(2000));
+    Future.delayed(jitter, loadAd);
   }
 
   // Getters
@@ -73,7 +81,14 @@ class BannerAdManager {
         _failedAttempts++;
         _isLoading = false;
 
-        Future.delayed(retryDelay, () {
+        // Exponential Backoff
+        final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+        final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
+        final actualDelay = Duration(seconds: backoffSeconds.toInt()).clamp(initialRetryDelay, maxRetryDelay);
+
+        debugPrint('Backing off (Banner: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+        Future.delayed(actualDelay, () {
           if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
             loadAd();
           } else {
@@ -126,8 +141,20 @@ class BannerAdManager {
       return;
     }
 
-    _isLoading = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+
+    // GLOBAL THROTTLING CHECK
+    final now = DateTime.now();
+    final lastRequest = _globalLastRequestTimes[adUnitId];
+    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
+      final waitTime = minRequestInterval - now.difference(lastRequest);
+      debugPrint('Global Throttling (Banner): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
+      Future.delayed(waitTime, loadAd);
+      return;
+    }
+
+    _globalLastRequestTimes[adUnitId] = now;
+    _isLoading = true;
 
     debugPrint(
         'Loading banner ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}: $adUnitId');

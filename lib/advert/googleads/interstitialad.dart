@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -6,9 +7,14 @@ import '../event_reporter.dart';
 
 class InterstitialAdManager {
   // Constants
-  static const int MAX_FAILED_LOAD_ATTEMPTS = 3;
+  static const int MAX_FAILED_LOAD_ATTEMPTS = 5;
   static const int TARGET_BUFFER_SIZE = 2;
-  static const Duration retryDelay = Duration(seconds: 5);
+  static const Duration initialRetryDelay = Duration(seconds: 5);
+  static const Duration maxRetryDelay = Duration(seconds: 60);
+  static const Duration minRequestInterval = Duration(seconds: 10);
+
+  // Global tracker
+  static final Map<String, DateTime> _globalLastRequestTimes = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -24,7 +30,8 @@ class InterstitialAdManager {
   // Constructor
   InterstitialAdManager(this._adUnitIds, this._reporter, {String adType = 'Interstitial'})
       : _adType = adType {
-    preloadAds();
+    final jitter = Duration(milliseconds: Random().nextInt(2000));
+    Future.delayed(jitter, preloadAds);
   }
 
   // Getters
@@ -58,6 +65,19 @@ class InterstitialAdManager {
     if (_isLoading) return;
     _isLoading = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+
+    // GLOBAL THROTTLING CHECK
+    final now = DateTime.now();
+    final lastRequest = _globalLastRequestTimes[adUnitId];
+    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
+      final waitTime = minRequestInterval - now.difference(lastRequest);
+      debugPrint('Global Throttling (Interstitial): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
+      _isLoading = false;
+      Future.delayed(waitTime, _loadNextAd);
+      return;
+    }
+
+    _globalLastRequestTimes[adUnitId] = now;
 
     debugPrint(
         'Loading interstitial ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
@@ -108,7 +128,14 @@ class InterstitialAdManager {
     _failedAttempts++;
     _isLoading = false;
 
-    Future.delayed(retryDelay, () {
+    // Exponential Backoff
+    final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+    final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
+    final actualDelay = Duration(seconds: backoffSeconds.toInt()).clamp(initialRetryDelay, maxRetryDelay);
+
+    debugPrint('Backing off (Interstitial: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    Future.delayed(actualDelay, () {
       if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
         // Retry loading the same ad
         _loadNextAd();

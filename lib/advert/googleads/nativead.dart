@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -7,7 +8,12 @@ class NativeAdManager {
   // Constants
   static const int AUTO_CLOSE_DELAY_SECONDS = 20;
   static const String FACTORY_ID = 'adFactoryExample';
-  static const Duration retryDelay = Duration(seconds: 5);
+  static const Duration initialRetryDelay = Duration(seconds: 5);
+  static const Duration maxRetryDelay = Duration(seconds: 60);
+  static const Duration minRequestInterval = Duration(seconds: 10);
+
+  // Global tracker
+  static final Map<String, DateTime> _globalLastRequestTimes = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -23,7 +29,8 @@ class NativeAdManager {
   NativeAdManager(this._adUnitIds, this._reporter, {String adType = 'Native'})
       : _adType = adType {
     if (_adUnitIds.isNotEmpty) {
-      loadAd();
+      final jitter = Duration(milliseconds: Random().nextInt(2000));
+      Future.delayed(jitter, loadAd);
     }
   }
 
@@ -46,6 +53,18 @@ class NativeAdManager {
     _isAdLoaded = false;
 
     final adUnitId = _adUnitIds[_currentAdIndex % _adUnitIds.length];
+
+    // GLOBAL THROTTLING CHECK
+    final now = DateTime.now();
+    final lastRequest = _globalLastRequestTimes[adUnitId];
+    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
+      final waitTime = minRequestInterval - now.difference(lastRequest);
+      debugPrint('Global Throttling (Native): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
+      Future.delayed(waitTime, loadAd);
+      return;
+    }
+
+    _globalLastRequestTimes[adUnitId] = now;
 
     debugPrint('Loading native ad with ID: $adUnitId');
 
@@ -124,7 +143,14 @@ class NativeAdManager {
     _isAdLoaded = false;
     _failedAttempts++;
 
-    Future.delayed(retryDelay, () {
+    // Exponential Backoff
+    final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+    final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
+    final actualDelay = Duration(seconds: backoffSeconds.toInt()).clamp(initialRetryDelay, maxRetryDelay);
+
+    debugPrint('Backing off (Native: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    Future.delayed(actualDelay, () {
       if (_failedAttempts <= 3 && _adUnitIds.length > 1) {
         _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
         loadAd();
