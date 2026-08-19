@@ -84,7 +84,8 @@ class BannerAdManager {
         // Exponential Backoff
         final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
         final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
-        final actualDelay = Duration(seconds: backoffSeconds.toInt()).clamp(initialRetryDelay, maxRetryDelay);
+        final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
+        final actualDelay = Duration(seconds: clampedSeconds);
 
         debugPrint('Backing off (Banner: $_adType) for ${actualDelay.inSeconds}s due to failure');
 
