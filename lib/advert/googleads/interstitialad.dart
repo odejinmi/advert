@@ -87,14 +87,14 @@ class InterstitialAdManager {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: _onAdLoaded,
-        onAdFailedToLoad: _onAdFailedToLoad,
+        onAdFailedToLoad: (error) => _onAdFailedToLoad(error, adUnitId),
       ),
     );
   }
 
   /// Callback when ad is successfully loaded
   void _onAdLoaded(InterstitialAd ad) {
-    debugPrint('Interstitial ad loaded successfully');
+    debugPrint('Interstitial ad loaded successfully: ${ad.adUnitId}');
     _loadedAds.add(ad);
     _failedAttempts = 0;
     _currentLoadingIndex++;
@@ -115,13 +115,14 @@ class InterstitialAdManager {
   }
 
   /// Callback when ad fails to load
-  void _onAdFailedToLoad(LoadAdError error) {
-    debugPrint('Interstitial ad failed to load: ${error.message}');
+  void _onAdFailedToLoad(LoadAdError error, String placementId) {
+    debugPrint('Interstitial ad failed to load ($placementId): ${error.message}');
     
     _reporter.reportEvent(
       event: AdEvent.failed,
       adProvider: 'Google',
       adType: _adType,
+      placementId: placementId,
       errorMessage: error.message,
     );
 

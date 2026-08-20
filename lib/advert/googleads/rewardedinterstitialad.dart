@@ -102,53 +102,23 @@ class RewardedInterstitialAdManager {
       rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (RewardedInterstitialAd ad) {
           debugPrint('Rewarded interstitial ad loaded successfully: $adUnitId');
-          _loadedAds.add(ad);
-          _failedAttempts = 0;
-          _currentLoadingIndex++;
-          _isLoading = false;
-
+          _onAdLoaded(ad);
           _triggerPendingCallbacks();
           _topUpBuffer();
           if (onComplete != null) onComplete();
         },
         onAdFailedToLoad: (LoadAdError error) {
-          debugPrint(
-              'Rewarded interstitial ad failed to load: ${error.message}');
-          
-          _reporter.reportEvent(
-            event: AdEvent.failed,
-            adProvider: 'Google',
-            adType: _adType,
-            errorMessage: error.message,
-          );
-
-          _failedAttempts++;
-          _isLoading = false;
-
-          // Exponential Backoff
-          final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
-          final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
-          final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
-          final actualDelay = Duration(seconds: clampedSeconds);
-
-          debugPrint('Backing off (RewardedInters: $_adType) for ${actualDelay.inSeconds}s due to failure');
-
-          Future.delayed(actualDelay, () {
-            if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
-              // Retry loading the same ad
-              _loadNextAd(onComplete: onComplete);
-            } else {
-              // Move to next ad unit after max retries
-              _failedAttempts = 0;
-              _currentLoadingIndex++;
-
-              _topUpBuffer();
-              if (onComplete != null) onComplete();
-            }
-          });
+          _onAdFailedToLoad(error, adUnitId, onComplete);
         },
       ),
     );
+  }
+
+  void _onAdLoaded(RewardedInterstitialAd ad) {
+    _loadedAds.add(ad);
+    _failedAttempts = 0;
+    _currentLoadingIndex++;
+    _isLoading = false;
   }
 
   void _triggerPendingCallbacks() {
@@ -159,6 +129,45 @@ class RewardedInterstitialAdManager {
         cb();
       }
     }
+  }
+
+  void _onAdFailedToLoad(LoadAdError error, String placementId, Function? onComplete) {
+    debugPrint(
+        'Rewarded interstitial ad failed to load ($placementId): ${error.message}');
+    
+    _reporter.reportEvent(
+      event: AdEvent.failed,
+      adProvider: 'Google',
+      adType: _adType,
+      placementId: placementId,
+      errorMessage: error.message,
+    );
+
+    _failedAttempts++;
+    _isLoading = false;
+
+    // Exponential Backoff
+    final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+    final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
+    final clampedSeconds =
+        backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
+    final actualDelay = Duration(seconds: clampedSeconds);
+
+    debugPrint('Backing off (RewardedInters: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    Future.delayed(actualDelay, () {
+      if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
+        // Retry loading the same ad
+        _loadNextAd(onComplete: onComplete);
+      } else {
+        // Move to next ad unit after max retries
+        _failedAttempts = 0;
+        _currentLoadingIndex++;
+
+        _topUpBuffer();
+        if (onComplete != null) onComplete();
+      }
+    });
   }
 
   /// Shows a rewarded interstitial ad if available, returns the result

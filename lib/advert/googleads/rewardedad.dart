@@ -112,7 +112,7 @@ class RewardedAdManager {
           if (onComplete != null) onComplete();
         },
         onAdFailedToLoad: (error) {
-          _onAdFailedToLoad(error);
+          _onAdFailedToLoad(error, adUnitId);
           if (onComplete != null) onComplete();
         },
       ),
@@ -140,13 +140,14 @@ class RewardedAdManager {
     }
   }
 
-  void _onAdFailedToLoad(LoadAdError error) {
-    debugPrint('Rewarded ad failed to load: ${error.message}');
+  void _onAdFailedToLoad(LoadAdError error, String placementId) {
+    debugPrint('Rewarded ad failed to load ($placementId): ${error.message}');
     
     _reporter.reportEvent(
       event: AdEvent.failed,
       adProvider: 'Google',
       adType: _adType,
+      placementId: placementId,
       errorMessage: error.message,
     );
 
