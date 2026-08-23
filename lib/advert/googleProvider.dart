@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../model/advertresponse.dart';
 import '../model/google.dart';
 import 'event_reporter.dart';
+import 'googleads/appopenad.dart';
 import 'googleads/bannerad.dart';
 import 'googleads/interstitialad.dart';
 import 'googleads/nativead.dart';
@@ -33,6 +34,7 @@ class GoogleAdProvider {
   final Map<String, NativeAdManager> _nativeManagers = {};
   final Map<String, BannerAdManager> _bannerManagers = {};
   final Map<String, RewardedInterstitialAdManager> _rewardedInterstitialManagers = {};
+  final Map<String, AppOpenAdManager> _appOpenManagers = {};
 
   // Constructor
   GoogleAdProvider(this._adConfig, this._reporter) {
@@ -81,6 +83,14 @@ class GoogleAdProvider {
       _rewardedInterstitialManagers['${type}_low'] =
           RewardedInterstitialAdManager(_adConfig.rewardedInterstitialLow[type] ?? [], _reporter, adType: '${type}_Low');
     });
+
+    // App Open
+    _adConfig.appOpenHigh.forEach((type, ids) {
+      _appOpenManagers['${type}_high'] =
+          AppOpenAdManager(ids, _reporter, adType: '${type}_High');
+      _appOpenManagers['${type}_low'] =
+          AppOpenAdManager(_adConfig.appOpenLow[type] ?? [], _reporter, adType: '${type}_Low');
+    });
   }
 
   // Getters
@@ -110,6 +120,12 @@ class GoogleAdProvider {
   }
   bool get hasRewardedInterstitialAd => hasRewardedInterstitialAdByType('rewardedInterstitial');
 
+  bool hasAppOpenAdByType(String type) {
+    return (_appOpenManagers['${type}_high']?.hasAds ?? false) || 
+           (_appOpenManagers['${type}_low']?.hasAds ?? false);
+  }
+  bool get hasAppOpenAd => hasAppOpenAdByType('appOpen');
+
   int get adProviderCount => 2; 
 
   /// Preloads all ad types
@@ -119,6 +135,7 @@ class GoogleAdProvider {
     for (var manager in _nativeManagers.values) manager.loadAd();
     for (var manager in _bannerManagers.values) manager.loadAd();
     for (var manager in _rewardedInterstitialManagers.values) manager.preloadAds();
+    for (var manager in _appOpenManagers.values) manager.preloadAds();
   }
 
   /// Loads a native ad
@@ -150,6 +167,12 @@ class GoogleAdProvider {
   void loadRewardedInterstitialAd({String type = 'rewardedInterstitial'}) {
     _rewardedInterstitialManagers['${type}_high']?.preloadAds();
     _rewardedInterstitialManagers['${type}_low']?.preloadAds();
+  }
+
+  /// Loads an app open ad
+  void loadAppOpenAd({String type = 'appOpen'}) {
+    _appOpenManagers['${type}_high']?.preloadAds();
+    _appOpenManagers['${type}_low']?.preloadAds();
   }
 
   /// Loads all rewarded ad types
@@ -373,6 +396,24 @@ class GoogleAdProvider {
     return Advertresponse.defaults();
   }
 
+  /// Shows an app open ad with fallback (High -> Low)
+  void showAppOpenAd({
+    String type = 'appOpen',
+    Function? onAdDismissed,
+  }) {
+    final managerHigh = _appOpenManagers['${type}_high'];
+    if (managerHigh != null && managerHigh.hasAds) {
+      managerHigh.showAd(onAdDismissed: onAdDismissed);
+      return;
+    }
+
+    final managerLow = _appOpenManagers['${type}_low'];
+    if (managerLow != null && managerLow.hasAds) {
+      managerLow.showAd(onAdDismissed: onAdDismissed);
+      return;
+    }
+  }
+
   /// Returns a banner ad widget with fallback (High -> Low)
   Widget showBannerAd({String type = 'banner'}) {
     final highBanner = showHighBannerAd(type: type);
@@ -405,5 +446,6 @@ class GoogleAdProvider {
     for (var m in _nativeManagers.values) m.dispose();
     for (var m in _bannerManagers.values) m.dispose();
     for (var m in _rewardedInterstitialManagers.values) m.dispose();
+    for (var m in _appOpenManagers.values) m.dispose();
   }
 }

@@ -66,27 +66,11 @@ class NativeAdManager {
 
     _globalLastRequestTimes[adUnitId] = now;
 
-    debugPrint('Loading native ad with ID: $adUnitId');
+    debugPrint('Loading native ad with ID: $adUnitId using factory: $FACTORY_ID');
 
     _nativeAd = NativeAd(
       adUnitId: adUnitId,
-      nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.small,
-        mainBackgroundColor: Colors.white12,
-        cornerRadius: 12.0,
-        primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          size: 16.0,
-        ),
-        secondaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white70,
-          size: 14.0,
-        ),
-        tertiaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white54,
-          size: 12.0,
-        ),
-      ),
+      factoryId: FACTORY_ID,
       listener: NativeAdListener(
         onAdLoaded: (ad) {
           _reporter.reportEvent(

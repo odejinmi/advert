@@ -11,7 +11,7 @@ import 'googleads/banner_admob.dart';
 import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
 
-class AdManager extends GetxController {
+class AdManager extends GetxController with WidgetsBindingObserver {
   // Constants
   static const int MAX_RETRY_ATTEMPTS = 3;
   static const Duration DEFAULT_RETRY_DELAY = Duration(seconds: 1);
@@ -45,11 +45,22 @@ class AdManager extends GetxController {
   Function? _onAdClicked;
   Function? _onAdImpression;
 
+  // App Open Ad Control
+  bool enableAppOpenOnResume = true;
+
   // Constructor
   AdManager(this._adsConfig, this.testmode) {
     _eventReporter = EventReporter();
     _initializeAdProviders();
     _startBannerRotation();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && enableAppOpenOnResume) {
+      showAppOpenAd();
+    }
   }
 
   void _initializeAdProviders() {
@@ -469,6 +480,13 @@ class AdManager extends GetxController {
     return const SizedBox.shrink();
   }
 
+  /// Shows an app open ad
+  void showAppOpenAd({String type = 'appOpen', Function? onAdDismissed}) {
+    if (_googleProvider != null) {
+      _googleProvider!.showAppOpenAd(type: type, onAdDismissed: onAdDismissed);
+    }
+  }
+
   Widget showBannerListAd(int numberOfAds) {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
       return BannerListWidget(
@@ -674,6 +692,8 @@ class AdManager extends GetxController {
   }
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _googleProvider?.dispose();
+    super.dispose();
   }
 }

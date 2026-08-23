@@ -40,6 +40,7 @@ class _AdConfig {
   static const List<String> androidNativeIds = ['ca-app-pub-3940256099942544/2247696110'];
   static const List<String> androidRewardedIds = ['ca-app-pub-3940256099942544/5224354917'];
   static const List<String> androidRewardedInterstitialIds = ['ca-app-pub-3940256099942544/5354046379'];
+  static const List<String> androidAppOpenIds = ['ca-app-pub-3940256099942544/9257395915'];
   
   // iOS ad unit IDs (Test/Defaults)
   static const List<String> iosBannerIds = ['ca-app-pub-3940256099942544/2934735716'];
@@ -47,6 +48,7 @@ class _AdConfig {
   static const List<String> iosNativeIds = ['ca-app-pub-3940256099942544/3986624511'];
   static const List<String> iosRewardedIds = ['ca-app-pub-3940256099942544/1712485313'];
   static const List<String> iosRewardedInterstitialIds = ['ca-app-pub-3940256099942544/6978759866'];
+  static const List<String> iosAppOpenIds = ['ca-app-pub-3940256099942544/5575463023'];
   
   // Unity game IDs
   static const String androidGameId = "3717787";
@@ -88,6 +90,9 @@ class Advert {
   
   late final List<String> adUnitId;
   late final List<String> adUnitIdLow;
+  
+  late final List<String> appOpenadUnitId;
+  late final List<String> appOpenadUnitIdLow;
   
   late final List<String> freemoneyHigh;
   late final List<String> freemoneyLow;
@@ -133,6 +138,11 @@ class Advert {
         : List.from(_AdConfig.iosRewardedInterstitialIds);
     
     adUnitIdLow = [];
+
+    appOpenadUnitId = Platform.isAndroid
+        ? List.from(_AdConfig.androidAppOpenIds)
+        : List.from(_AdConfig.iosAppOpenIds);
+    appOpenadUnitIdLow = [];
 
     // Freemoney specific
     freemoneyHigh = Platform.isAndroid ? [_AdConfig.androidFMHigh] : [_AdConfig.iosFMHigh];
@@ -186,7 +196,8 @@ class Advert {
       ..rewardedAdUnitId = videoUnitId
       ..rewardedAdUnitIdLow = videoUnitIdLow
       ..interstitialAdUnitId = screenUnitId
-      ..interstitialAdUnitIdLow = screenUnitIdLow;
+      ..interstitialAdUnitIdLow = screenUnitIdLow
+      ..addAppOpenPlacement('appOpen', high: appOpenadUnitId, low: appOpenadUnitIdLow);
     Unitymodel? unitymodel = Platform.isAndroid
         ? (Unitymodel()
           ..gameId = gameid

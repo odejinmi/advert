@@ -14,7 +14,9 @@ class Googlemodel {
   
   final Map<String, List<String>> rewardedInterstitialHigh = {};
   final Map<String, List<String>> rewardedInterstitialLow = {};
-
+  
+  final Map<String, List<String>> appOpenHigh = {};
+  final Map<String, List<String>> appOpenLow = {};
 
   Googlemodel();
 
@@ -23,7 +25,8 @@ class Googlemodel {
         interstitialHigh.isEmpty &&
         nativeHigh.isEmpty &&
         bannerHigh.isEmpty &&
-        rewardedInterstitialHigh.isEmpty;
+        rewardedInterstitialHigh.isEmpty &&
+        appOpenHigh.isEmpty;
   }
 
   // Generic methods to add placements
@@ -50,6 +53,11 @@ class Googlemodel {
   void addRewardedInterstitialPlacement(String type, {required List<String> high, List<String>? low}) {
     rewardedInterstitialHigh[type] = high;
     if (low != null) rewardedInterstitialLow[type] = low;
+  }
+
+  void addAppOpenPlacement(String type, {required List<String> high, List<String>? low}) {
+    appOpenHigh[type] = high;
+    if (low != null) appOpenLow[type] = low;
   }
 
   // Legacy compatibility setters
