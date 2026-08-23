@@ -130,12 +130,24 @@ class GoogleAdProvider {
 
   /// Preloads all ad types
   void preloadAllAds() {
-    for (var manager in _interstitialManagers.values) manager.preloadAds();
-    for (var manager in _rewardedManagers.values) manager.preloadAds();
-    for (var manager in _nativeManagers.values) manager.loadAd();
-    for (var manager in _bannerManagers.values) manager.loadAd();
-    for (var manager in _rewardedInterstitialManagers.values) manager.preloadAds();
-    for (var manager in _appOpenManagers.values) manager.preloadAds();
+    for (var manager in _interstitialManagers.values) {
+      manager.preloadAds();
+    }
+    for (var manager in _rewardedManagers.values) {
+      manager.preloadAds();
+    }
+    for (var manager in _nativeManagers.values) {
+      manager.loadAd();
+    }
+    for (var manager in _bannerManagers.values) {
+      manager.loadAd();
+    }
+    for (var manager in _rewardedInterstitialManagers.values) {
+      manager.preloadAds();
+    }
+    for (var manager in _appOpenManagers.values) {
+      manager.preloadAds();
+    }
   }
 
   /// Loads a native ad
@@ -441,11 +453,23 @@ class GoogleAdProvider {
   }
 
   void dispose() {
-    for (var m in _interstitialManagers.values) m.dispose();
-    for (var m in _rewardedManagers.values) m.dispose();
-    for (var m in _nativeManagers.values) m.dispose();
-    for (var m in _bannerManagers.values) m.dispose();
-    for (var m in _rewardedInterstitialManagers.values) m.dispose();
-    for (var m in _appOpenManagers.values) m.dispose();
+    for (var m in _interstitialManagers.values) {
+      m.dispose();
+    }
+    for (var m in _rewardedManagers.values) {
+      m.dispose();
+    }
+    for (var m in _nativeManagers.values) {
+      m.dispose();
+    }
+    for (var m in _bannerManagers.values) {
+      m.dispose();
+    }
+    for (var m in _rewardedInterstitialManagers.values) {
+      m.dispose();
+    }
+    for (var m in _appOpenManagers.values) {
+      m.dispose();
+    }
   }
 }

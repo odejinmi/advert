@@ -6,7 +6,8 @@ A powerful, production-ready Flutter plugin for integrating **Google Mobile Ads*
 
 *   🚀 **High/Low Priority Waterfall**: Automatically prioritizes high-CPM ad placements and seamlessly falls back to lower tiers if they aren't available.
 *   🔄 **Generic Ad Placements**: Create any number of custom placements (e.g., `Shop`, `GameOver`) for any ad format without modifying the SDK.
-*   📦 **Unified Interface**: A single, clean API for Banner, Interstitial, Rewarded, and Native ads.
+*   📦 **Unified Interface**: A single, clean API for Banner, Interstitial, Rewarded, Native, and App Open ads.
+*   📱 **App Open Ads**: Automatically shows an ad when the app is launched or resumed from the background.
 *   🎬 **Ad Sequences**: Built-in support for multi-ad sequences with customizable progress tracking UI.
 *   📉 **Cross-Provider Rotation**: Intelligently cycles between Google and Unity to maximize fill rates.
 *   📊 **Granular Event Reporting**: Automatically reports detailed events (e.g., `Freemoney_High`, `Banner_Low`) for precise analytics.
@@ -96,6 +97,13 @@ void initializeAds() async {
     low: ["your_low_placement_id"]
   );
 
+  // Add App Open placements
+  googleConfig.addAppOpenPlacement(
+    'appOpen',
+    high: ["your_high_app_open_id"],
+    low: ["your_low_app_open_id"],
+  );
+
   // 3. Configure Unity Units
   final unityConfig = Unitymodel()
     ..gameId = "your_unity_game_id"
@@ -170,6 +178,10 @@ advert.adsProv.showLowBannerAd();
 // And rewarded interstitials
 advert.adsProv.showHighRewardedInterstitialAd(customData: {});
 advert.adsProv.showLowRewardedInterstitialAd(customData: {});
+
+// And app open ads
+advert.adsProv.showHighAppOpenAd();
+advert.adsProv.showLowAppOpenAd();
 ```
 
 ### Showing Ads
@@ -197,6 +209,17 @@ advert.adsProv.showRewardedAd(
 #### Native Ad
 ```dart
 advert.adsProv.showNativeAd(context, type: 'MyPlacement');
+```
+
+#### App Open Ad
+App Open ads are shown automatically on app resume by default. You can also trigger them manually or disable the auto-show behavior:
+
+```dart
+// Show manually
+advert.adsProv.showAppOpenAd();
+
+// Disable auto-show on resume
+advert.adsProv.enableAppOpenOnResume = false;
 ```
 
 #### Banner Ad
@@ -232,6 +255,7 @@ advert.adsProv.startAdSequence(
 | `freemoney` | Special 3-tier: **High Rewarded** → **Low Rewarded** → **FM Interstitial** |
 | `rewarded` | Standard: **High Rewarded** → **Low Rewarded** → **Rewarded Interstitial** |
 | `interstitial` | **High Interstitial** → **Low Interstitial** |
+| `appOpen` | **High App Open** → **Low App Open** |
 | `banner` | **High Banner** → **Low Banner** |
 | `native` | **High Native** → **Low Native** |
 

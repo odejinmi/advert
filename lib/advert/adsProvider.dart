@@ -487,6 +487,22 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /// Shows only the high priority app open ad
+  void showHighAppOpenAd({String type = 'appOpen', Function? onAdDismissed}) {
+    if (_googleProvider != null) {
+      _googleProvider!.loadAppOpenAd(type: type);
+      _googleProvider!.showAppOpenAd(type: type, onAdDismissed: onAdDismissed);
+    }
+  }
+
+  /// Shows only the low priority app open ad
+  void showLowAppOpenAd({String type = 'appOpen', Function? onAdDismissed}) {
+    if (_googleProvider != null) {
+      _googleProvider!.loadAppOpenAd(type: type);
+      _googleProvider!.showAppOpenAd(type: type, onAdDismissed: onAdDismissed);
+    }
+  }
+
   Widget showBannerListAd(int numberOfAds) {
     if (_googleProvider != null && _adsConfig.googlemodel != null) {
       return BannerListWidget(
