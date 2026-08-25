@@ -177,6 +177,9 @@ class AppOpenAdManager {
       return;
     }
 
+    // Mark as showing immediately to prevent race conditions
+    _isShowing = true;
+
     // Clean up expired ads
     _loadedAds.removeWhere((adData) {
       if (_isAdExpired(adData.loadTime)) {
@@ -187,6 +190,7 @@ class AppOpenAdManager {
     });
 
     if (!hasAds) {
+      _isShowing = false; // Reset if we found no valid ads after expiration check
       showAd(onAdDismissed: onAdDismissed);
       return;
     }
@@ -196,7 +200,6 @@ class AppOpenAdManager {
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
-        _isShowing = true;
         debugPrint('App open ad showed full screen content');
         _reporter.reportEvent(
           event: AdEvent.displayed,

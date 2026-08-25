@@ -47,6 +47,9 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   // App Open Ad Control
   bool enableAppOpenOnResume = true;
+  DateTime? _lastAppOpenTime;
+  bool _isAppOpenShowing = false;
+  static const Duration appOpenCooldown = Duration(seconds: 30);
 
   // Constructor
   AdManager(this._adsConfig, this.testmode) {
@@ -59,6 +62,16 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && enableAppOpenOnResume) {
+      final now = DateTime.now();
+      if (_isAppOpenShowing) {
+        _isAppOpenShowing = false;
+        debugPrint('AppOpen Guard: Ad is already showing, skipping lifecycle trigger.');
+        return;
+      }
+      if (_lastAppOpenTime != null && now.difference(_lastAppOpenTime!) < appOpenCooldown) {
+        debugPrint('AppOpen Guard: Cooldown active, skipping lifecycle trigger.');
+        return;
+      }
       showAppOpenAd();
     }
   }
@@ -483,7 +496,18 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   /// Shows an app open ad
   void showAppOpenAd({String type = 'appOpen', Function? onAdDismissed}) {
     if (_googleProvider != null) {
-      _googleProvider!.showAppOpenAd(type: type, onAdDismissed: onAdDismissed);
+      _isAppOpenShowing = true;
+      _lastAppOpenTime = DateTime.now();
+
+      _googleProvider!.showAppOpenAd(
+        type: type,
+        onAdDismissed: () {
+          Future.delayed(const Duration(seconds: 3), () {
+            _isAppOpenShowing = false;
+          });
+          if (onAdDismissed != null) onAdDismissed();
+        }
+      );
     }
   }
 
