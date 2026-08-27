@@ -21,10 +21,15 @@ class BannerAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<BannerAd> _loadedAds = [];
+  final List<BannerAd> _loadingAds = []; // Keep reference to ads while they load
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
   bool _isLoading = false;
   bool _bannerReady = false;
+
+  // Cache for the ad widget to prevent recreation on UI rebuilds
+  Widget? _cachedAdWidget;
+  BannerAd? _lastAdUsedForWidget;
 
   // Constructor
   BannerAdManager(this._adUnitIds, this._reporter, {String adType = 'Banner'})
@@ -50,15 +55,19 @@ class BannerAdManager {
   void _initializeListener() {
     _listener = BannerAdListener(
       onAdLoaded: (ad) {
+        final bannerAd = ad as BannerAd;
         debugPrint(
-            'Banner ad loaded successfully: ${(ad as BannerAd).adUnitId}');
+            'Banner ad loaded successfully: ${bannerAd.adUnitId}');
+        
+        _loadingAds.remove(bannerAd); // Move from loading to loaded
+        
         _reporter.reportEvent(
           event: AdEvent.displayed,
           adProvider: 'Google',
           adType: _adType,
-          placementId: (ad).adUnitId,
+          placementId: bannerAd.adUnitId,
         );
-        _loadedAds.add(ad);
+        _loadedAds.add(bannerAd);
         _bannerReady = true;
         _failedAttempts = 0;
         _isLoading = false;
@@ -69,15 +78,19 @@ class BannerAdManager {
         }
       },
       onAdFailedToLoad: (ad, error) {
+        final bannerAd = ad as BannerAd;
         debugPrint('Banner ad failed to load: ${error.message}');
+        
+        _loadingAds.remove(bannerAd);
+        
         _reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Google',
           adType: _adType,
-          placementId: (ad as BannerAd).adUnitId,
+          placementId: bannerAd.adUnitId,
           errorMessage: error.message,
         );
-        ad.dispose();
+        bannerAd.dispose();
         _failedAttempts++;
         _isLoading = false;
 
@@ -160,12 +173,15 @@ class BannerAdManager {
     debugPrint(
         'Loading banner ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}: $adUnitId');
 
-    BannerAd(
+    final bannerAd = BannerAd(
       adUnitId: adUnitId,
       request: const AdRequest(),
       size: AdSize.largeBanner,
       listener: _listener,
-    ).load();
+    );
+    
+    _loadingAds.add(bannerAd); // Keep reference
+    bannerAd.load();
   }
 
   /// Refreshes an ad by disposing it and loading a new one
@@ -175,6 +191,12 @@ class BannerAdManager {
     if (index != -1) {
       _loadedAds.removeAt(index);
       ad.dispose();
+
+      // Clear cache if this was the cached ad
+      if (_lastAdUsedForWidget == ad) {
+        _cachedAdWidget = null;
+        _lastAdUsedForWidget = null;
+      }
 
       if (_currentLoadingIndex > 0) {
         _currentLoadingIndex--;
@@ -189,18 +211,36 @@ class BannerAdManager {
     for (final ad in _loadedAds) {
       ad.dispose();
     }
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
     _loadedAds.clear();
+    _loadingAds.clear();
+    _cachedAdWidget = null;
+    _lastAdUsedForWidget = null;
   }
 
   /// Returns a widget displaying the banner ad
   Widget adWidget() {
     if (bannerReady && deviceallow.allow()) {
-      return Container(
+      final ad = _loadedAds.first;
+
+      // Return cached widget if it exists for this ad to prevent "Ad not loaded" on rebuilds
+      if (_cachedAdWidget != null && _lastAdUsedForWidget == ad) {
+        return _cachedAdWidget!;
+      }
+
+      _lastAdUsedForWidget = ad;
+      // Use a UniqueKey to ensure the AdWidget is correctly recreated if the underlying ad instance changes
+      _cachedAdWidget = Container(
+        key: UniqueKey(),
         alignment: Alignment.center,
-        width: _loadedAds.first.size.width.toDouble(),
-        height: _loadedAds.first.size.height.toDouble(),
-        child: AdWidget(ad: _loadedAds.first),
+        width: ad.size.width.toDouble(),
+        height: ad.size.height.toDouble(),
+        child: AdWidget(ad: ad),
       );
+
+      return _cachedAdWidget!;
     } else {
       return const SizedBox.shrink();
     }
@@ -224,7 +264,10 @@ class BannerAdManager {
     return FutureBuilder(
       future: banner.load(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.connectionState == ConnectionState.done && !snapshot.hasError) {
+          // Double check if ad is actually loaded, as some errors might not throw
+          // but result in an unloaded ad.
+          
           _adUnitIds.removeAt(0);
           _adUnitIds.add(adUnitId);
 
