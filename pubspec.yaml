@@ -13,8 +13,8 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   plugin_platform_interface: ^2.1.8
-#  unity_ads_plugin: ^0.4.0
-  google_mobile_ads: ^9.0.0
+  unity_ads_plugin: ^0.4.0
+  google_mobile_ads: ^9.1.0
   http: ^1.6.0
   device_info_plus: ^13.2.0
   package_info_plus: ^10.2.1

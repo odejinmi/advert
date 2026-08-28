@@ -13,7 +13,7 @@ import io.flutter.plugins.googlemobileads.NativeAdFactory
 
 class NativeAdFactoryExample internal constructor(private val layoutInflater: LayoutInflater) :
     NativeAdFactory {
-    override fun createNativeAd(nativeAd: NativeAd, customOptions: Map<String, Any>): NativeAdView {
+    override fun createNativeAd(nativeAd: NativeAd, customOptions: Map<String, Any>?): NativeAdView {
         val adView = layoutInflater.inflate(R.layout.my_native_ad, null) as NativeAdView
 
         // Set the media view.

@@ -43,10 +43,10 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   Function? _onAdClicked;
   Function? _onAdImpression;
 
-  // App Open Ad Control
+  // Ad State Control
   bool enableAppOpenOnResume = true;
   DateTime? _lastAppOpenTime;
-  bool _isAppOpenShowing = false;
+  bool _isAnyFullScreenAdShowing = false;
   static const Duration appOpenCooldown = Duration(seconds: 30);
 
   // Constructor
@@ -61,15 +61,17 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && enableAppOpenOnResume) {
       final now = DateTime.now();
-      if (_isAppOpenShowing) {
-        _isAppOpenShowing = false;
-        debugPrint('AppOpen Guard: Ad is already showing, skipping lifecycle trigger.');
+      
+      if (_isAnyFullScreenAdShowing) {
+        debugPrint('AppOpen Guard: Full-screen ad is active or recently closed, skipping trigger.');
         return;
       }
+      
       if (_lastAppOpenTime != null && now.difference(_lastAppOpenTime!) < appOpenCooldown) {
         debugPrint('AppOpen Guard: Cooldown active, skipping lifecycle trigger.');
         return;
       }
+      
       showAppOpenAd();
     }
   }
@@ -125,7 +127,13 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     Function? onAdDismissed,
   }) async {
     _preloadInterstitialAds();
+    _isAnyFullScreenAdShowing = true;
     
+    final internalOnDismissed = () {
+      _isAnyFullScreenAdShowing = false;
+      if (onAdDismissed != null) onAdDismissed();
+    };
+
     int turn = _interstitialProviderIndex;
     
     if (turn == 1) {
@@ -133,30 +141,49 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _unityProvider!.showAd1(onAdClicked, type: type);
+        final res = _unityProvider!.showAd1(() {
+          internalOnDismissed();
+          if (onAdClicked != null) onAdClicked();
+        }, type: type);
+        return res;
       } 
       // Fallback to Google
       else if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(type: type, onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+        return _googleProvider!.showInterstitialAd(
+          type: type, 
+          onAdClicked: onAdClicked, 
+          onAdImpression: onAdImpression, 
+          onAdDismissed: internalOnDismissed
+        );
       }
     } else {
       // Try Google first
       if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(type: type, onAdClicked: onAdClicked, onAdImpression: onAdImpression, onAdDismissed: onAdDismissed);
+        return _googleProvider!.showInterstitialAd(
+          type: type, 
+          onAdClicked: onAdClicked, 
+          onAdImpression: onAdImpression, 
+          onAdDismissed: internalOnDismissed
+        );
       }
       // Fallback to Unity
       else if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
-        return _unityProvider!.showAd1(onAdClicked, type: type);
+        final res = _unityProvider!.showAd1(() {
+          internalOnDismissed();
+          if (onAdClicked != null) onAdClicked();
+        }, type: type);
+        return res;
       }
     }
 
     // Both failed or not ready, try retry logic
+    _isAnyFullScreenAdShowing = false;
     return await _handleInterstitialRetry(
       type: type,
       onAdClicked: onAdClicked,
@@ -199,18 +226,25 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     bool useProviderCycling = true,
   }) async {
     _preloadRewardedAds();
+    _isAnyFullScreenAdShowing = true;
+    
+    final internalOnRewarded = () {
+      _isAnyFullScreenAdShowing = false;
+      if (onRewarded != null) onRewarded();
+    };
 
     if (!useProviderCycling) {
-      return _showGoogleRewardedWaterfall(
+      final res = await _showGoogleRewardedWaterfall(
         type: type,
-        onRewarded: onRewarded,
+        onRewarded: internalOnRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
         customData: customData,
         retryDelaySeconds: retryDelaySeconds,
       );
+      if (!res.status) _isAnyFullScreenAdShowing = false;
+      return res;
     }
-    // ... existing cycling logic
 
     // 1: Unity, 2: Google
     int turn = _rewardedProviderIndex;
@@ -219,14 +253,14 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
         _rewardedProviderIndex = 2; 
         _rewardedRetryAttempts = 0;
-        return _unityProvider!.showRewardedAd(onRewarded, () {});
+        return _unityProvider!.showRewardedAd(internalOnRewarded, () {});
       } else {
         if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 1; 
           _rewardedRetryAttempts = 0;
           return _googleProvider!.showRewardedAd(
             type: type,
-            onRewarded: onRewarded,
+            onRewarded: internalOnRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
             customData: customData,
@@ -239,7 +273,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         _rewardedRetryAttempts = 0;
         return _googleProvider!.showRewardedAd(
           type: type,
-          onRewarded: onRewarded,
+          onRewarded: internalOnRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
           customData: customData,
@@ -248,7 +282,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
           _rewardedProviderIndex = 2; 
           _rewardedRetryAttempts = 0;
-          return _unityProvider!.showRewardedAd(onRewarded, () {});
+          return _unityProvider!.showRewardedAd(internalOnRewarded, () {});
         }
       }
     }
@@ -262,7 +296,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       await Future.delayed(Duration(seconds: retryDelaySeconds));
       return showRewardedAd(
         type: type,
-        onRewarded: onRewarded,
+        onRewarded: onRewarded, // Recursive call will wrap with internalOnRewarded again
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
         customData: customData,
@@ -270,6 +304,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       );
     } else {
       _rewardedRetryAttempts = 0;
+      _isAnyFullScreenAdShowing = false;
       return Advertresponse.defaults();
     }
   }
@@ -494,14 +529,16 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   /// Shows an app open ad
   void showAppOpenAd({String type = 'appOpen', Function? onAdDismissed}) {
     if (_googleProvider != null) {
-      _isAppOpenShowing = true;
+      _isAnyFullScreenAdShowing = true;
       _lastAppOpenTime = DateTime.now();
 
       _googleProvider!.showAppOpenAd(
         type: type,
         onAdDismissed: () {
-          Future.delayed(const Duration(seconds: 3), () {
-            _isAppOpenShowing = false;
+          // Add a short delay before allowing another App Open trigger
+          // to prevent the "resume after ad activity close" loop.
+          Future.delayed(const Duration(seconds: 5), () {
+            _isAnyFullScreenAdShowing = false;
           });
           if (onAdDismissed != null) onAdDismissed();
         }

@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'dart:io';
 
 import 'package:advert/advert.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,16 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   final _advertPlugin = Advert();
 
+  // Unity Config
+  final gameid = Platform.isAndroid ? "3717787" : '3717786';
+  final bannerAdPlacementId =
+  Platform.isAndroid ? ['newandroidbanner'] : ['iOS_Banner'];
+  final interstitialVideoAdPlacementId =
+  Platform.isAndroid ? ['video'] : ['iOS_Interstitial'];
+  final rewardedVideoAdPlacementId = Platform.isAndroid
+      ? ['Android_Rewarded', "rewardedVideo"]
+      : ['iOS_Rewarded'];
+
   bool _showNativeAd = false;
   bool _showBannerAd = false;
 
@@ -28,10 +39,19 @@ class _HomepageState extends State<Homepage> {
         high: ['ca-app-pub-3940256099942544/5224354917'], // Test ID
         low: ['ca-app-pub-3940256099942544/5224354917'],
       );
-    
-    final adsModel = Adsmodel(googlemodel: googleConfig);
 
-    _advertPlugin.initialize(testmode: true, adsmodel: adsModel).then((_) {
+    Unitymodel unitymodel = Unitymodel()
+      ..gameId = gameid
+      ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
+      ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
+      ..bannerAdPlacementId = bannerAdPlacementId;
+
+    final adsModel = Adsmodel(
+        // googlemodel: googleConfig,
+      unitymodel: unitymodel
+    );
+
+    _advertPlugin.initialize(testmode: false, adsmodel: adsModel).then((_) {
       if (mounted) setState(() {});
     });
   }

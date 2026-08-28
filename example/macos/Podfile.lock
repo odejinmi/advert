@@ -1,29 +1,16 @@
 PODS:
-  - advert (0.0.1):
-    - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - webview_flutter_wkwebview (0.0.1):
-    - Flutter
-    - FlutterMacOS
 
 DEPENDENCIES:
-  - advert (from `Flutter/ephemeral/.symlinks/plugins/advert/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - webview_flutter_wkwebview (from `Flutter/ephemeral/.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 EXTERNAL SOURCES:
-  advert:
-    :path: Flutter/ephemeral/.symlinks/plugins/advert/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  webview_flutter_wkwebview:
-    :path: Flutter/ephemeral/.symlinks/plugins/webview_flutter_wkwebview/darwin
 
 SPEC CHECKSUMS:
-  advert: 24de3defbf164489f649c810c6aaafed5d8e9781
-  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
 
-PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3
+PODFILE CHECKSUM: f0c21717cb7ee9112f915044c74bfceb5b12e02a
 
 COCOAPODS: 1.16.2
