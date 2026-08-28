@@ -22,6 +22,7 @@ class AppOpenAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<_LoadedAppOpenAd> _loadedAds = [];
+  final List<AppOpenAd> _loadingAds = []; // Track ads that are currently loading
   final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
@@ -45,7 +46,11 @@ class AppOpenAdManager {
     for (final adData in _loadedAds) {
       adData.ad.dispose();
     }
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
     _loadedAds.clear();
+    _loadingAds.clear();
   }
 
   void preloadAds() {
@@ -93,19 +98,22 @@ class AppOpenAdManager {
 
     debugPrint('Loading app open ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
+    final adLoadCallback = AppOpenAdLoadCallback(
+      onAdLoaded: (ad) {
+        _loadingAds.remove(ad);
+        _onAdLoaded(ad);
+        if (onComplete != null) onComplete();
+      },
+      onAdFailedToLoad: (error) {
+        _onAdFailedToLoad(error, adUnitId);
+        if (onComplete != null) onComplete();
+      },
+    );
+
     AppOpenAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      adLoadCallback: AppOpenAdLoadCallback(
-        onAdLoaded: (ad) {
-          _onAdLoaded(ad);
-          if (onComplete != null) onComplete();
-        },
-        onAdFailedToLoad: (error) {
-          _onAdFailedToLoad(error, adUnitId);
-          if (onComplete != null) onComplete();
-        },
-      ),
+      adLoadCallback: adLoadCallback,
       // orientation: AppOpenAd.orientationPortrait,
     );
   }

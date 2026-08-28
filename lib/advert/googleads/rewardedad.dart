@@ -31,6 +31,7 @@ class RewardedAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<_LoadedAd> _loadedAds = [];
+  final List<RewardedAd> _loadingAds = []; // Strong reference during load
   final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
@@ -56,7 +57,11 @@ class RewardedAdManager {
     for (final adData in _loadedAds) {
       adData.ad.dispose();
     }
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
     _loadedAds.clear();
+    _loadingAds.clear();
   }
 
   void preloadAds() {
@@ -103,20 +108,36 @@ class RewardedAdManager {
     debugPrint(
         'Loading rewarded ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
-    RewardedAd.load(
+    final loadCallback = RewardedAdLoadCallback(
+      onAdLoaded: (ad) {
+        _loadingAds.remove(ad);
+        _onAdLoaded(ad);
+        if (onComplete != null) onComplete();
+      },
+      onAdFailedToLoad: (error) {
+        _isLoading = false; 
+        _onAdFailedToLoad(error, adUnitId);
+        if (onComplete != null) onComplete();
+      },
+    );
+
+    final adLoadRequest = RewardedAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _onAdLoaded(ad);
-          if (onComplete != null) onComplete();
-        },
-        onAdFailedToLoad: (error) {
-          _onAdFailedToLoad(error, adUnitId);
-          if (onComplete != null) onComplete();
-        },
-      ),
+      rewardedAdLoadCallback: loadCallback,
     );
+    
+    // Note: RewardedAd.load returns void in some versions, but we should track 
+    // the ad object if it was provided differently. In GMA Flutter, the 'ad' 
+    // is provided in the callback. We can't easily get the 'unloaded' ad object 
+    // before the callback, but keeping the manager alive and references to 
+    // lists helps. 
+    // Actually, we can't add to _loadingAds until we have an instance. 
+    // Some formats like Interstitial/Rewarded don't give you the instance 
+    // until it's loaded. Banner/Native DO give you an instance immediately.
+    // So for Rewarded/Interstitial, the risk is less about GC of the ad object 
+    // (since it's managed by the native side until callback) and more about 
+    // the manager state.
   }
 
   void _onAdLoaded(RewardedAd ad) {

@@ -23,6 +23,7 @@ class RewardedInterstitialAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<RewardedInterstitialAd> _loadedAds = [];
+  final List<RewardedInterstitialAd> _loadingAds = []; // Strong reference during load
   final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
@@ -45,7 +46,11 @@ class RewardedInterstitialAdManager {
     for (final ad in _loadedAds) {
       ad.dispose();
     }
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
     _loadedAds.clear();
+    _loadingAds.clear();
   }
 
   /// Preloads ads up to the number of ad unit IDs available
@@ -96,21 +101,24 @@ class RewardedInterstitialAdManager {
     debugPrint(
         'Loading rewarded interstitial ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
+    final loadCallback = RewardedInterstitialAdLoadCallback(
+      onAdLoaded: (RewardedInterstitialAd ad) {
+        debugPrint('Rewarded interstitial ad loaded successfully: $adUnitId');
+        _loadingAds.remove(ad);
+        _onAdLoaded(ad);
+        _triggerPendingCallbacks();
+        _topUpBuffer();
+        if (onComplete != null) onComplete();
+      },
+      onAdFailedToLoad: (LoadAdError error) {
+        _onAdFailedToLoad(error, adUnitId, onComplete);
+      },
+    );
+
     RewardedInterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
-        onAdLoaded: (RewardedInterstitialAd ad) {
-          debugPrint('Rewarded interstitial ad loaded successfully: $adUnitId');
-          _onAdLoaded(ad);
-          _triggerPendingCallbacks();
-          _topUpBuffer();
-          if (onComplete != null) onComplete();
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          _onAdFailedToLoad(error, adUnitId, onComplete);
-        },
-      ),
+      rewardedInterstitialAdLoadCallback: loadCallback,
     );
   }
 

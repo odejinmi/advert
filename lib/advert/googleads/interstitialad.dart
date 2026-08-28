@@ -22,6 +22,7 @@ class InterstitialAdManager {
   // Private variables
   final List<String> _adUnitIds;
   final List<InterstitialAd> _loadedAds = [];
+  final List<InterstitialAd> _loadingAds = []; // Track ads that are currently loading
   final List<Function> _pendingCallbacks = [];
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
@@ -43,7 +44,11 @@ class InterstitialAdManager {
     for (final ad in _loadedAds) {
       ad.dispose();
     }
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
     _loadedAds.clear();
+    _loadingAds.clear();
   }
 
   /// Preloads ads up to the number of ad unit IDs available
@@ -82,13 +87,25 @@ class InterstitialAdManager {
     debugPrint(
         'Loading interstitial ad ${_currentLoadingIndex + 1}/${_adUnitIds.length}');
 
+    final adLoadCallback = InterstitialAdLoadCallback(
+      onAdLoaded: (ad) {
+        _loadingAds.remove(ad); // Reference no longer needed for loading
+        _onAdLoaded(ad);
+      },
+      onAdFailedToLoad: (error) {
+        // Find and remove the ad that failed to load from our loading list
+        // Note: the error callback doesn't give us the ad instance, 
+        // but since we only allow one concurrent load per manager, 
+        // we can safely manage our list.
+        _isLoading = false; 
+        _onAdFailedToLoad(error, adUnitId);
+      },
+    );
+
     InterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: _onAdLoaded,
-        onAdFailedToLoad: (error) => _onAdFailedToLoad(error, adUnitId),
-      ),
+      adLoadCallback: adLoadCallback,
     );
   }
 

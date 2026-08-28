@@ -21,6 +21,7 @@ class NativeAdManager {
   // Private variables
   final List<String> _adUnitIds;
   NativeAd? _nativeAd;
+  final List<NativeAd> _loadingAds = []; // Track ads that are currently loading
   bool _isAdLoaded = false;
   int _currentAdIndex = 0;
   int _failedAttempts = 0;
@@ -40,6 +41,10 @@ class NativeAdManager {
 
   void dispose() {
     _disposeCurrentAd();
+    for (final ad in _loadingAds) {
+      ad.dispose();
+    }
+    _loadingAds.clear();
   }
 
   /// Loads a native ad using the current ad unit ID
@@ -68,28 +73,32 @@ class NativeAdManager {
 
     debugPrint('Loading native ad with ID: $adUnitId using factory: $FACTORY_ID');
 
-    _nativeAd = NativeAd(
+    final nativeAd = NativeAd(
       adUnitId: adUnitId,
       factoryId: FACTORY_ID,
       listener: NativeAdListener(
         onAdLoaded: (ad) {
+          final loadedAd = ad as NativeAd;
+          _loadingAds.remove(loadedAd);
           _reporter.reportEvent(
             event: AdEvent.displayed,
             adProvider: 'Google',
             adType: _adType,
-            placementId: ad.adUnitId,
+            placementId: loadedAd.adUnitId,
           );
-          _onAdLoaded(ad);
+          _onAdLoaded(loadedAd);
         },
         onAdFailedToLoad: (ad, error) {
+          final failedAd = ad as NativeAd;
+          _loadingAds.remove(failedAd);
           _reporter.reportEvent(
             event: AdEvent.failed,
             adProvider: 'Google',
             adType: _adType,
-            placementId: ad.adUnitId,
+            placementId: failedAd.adUnitId,
             errorMessage: error.message,
           );
-          _onAdFailedToLoad(ad, error);
+          _onAdFailedToLoad(failedAd, error);
         },
         onAdClicked: (ad) {
           debugPrint('Native ad clicked');
@@ -110,8 +119,10 @@ class NativeAdManager {
       ),
       request: const AdRequest(),
     );
-
-    _nativeAd!.load();
+    
+    _nativeAd = nativeAd;
+    _loadingAds.add(nativeAd);
+    nativeAd.load();
   }
 
   void _onAdLoaded(Ad ad) {
@@ -166,7 +177,8 @@ class NativeAdManager {
               }
             });
       }
-      return SizedBox(
+      return Container(
+        key: UniqueKey(),
         height: 90,
         child: AdWidget(ad: _nativeAd!),
       );

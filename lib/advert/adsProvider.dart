@@ -7,8 +7,6 @@ import 'AdProgressDialog.dart';
 import 'adcolonyProvider.dart';
 import 'event_reporter.dart';
 import 'googleProvider.dart';
-import 'googleads/banner_admob.dart';
-import 'googleads/bannerlist.dart';
 import 'unityprovider.dart';
 
 class AdManager extends GetxController with WidgetsBindingObserver {
@@ -525,16 +523,6 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       _googleProvider!.loadAppOpenAd(type: type);
       _googleProvider!.showAppOpenAd(type: type, onAdDismissed: onAdDismissed);
     }
-  }
-
-  Widget showBannerListAd(int numberOfAds) {
-    if (_googleProvider != null && _adsConfig.googlemodel != null) {
-      return BannerListWidget(
-        adUnitIds: _adsConfig.googlemodel!.bannerAdUnitId,
-        numberOfAdsToShow: numberOfAds,
-      );
-    }
-    return const SizedBox.shrink();
   }
 
   void _startBannerRotation() {
