@@ -20,7 +20,7 @@ class Rewardedvideo {
   bool _isloading = false;
   int currentIndex = 0;
 
-  void createInterstitialAd({Function? show}) {
+  void createRewardedvideoAd({Function? show}) {
     if (show != null) {
       _pendingShowCallbacks.add(show);
     }
@@ -54,7 +54,7 @@ class Rewardedvideo {
         _triggerPendingCallbacks();
 
         if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
-          createInterstitialAd();
+          createRewardedvideoAd();
         }
       },
       onFailed: (placementId, error, message) {
@@ -69,11 +69,11 @@ class Rewardedvideo {
           );
           numInterstitialLoadAttempts += 1;
           if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-            createInterstitialAd();
+            createRewardedvideoAd();
           } else {
             numInterstitialLoadAttempts = 0;
             currentIndex++;
-            createInterstitialAd();
+            createRewardedvideoAd();
           }
       },
     );
@@ -91,7 +91,7 @@ class Rewardedvideo {
 
   Advertresponse showAd(Function? rewarded, Function? onClicked){
     if (intersAd1.isEmpty) {
-      createInterstitialAd(show: () => showAd(rewarded, onClicked));
+      createRewardedvideoAd(show: () => showAd(rewarded, onClicked));
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
@@ -105,7 +105,7 @@ class Rewardedvideo {
           adType: _adType,
           placementId: placementId,
         );
-        createInterstitialAd();
+        createRewardedvideoAd();
         if (rewarded != null) {
           rewarded();
         }
@@ -120,7 +120,7 @@ class Rewardedvideo {
           errorMessage: '$error: $message',
         );
         Future.delayed(Duration(seconds: 2), () {
-          createInterstitialAd();
+          createRewardedvideoAd();
         });
         addispose(placementId);
       },
@@ -160,7 +160,7 @@ class Rewardedvideo {
       if (currentIndex >= videoUnitId.length) {
         currentIndex = 0;
       }
-      createInterstitialAd();
+      createRewardedvideoAd();
     }
   }
 

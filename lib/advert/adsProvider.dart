@@ -250,10 +250,10 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     int turn = _rewardedProviderIndex;
 
     if (turn == 1) {
-      if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
+      if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
         _rewardedProviderIndex = 2; 
         _rewardedRetryAttempts = 0;
-        return _unityProvider!.showRewardedAd(internalOnRewarded, () {});
+        return _unityProvider!.showRewardedAd(internalOnRewarded, () {}, type: type);
       } else {
         if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 1; 
@@ -279,10 +279,10 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           customData: customData,
         );
       } else {
-        if (_unityProvider != null && _unityProvider!.unityrewardedAd) {
+        if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 2; 
           _rewardedRetryAttempts = 0;
-          return _unityProvider!.showRewardedAd(internalOnRewarded, () {});
+          return _unityProvider!.showRewardedAd(internalOnRewarded, () {}, type: type);
         }
       }
     }
