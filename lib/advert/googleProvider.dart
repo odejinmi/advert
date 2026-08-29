@@ -208,6 +208,7 @@ class GoogleAdProvider {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     Map<String, String> customData = const {},
   }) {
     // 1. Try High Priority
@@ -216,6 +217,7 @@ class GoogleAdProvider {
       onRewarded: onRewarded,
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
+      onAdDismissed: onAdDismissed,
       customData: customData,
     );
     if (resHigh.status) return resHigh;
@@ -226,6 +228,7 @@ class GoogleAdProvider {
       onRewarded: onRewarded,
       onAdClicked: onAdClicked,
       onAdImpression: onAdImpression,
+      onAdDismissed: onAdDismissed,
       customData: customData,
     );
     if (resLow.status) return resLow;
@@ -249,6 +252,7 @@ class GoogleAdProvider {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     Map<String, String> customData = const {},
   }) {
     final manager = _rewardedManagers['${type}_high'];
@@ -257,6 +261,7 @@ class GoogleAdProvider {
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
         customData: customData,
       );
     }
@@ -269,6 +274,7 @@ class GoogleAdProvider {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     Map<String, String> customData = const {},
   }) {
     final manager = _rewardedManagers['${type}_low'];
@@ -277,6 +283,7 @@ class GoogleAdProvider {
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
         customData: customData,
       );
     }

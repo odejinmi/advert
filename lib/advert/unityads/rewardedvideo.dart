@@ -89,9 +89,9 @@ class Rewardedvideo {
     }
   }
 
-  Advertresponse showAd(Function? rewarded, Function? onClicked){
+  Advertresponse showAd(Function? rewarded, Function? onClicked, {Function? onAdDismissed}){
     if (intersAd1.isEmpty) {
-      createRewardedvideoAd(show: () => showAd(rewarded, onClicked));
+      createRewardedvideoAd(show: () => showAd(rewarded, onClicked, onAdDismissed: onAdDismissed));
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
@@ -109,6 +109,9 @@ class Rewardedvideo {
         if (rewarded != null) {
           rewarded();
         }
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
       },
       onFailed: (placementId, error, message) {
         debugPrint('Video Ad $placementId failed: $error $message');
@@ -119,6 +122,9 @@ class Rewardedvideo {
           placementId: placementId,
           errorMessage: '$error: $message',
         );
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
         Future.delayed(Duration(seconds: 2), () {
           createRewardedvideoAd();
         });
@@ -148,6 +154,9 @@ class Rewardedvideo {
       },
       onSkipped: (placementId) {
         debugPrint('Video Ad $placementId skipped');
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
         addispose(placementId);
       },
     );

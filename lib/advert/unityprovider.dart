@@ -95,8 +95,8 @@ class UnityProvider {
     }
   }
 
-  Advertresponse showRewardedAd(rewarded, Function? onclick, {String type = 'rewarded'}) {
-    return _rewardedManagers[type]?.showAd(rewarded, onclick) ?? Advertresponse.defaults();
+  Advertresponse showRewardedAd(rewarded, Function? onclick, {String type = 'rewarded', Function? onAdDismissed}) {
+    return _rewardedManagers[type]?.showAd(rewarded, onclick, onAdDismissed: onAdDismissed) ?? Advertresponse.defaults();
   }
 
   Widget adWidget() {

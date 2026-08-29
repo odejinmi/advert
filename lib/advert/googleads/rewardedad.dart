@@ -208,6 +208,7 @@ class RewardedAdManager {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     Map<String, String> customData = const {},
   }) {
     if (_isShowing) {
@@ -220,6 +221,7 @@ class RewardedAdManager {
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
+            onAdDismissed: onAdDismissed,
             customData: customData,
           ));
       _loadNextAd();
@@ -235,6 +237,7 @@ class RewardedAdManager {
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
+          onAdDismissed: onAdDismissed,
           customData: customData,
         );
       } else {
@@ -244,7 +247,7 @@ class RewardedAdManager {
     }
 
     _configureAndShowAd(
-        adData, onRewarded, onAdClicked, onAdImpression, customData);
+        adData, onRewarded, onAdClicked, onAdImpression, onAdDismissed, customData);
     return Advertresponse.showing();
   }
 
@@ -253,6 +256,7 @@ class RewardedAdManager {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     Map<String, String> customData,
   ) {
     final ad = adData.ad;
@@ -290,6 +294,9 @@ class RewardedAdManager {
         if (onRewarded != null && _rewardEarned) {
           onRewarded();
         }
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
         _disposeAd(ad);
         _isShowing = false;
         if (_pendingShowRequests > 0) {
@@ -299,6 +306,7 @@ class RewardedAdManager {
               onRewarded: onRewarded,
               onAdClicked: onAdClicked,
               onAdImpression: onAdImpression,
+              onAdDismissed: onAdDismissed,
               customData: customData,
             );
           });
@@ -313,6 +321,9 @@ class RewardedAdManager {
           placementId: ad.adUnitId,
           errorMessage: error.message,
         );
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
         _disposeAd(ad);
         _isShowing = false;
         if (_loadedAds.isNotEmpty) {
@@ -320,6 +331,7 @@ class RewardedAdManager {
             onRewarded: onRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
+            onAdDismissed: onAdDismissed,
             customData: customData,
           );
         } else if (_pendingShowRequests > 0) {
@@ -330,6 +342,7 @@ class RewardedAdManager {
                 onRewarded: onRewarded,
                 onAdClicked: onAdClicked,
                 onAdImpression: onAdImpression,
+                onAdDismissed: onAdDismissed,
                 customData: customData,
               );
             }

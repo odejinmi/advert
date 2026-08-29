@@ -221,6 +221,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     required Map<String, String> customData,
     int retryDelaySeconds = 1,
     bool useProviderCycling = true,
@@ -228,8 +229,12 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     _preloadRewardedAds();
     _isAnyFullScreenAdShowing = true;
     
-    final internalOnRewarded = () {
+    final internalOnDismissed = () {
       _isAnyFullScreenAdShowing = false;
+      if (onAdDismissed != null) onAdDismissed();
+    };
+
+    final internalOnRewarded = () {
       if (onRewarded != null) onRewarded();
     };
 
@@ -239,6 +244,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         onRewarded: internalOnRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: internalOnDismissed,
         customData: customData,
         retryDelaySeconds: retryDelaySeconds,
       );
@@ -253,7 +259,9 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
         _rewardedProviderIndex = 2; 
         _rewardedRetryAttempts = 0;
-        return _unityProvider!.showRewardedAd(internalOnRewarded, () {}, type: type);
+        return _unityProvider!.showRewardedAd(internalOnRewarded, () {
+          if (onAdClicked != null) onAdClicked();
+        }, type: type, onAdDismissed: internalOnDismissed);
       } else {
         if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 1; 
@@ -263,6 +271,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
             onRewarded: internalOnRewarded,
             onAdClicked: onAdClicked,
             onAdImpression: onAdImpression,
+            onAdDismissed: internalOnDismissed,
             customData: customData,
           );
         }
@@ -276,13 +285,16 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           onRewarded: internalOnRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
+          onAdDismissed: internalOnDismissed,
           customData: customData,
         );
       } else {
         if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
           _rewardedProviderIndex = 2; 
           _rewardedRetryAttempts = 0;
-          return _unityProvider!.showRewardedAd(internalOnRewarded, () {}, type: type);
+          return _unityProvider!.showRewardedAd(internalOnRewarded, () {
+            if (onAdClicked != null) onAdClicked();
+          }, type: type, onAdDismissed: internalOnDismissed);
         }
       }
     }
@@ -296,11 +308,13 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       await Future.delayed(Duration(seconds: retryDelaySeconds));
       return showRewardedAd(
         type: type,
-        onRewarded: onRewarded, // Recursive call will wrap with internalOnRewarded again
+        onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
         customData: customData,
         retryDelaySeconds: retryDelaySeconds,
+        useProviderCycling: useProviderCycling,
       );
     } else {
       _rewardedRetryAttempts = 0;
@@ -314,6 +328,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     required Map<String, String> customData,
     int retryDelaySeconds = 1,
   }) async {
@@ -324,6 +339,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: onAdDismissed,
         customData: customData,
       );
     } else {
@@ -335,6 +351,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           onRewarded: onRewarded,
           onAdClicked: onAdClicked,
           onAdImpression: onAdImpression,
+          onAdDismissed: onAdDismissed,
           customData: customData,
           retryDelaySeconds: retryDelaySeconds,
         );
@@ -351,18 +368,25 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     required Map<String, String> customData,
   }) async {
     _preloadRewardedAds();
+    _isAnyFullScreenAdShowing = true;
     if (_googleProvider != null) {
       return _googleProvider!.showHighRewardedAd(
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: () {
+          _isAnyFullScreenAdShowing = false;
+          if (onAdDismissed != null) onAdDismissed();
+        },
         customData: customData,
       );
     }
+    _isAnyFullScreenAdShowing = false;
     return Advertresponse.defaults();
   }
 
@@ -372,18 +396,25 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     Function? onRewarded,
     Function? onAdClicked,
     Function? onAdImpression,
+    Function? onAdDismissed,
     required Map<String, String> customData,
   }) async {
     _preloadRewardedAds();
+    _isAnyFullScreenAdShowing = true;
     if (_googleProvider != null) {
       return _googleProvider!.showLowRewardedAd(
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
         onAdImpression: onAdImpression,
+        onAdDismissed: () {
+          _isAnyFullScreenAdShowing = false;
+          if (onAdDismissed != null) onAdDismissed();
+        },
         customData: customData,
       );
     }
+    _isAnyFullScreenAdShowing = false;
     return Advertresponse.defaults();
   }
 
