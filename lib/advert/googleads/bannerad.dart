@@ -1,11 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:google_mobile_ads/src/ad_instance_manager.dart';
 
 import '../device.dart';
 import '../event_reporter.dart';
 
-class BannerAdManager {
+class BannerAdManager extends ChangeNotifier {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 5;
   static const Duration initialRetryDelay = Duration(seconds: 5);
@@ -22,14 +23,11 @@ class BannerAdManager {
   final List<String> _adUnitIds;
   final List<BannerAd> _loadedAds = [];
   final List<BannerAd> _loadingAds = []; // Keep reference to ads while they load
+  final Set<BannerAd> _reservedAds = {}; // Track ads reserved by active widgets
   int _currentLoadingIndex = 0;
   int _failedAttempts = 0;
   bool _isLoading = false;
   bool _bannerReady = false;
-
-  // Cache for the ad widget to prevent recreation on UI rebuilds
-  Widget? _cachedAdWidget;
-  BannerAd? _lastAdUsedForWidget;
 
   // Constructor
   BannerAdManager(this._adUnitIds, this._reporter, {String adType = 'Banner'})
@@ -47,8 +45,15 @@ class BannerAdManager {
   // Banner ad listener
   late final BannerAdListener _listener;
 
+  @override
   void dispose() {
     _disposeAllAds();
+    super.dispose();
+  }
+
+  /// Checks if a BannerAd is loaded, active in instanceManager, and managed by this manager
+  bool isAdValid(BannerAd ad) {
+    return _loadedAds.contains(ad) && instanceManager.adIdFor(ad) != null;
   }
 
   /// Initializes the banner ad listener
@@ -73,6 +78,8 @@ class BannerAdManager {
         _isLoading = false;
         _currentLoadingIndex++;
 
+        notifyListeners();
+
         if (_currentLoadingIndex < _adUnitIds.length) {
           loadAd();
         }
@@ -93,6 +100,8 @@ class BannerAdManager {
         bannerAd.dispose();
         _failedAttempts++;
         _isLoading = false;
+
+        notifyListeners();
 
         // Exponential Backoff
         final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
@@ -139,7 +148,7 @@ class BannerAdManager {
   }
 
   /// Loads a banner ad using the current ad unit ID
-  void loadAd() {
+  void loadAd({bool ignoreThrottling = false}) {
     if (_adUnitIds.isEmpty) {
       debugPrint('No banner ad unit IDs provided');
       return;
@@ -151,8 +160,7 @@ class BannerAdManager {
     }
 
     if (_currentLoadingIndex >= _adUnitIds.length) {
-      debugPrint('All banner ad units attempted');
-      return;
+      _currentLoadingIndex = 0; // Cycle back to allow loading additional ad instances
     }
 
     final adUnitId = _adUnitIds[_currentLoadingIndex];
@@ -160,7 +168,9 @@ class BannerAdManager {
     // GLOBAL THROTTLING CHECK
     final now = DateTime.now();
     final lastRequest = _globalLastRequestTimes[adUnitId];
-    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
+    if (!ignoreThrottling &&
+        lastRequest != null &&
+        now.difference(lastRequest) < minRequestInterval) {
       final waitTime = minRequestInterval - now.difference(lastRequest);
       debugPrint('Global Throttling (Banner): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
       Future.delayed(waitTime, loadAd);
@@ -184,30 +194,50 @@ class BannerAdManager {
     bannerAd.load();
   }
 
+  /// Finds, reserves, and returns an unmounted/unreserved banner ad if available
+  BannerAd? getUnmountedAd() {
+    for (final ad in _loadedAds) {
+      if (instanceManager.adIdFor(ad) != null &&
+          !ad.isMounted &&
+          !_reservedAds.contains(ad)) {
+        _reservedAds.add(ad);
+        return ad;
+      }
+    }
+    // If all loaded ads are currently reserved or mounted elsewhere, trigger loading a new banner ad immediately
+    if (!_isLoading) {
+      loadAd(ignoreThrottling: true);
+    }
+    return null;
+  }
+
+  /// Releases a reserved ad when a widget unmounts
+  void releaseAd(BannerAd ad) {
+    _reservedAds.remove(ad);
+    notifyListeners();
+  }
+
   /// Refreshes an ad by disposing it and loading a new one
   void _refreshAd(BannerAd ad) {
+    _reservedAds.remove(ad);
     final index =
         _loadedAds.indexWhere((loadedAd) => loadedAd.adUnitId == ad.adUnitId);
     if (index != -1) {
       _loadedAds.removeAt(index);
       ad.dispose();
 
-      // Clear cache if this was the cached ad
-      if (_lastAdUsedForWidget == ad) {
-        _cachedAdWidget = null;
-        _lastAdUsedForWidget = null;
-      }
-
       if (_currentLoadingIndex > 0) {
         _currentLoadingIndex--;
       }
 
+      notifyListeners();
       loadAd();
     }
   }
 
   /// Disposes all loaded ads
   void _disposeAllAds() {
+    _reservedAds.clear();
     for (final ad in _loadedAds) {
       ad.dispose();
     }
@@ -216,34 +246,12 @@ class BannerAdManager {
     }
     _loadedAds.clear();
     _loadingAds.clear();
-    _cachedAdWidget = null;
-    _lastAdUsedForWidget = null;
+    notifyListeners();
   }
 
   /// Returns a widget displaying the banner ad
   Widget adWidget() {
-    if (bannerReady && deviceallow.allow()) {
-      final ad = _loadedAds.first;
-
-      // Return cached widget if it exists for this ad to prevent "Ad not loaded" on rebuilds
-      if (_cachedAdWidget != null && _lastAdUsedForWidget == ad) {
-        return _cachedAdWidget!;
-      }
-
-      _lastAdUsedForWidget = ad;
-      // Use a UniqueKey to ensure the AdWidget is correctly recreated if the underlying ad instance changes
-      _cachedAdWidget = Container(
-        key: UniqueKey(),
-        alignment: Alignment.center,
-        width: ad.size.width.toDouble(),
-        height: ad.size.height.toDouble(),
-        child: AdWidget(ad: ad),
-      );
-
-      return _cachedAdWidget!;
-    } else {
-      return const SizedBox.shrink();
-    }
+    return BannerAdSlotWidget(manager: this);
   }
 
   /// Creates and returns a banner ad widget with specified size
@@ -265,22 +273,85 @@ class BannerAdManager {
       future: banner.load(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done && !snapshot.hasError) {
-          // Double check if ad is actually loaded, as some errors might not throw
-          // but result in an unloaded ad.
-          
           _adUnitIds.removeAt(0);
           _adUnitIds.add(adUnitId);
 
           return Container(
+            key: ObjectKey(banner),
             alignment: Alignment.center,
             width: banner.size.width.toDouble(),
             height: banner.size.height.toDouble(),
-            child: AdWidget(ad: banner),
+            child: AdWidget(key: ObjectKey(banner), ad: banner),
           );
         } else {
           return const SizedBox.shrink();
         }
       },
     );
+  }
+}
+
+class BannerAdSlotWidget extends StatefulWidget {
+  final BannerAdManager manager;
+
+  const BannerAdSlotWidget({super.key, required this.manager});
+
+  @override
+  State<BannerAdSlotWidget> createState() => _BannerAdSlotWidgetState();
+}
+
+class _BannerAdSlotWidgetState extends State<BannerAdSlotWidget> {
+  BannerAd? _assignedAd;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.manager.addListener(_onManagerChanged);
+    _checkAndAssignAd();
+  }
+
+  @override
+  void dispose() {
+    if (_assignedAd != null) {
+      widget.manager.releaseAd(_assignedAd!);
+    }
+    widget.manager.removeListener(_onManagerChanged);
+    super.dispose();
+  }
+
+  void _onManagerChanged() {
+    if (_assignedAd != null && !widget.manager.isAdValid(_assignedAd!)) {
+      widget.manager.releaseAd(_assignedAd!);
+      setState(() {
+        _assignedAd = null;
+      });
+    }
+    if (_assignedAd == null) {
+      _checkAndAssignAd();
+    }
+  }
+
+  void _checkAndAssignAd() {
+    final ad = widget.manager.getUnmountedAd();
+    if (ad != null && mounted) {
+      setState(() {
+        _assignedAd = ad;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_assignedAd != null &&
+        widget.manager.isAdValid(_assignedAd!) &&
+        deviceallow.allow()) {
+      return Container(
+        alignment: Alignment.center,
+        width: _assignedAd!.size.width.toDouble(),
+        height: _assignedAd!.size.height.toDouble(),
+        child: AdWidget(key: ObjectKey(_assignedAd), ad: _assignedAd!),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

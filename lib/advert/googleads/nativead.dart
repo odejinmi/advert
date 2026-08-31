@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -23,12 +24,19 @@ class NativeAdManager {
   NativeAd? _nativeAd;
   final List<NativeAd> _loadingAds = []; // Track ads that are currently loading
   bool _isAdLoaded = false;
+  bool _isMountedInWidget = false;
   int _currentAdIndex = 0;
   int _failedAttempts = 0;
 
+  final String? factoryId;
+
   // Constructor
-  NativeAdManager(this._adUnitIds, this._reporter, {String adType = 'Native'})
-      : _adType = adType {
+  NativeAdManager(
+    this._adUnitIds,
+    this._reporter, {
+    String adType = 'Native',
+    this.factoryId,
+  }) : _adType = adType {
     if (_adUnitIds.isNotEmpty) {
       final jitter = Duration(milliseconds: Random().nextInt(2000));
       Future.delayed(jitter, loadAd);
@@ -56,6 +64,7 @@ class NativeAdManager {
 
     _disposeCurrentAd();
     _isAdLoaded = false;
+    _isMountedInWidget = false;
 
     final adUnitId = _adUnitIds[_currentAdIndex % _adUnitIds.length];
 
@@ -71,11 +80,16 @@ class NativeAdManager {
 
     _globalLastRequestTimes[adUnitId] = now;
 
-    debugPrint('Loading native ad with ID: $adUnitId using factory: $FACTORY_ID');
+    debugPrint('Loading native ad with ID: $adUnitId');
 
     final nativeAd = NativeAd(
       adUnitId: adUnitId,
-      factoryId: FACTORY_ID,
+      factoryId: factoryId,
+      nativeTemplateStyle: factoryId == null
+          ? NativeTemplateStyle(
+              templateType: TemplateType.small,
+            )
+          : null,
       listener: NativeAdListener(
         onAdLoaded: (ad) {
           final loadedAd = ad as NativeAd;
@@ -136,6 +150,7 @@ class NativeAdManager {
     ad.dispose();
     _nativeAd = null;
     _isAdLoaded = false;
+    _isMountedInWidget = false;
     _failedAttempts++;
 
     // Exponential Backoff
@@ -159,6 +174,7 @@ class NativeAdManager {
       _nativeAd!.dispose();
       _nativeAd = null;
     }
+    _isMountedInWidget = false;
   }
 
   void closeAd(BuildContext context) {
@@ -169,6 +185,14 @@ class NativeAdManager {
 
   Widget buildAdWidget(BuildContext context, {bool autoClose = true}) {
     if (_nativeAd != null && _isAdLoaded) {
+      final ad = _nativeAd!;
+
+      if (_isMountedInWidget) {
+        // Current native ad is already mounted on another active widget/screen
+        loadAd();
+        return const SizedBox.shrink();
+      }
+
       if (autoClose) {
         Future.delayed(Duration(seconds: AUTO_CLOSE_DELAY_SECONDS))
             .then((_) {
@@ -177,10 +201,11 @@ class NativeAdManager {
               }
             });
       }
-      return Container(
-        key: UniqueKey(),
-        height: 90,
-        child: AdWidget(ad: _nativeAd!),
+
+      return _NativeAdSlotWidget(
+        ad: ad,
+        onMounted: () => _isMountedInWidget = true,
+        onUnmounted: () => _isMountedInWidget = false,
       );
     } else {
       return const SizedBox.shrink();
@@ -220,6 +245,44 @@ class NativeAdManager {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NativeAdSlotWidget extends StatefulWidget {
+  final NativeAd ad;
+  final VoidCallback onMounted;
+  final VoidCallback onUnmounted;
+
+  const _NativeAdSlotWidget({
+    required this.ad,
+    required this.onMounted,
+    required this.onUnmounted,
+  });
+
+  @override
+  State<_NativeAdSlotWidget> createState() => _NativeAdSlotWidgetState();
+}
+
+class _NativeAdSlotWidgetState extends State<_NativeAdSlotWidget> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onMounted();
+  }
+
+  @override
+  void dispose() {
+    widget.onUnmounted();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ObjectKey(widget.ad),
+      height: 90,
+      child: AdWidget(key: ObjectKey(widget.ad), ad: widget.ad),
     );
   }
 }

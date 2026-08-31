@@ -435,16 +435,21 @@ class GoogleAdProvider {
 
   /// Returns a banner ad widget with fallback (High -> Low)
   Widget showBannerAd({String type = 'banner'}) {
-    final highBanner = showHighBannerAd(type: type);
-    if (highBanner is! SizedBox) return highBanner;
-
-    return showLowBannerAd(type: type);
+    final highManager = _bannerManagers['${type}_high'];
+    if (highManager != null) {
+      return highManager.adWidget();
+    }
+    final lowManager = _bannerManagers['${type}_low'];
+    if (lowManager != null) {
+      return lowManager.adWidget();
+    }
+    return const SizedBox.shrink();
   }
 
   /// Returns only the high priority banner ad widget
   Widget showHighBannerAd({String type = 'banner'}) {
     final manager = _bannerManagers['${type}_high'];
-    if (manager != null && manager.bannerReady) {
+    if (manager != null) {
       return manager.adWidget();
     }
     return const SizedBox.shrink();
@@ -453,7 +458,7 @@ class GoogleAdProvider {
   /// Returns only the low priority banner ad widget
   Widget showLowBannerAd({String type = 'banner'}) {
     final manager = _bannerManagers['${type}_low'];
-    if (manager != null && manager.bannerReady) {
+    if (manager != null) {
       return manager.adWidget();
     }
     return const SizedBox.shrink();
