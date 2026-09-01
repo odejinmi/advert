@@ -104,15 +104,24 @@ class Advert {
   late final List<String> rewardedVideoAdPlacementId;
   
   // Initialize ad unit IDs based on platform
-  void _initializeAdUnits() {
+  void _initializeAdUnits({bool testmode = false}) {
     // Standard/High Banners
-    banneradUnitId = Platform.isAndroid 
-        ? [ _AdConfig.androidBannerHigh, ..._AdConfig.androidBannerIds ] 
-        : [ _AdConfig.iosBannerHigh, ..._AdConfig.iosBannerIds ];
-    
-    banneradUnitIdLow = Platform.isAndroid
-        ? [ _AdConfig.androidBannerLow ]
-        : [ _AdConfig.iosBannerLow ];
+    if (testmode) {
+      banneradUnitId = Platform.isAndroid
+          ? List.from(_AdConfig.androidBannerIds)
+          : List.from(_AdConfig.iosBannerIds);
+      banneradUnitIdLow = Platform.isAndroid
+          ? List.from(_AdConfig.androidBannerIds)
+          : List.from(_AdConfig.iosBannerIds);
+    } else {
+      banneradUnitId = Platform.isAndroid 
+          ? [ _AdConfig.androidBannerHigh, ..._AdConfig.androidBannerIds ] 
+          : [ _AdConfig.iosBannerHigh, ..._AdConfig.iosBannerIds ];
+      
+      banneradUnitIdLow = Platform.isAndroid
+          ? [ _AdConfig.androidBannerLow ]
+          : [ _AdConfig.iosBannerLow ];
+    }
         
     // Interstitials
     screenUnitId = Platform.isAndroid
@@ -179,7 +188,7 @@ class Advert {
       return;
     }
     
-    _initializeAdUnits();
+    _initializeAdUnits(testmode: testmode);
     
     if (enableDebugLogging) {
       debugPrint('Initializing Advert SDK in ${testmode ? 'TEST' : 'PRODUCTION'} mode');

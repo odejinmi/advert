@@ -9,12 +9,13 @@ class InterstitialAdManager {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 5;
   static const int TARGET_BUFFER_SIZE = 2;
-  static const Duration initialRetryDelay = Duration(seconds: 5);
-  static const Duration maxRetryDelay = Duration(seconds: 60);
-  static const Duration minRequestInterval = Duration(seconds: 10);
+  static const Duration initialRetryDelay = Duration(seconds: 15);
+  static const Duration maxRetryDelay = Duration(seconds: 120);
+  static const Duration minRequestInterval = Duration(seconds: 15);
 
   // Global tracker
   static final Map<String, DateTime> _globalLastRequestTimes = {};
+  static final Map<String, DateTime> _failedAdUnitCooldowns = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -70,9 +71,18 @@ class InterstitialAdManager {
     if (_isLoading) return;
     _isLoading = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+    final now = DateTime.now();
+
+    // FAILURE COOLDOWN CHECK
+    final failedCooldown = _failedAdUnitCooldowns[adUnitId];
+    if (failedCooldown != null && now.isBefore(failedCooldown)) {
+      final waitTime = failedCooldown.difference(now);
+      debugPrint('AdUnitId $adUnitId in failure backoff cooldown (Interstitial). Waiting ${waitTime.inSeconds}s');
+      _isLoading = false;
+      return;
+    }
 
     // GLOBAL THROTTLING CHECK
-    final now = DateTime.now();
     final lastRequest = _globalLastRequestTimes[adUnitId];
     if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
       final waitTime = minRequestInterval - now.difference(lastRequest);
@@ -152,16 +162,22 @@ class InterstitialAdManager {
     final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
     final actualDelay = Duration(seconds: clampedSeconds);
 
+    _failedAdUnitCooldowns[placementId] = DateTime.now().add(actualDelay);
+
     debugPrint('Backing off (Interstitial: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    if (_adUnitIds.length > 1) {
+      _currentLoadingIndex = (_currentLoadingIndex + 1) % _adUnitIds.length;
+    }
 
     Future.delayed(actualDelay, () {
       if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
-        // Retry loading the same ad
         _loadNextAd();
       } else {
-        // Move to next ad unit after max retries
         _failedAttempts = 0;
-        _currentLoadingIndex++;
+        if (_adUnitIds.length <= 1) {
+          _currentLoadingIndex = 0;
+        }
         _topUpBuffer();
       }
     });

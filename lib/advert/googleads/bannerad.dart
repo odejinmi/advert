@@ -9,12 +9,14 @@ import '../event_reporter.dart';
 class BannerAdManager extends ChangeNotifier {
   // Constants
   static const int MAX_FAILED_LOAD_ATTEMPTS = 5;
-  static const Duration initialRetryDelay = Duration(seconds: 5);
-  static const Duration maxRetryDelay = Duration(seconds: 60);
-  static const Duration minRequestInterval = Duration(seconds: 10);
+  static const Duration initialRetryDelay = Duration(seconds: 15);
+  static const Duration maxRetryDelay = Duration(seconds: 120);
+  static const Duration minRequestInterval = Duration(seconds: 15);
 
   // Global tracker
   static final Map<String, DateTime> _globalLastRequestTimes = {};
+  static final Map<String, DateTime> _failedAdUnitCooldowns = {};
+  static final Map<String, int> _failedAttemptsPerAdUnit = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -25,7 +27,6 @@ class BannerAdManager extends ChangeNotifier {
   final List<BannerAd> _loadingAds = []; // Keep reference to ads while they load
   final Set<BannerAd> _reservedAds = {}; // Track ads reserved by active widgets
   int _currentLoadingIndex = 0;
-  int _failedAttempts = 0;
   bool _isLoading = false;
   bool _bannerReady = false;
 
@@ -74,7 +75,7 @@ class BannerAdManager extends ChangeNotifier {
         );
         _loadedAds.add(bannerAd);
         _bannerReady = true;
-        _failedAttempts = 0;
+        _failedAttemptsPerAdUnit[bannerAd.adUnitId] = 0;
         _isLoading = false;
         _currentLoadingIndex++;
 
@@ -86,7 +87,7 @@ class BannerAdManager extends ChangeNotifier {
       },
       onAdFailedToLoad: (ad, error) {
         final bannerAd = ad as BannerAd;
-        debugPrint('Banner ad failed to load: ${error.message}');
+        debugPrint('Banner ad failed to load (${bannerAd.adUnitId}): ${error.message}');
         
         _loadingAds.remove(bannerAd);
         
@@ -98,28 +99,36 @@ class BannerAdManager extends ChangeNotifier {
           errorMessage: error.message,
         );
         bannerAd.dispose();
-        _failedAttempts++;
+        
+        final attempts = (_failedAttemptsPerAdUnit[bannerAd.adUnitId] ?? 0) + 1;
+        _failedAttemptsPerAdUnit[bannerAd.adUnitId] = attempts;
         _isLoading = false;
 
         notifyListeners();
 
-        // Exponential Backoff
-        final backoffMultiplier = pow(2, min(_failedAttempts - 1, 4)).toDouble();
+        // Exponential Backoff per ad unit ID
+        final backoffMultiplier = pow(2, min(attempts - 1, 4)).toDouble();
         final backoffSeconds = backoffMultiplier * initialRetryDelay.inSeconds;
         final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
         final actualDelay = Duration(seconds: clampedSeconds);
 
-        debugPrint('Backing off (Banner: $_adType) for ${actualDelay.inSeconds}s due to failure');
+        // Record failure cooldown for this ad unit ID
+        _failedAdUnitCooldowns[bannerAd.adUnitId] = DateTime.now().add(actualDelay);
+
+        debugPrint('Backing off (Banner: $_adType, ID: ${bannerAd.adUnitId}) for ${actualDelay.inSeconds}s (attempt #$attempts)');
+
+        // Cycle to next ad unit ID if available
+        if (_adUnitIds.length > 1) {
+          _currentLoadingIndex = (_currentLoadingIndex + 1) % _adUnitIds.length;
+        }
 
         Future.delayed(actualDelay, () {
-          if (_failedAttempts < MAX_FAILED_LOAD_ATTEMPTS) {
+          if ((_failedAttemptsPerAdUnit[bannerAd.adUnitId] ?? 0) < MAX_FAILED_LOAD_ATTEMPTS) {
             loadAd();
           } else {
-            _failedAttempts = 0;
-            _currentLoadingIndex++;
-
-            if (_currentLoadingIndex < _adUnitIds.length) {
-              loadAd();
+            _failedAttemptsPerAdUnit[bannerAd.adUnitId] = 0;
+            if (_adUnitIds.length <= 1) {
+              _currentLoadingIndex = 0;
             }
           }
         });
@@ -148,7 +157,7 @@ class BannerAdManager extends ChangeNotifier {
   }
 
   /// Loads a banner ad using the current ad unit ID
-  void loadAd({bool ignoreThrottling = false}) {
+  void loadAd() {
     if (_adUnitIds.isEmpty) {
       debugPrint('No banner ad unit IDs provided');
       return;
@@ -164,13 +173,37 @@ class BannerAdManager extends ChangeNotifier {
     }
 
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+    final now = DateTime.now();
+
+    // FAILURE COOLDOWN CHECK
+    final failedCooldown = _failedAdUnitCooldowns[adUnitId];
+    if (failedCooldown != null && now.isBefore(failedCooldown)) {
+      final waitTime = failedCooldown.difference(now);
+      debugPrint('AdUnitId $adUnitId in failure backoff cooldown (Banner). Waiting ${waitTime.inSeconds}s');
+      _isLoading = false;
+      
+      // Attempt to find an alternative ad unit ID that is not in cooldown
+      if (_adUnitIds.length > 1) {
+        for (int i = 0; i < _adUnitIds.length; i++) {
+          final nextIndex = (_currentLoadingIndex + 1 + i) % _adUnitIds.length;
+          final altId = _adUnitIds[nextIndex];
+          final altCooldown = _failedAdUnitCooldowns[altId];
+          if (altCooldown == null || !now.isBefore(altCooldown)) {
+            _currentLoadingIndex = nextIndex;
+            loadAd();
+            return;
+          }
+        }
+      }
+
+      // If all ad unit IDs are in cooldown, schedule loadAd when the nearest cooldown expires
+      Future.delayed(waitTime, loadAd);
+      return;
+    }
 
     // GLOBAL THROTTLING CHECK
-    final now = DateTime.now();
     final lastRequest = _globalLastRequestTimes[adUnitId];
-    if (!ignoreThrottling &&
-        lastRequest != null &&
-        now.difference(lastRequest) < minRequestInterval) {
+    if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
       final waitTime = minRequestInterval - now.difference(lastRequest);
       debugPrint('Global Throttling (Banner): ID $adUnitId requested too recently. Waiting ${waitTime.inSeconds}s');
       Future.delayed(waitTime, loadAd);
@@ -204,9 +237,9 @@ class BannerAdManager extends ChangeNotifier {
         return ad;
       }
     }
-    // If all loaded ads are currently reserved or mounted elsewhere, trigger loading a new banner ad immediately
+    // If all loaded ads are currently reserved or mounted elsewhere, trigger loading a new banner ad if available
     if (!_isLoading) {
-      loadAd(ignoreThrottling: true);
+      loadAd();
     }
     return null;
   }

@@ -18,12 +18,13 @@ class RewardedAdManager {
   static const int maxFailedLoadAttempts = 5; // Increased slightly for more robust retries
   static const Duration adExpiration = Duration(hours: 1);
   static const int TARGET_BUFFER_SIZE = 3;
-  static const Duration initialRetryDelay = Duration(seconds: 5);
-  static const Duration maxRetryDelay = Duration(seconds: 60);
-  static const Duration minRequestInterval = Duration(seconds: 10);
+  static const Duration initialRetryDelay = Duration(seconds: 15);
+  static const Duration maxRetryDelay = Duration(seconds: 120);
+  static const Duration minRequestInterval = Duration(seconds: 15);
 
   // Global tracker to prevent overlapping requests for the same ID across all instances
   static final Map<String, DateTime> _globalLastRequestTimes = {};
+  static final Map<String, DateTime> _failedAdUnitCooldowns = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -84,9 +85,19 @@ class RewardedAdManager {
     if (_isLoading) return;
     _isLoading = true;
     final adUnitId = _adUnitIds[_currentLoadingIndex];
+    final now = DateTime.now();
+
+    // FAILURE COOLDOWN CHECK
+    final failedCooldown = _failedAdUnitCooldowns[adUnitId];
+    if (failedCooldown != null && now.isBefore(failedCooldown)) {
+      final waitTime = failedCooldown.difference(now);
+      debugPrint('AdUnitId $adUnitId in failure backoff cooldown (Rewarded). Waiting ${waitTime.inSeconds}s');
+      _isLoading = false;
+      if (onComplete != null) onComplete();
+      return;
+    }
 
     // GLOBAL THROTTLING CHECK: Ensure any single ID is not requested more than once per interval
-    final now = DateTime.now();
     final lastRequest = _globalLastRequestTimes[adUnitId];
     if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
       final waitTime = minRequestInterval - now.difference(lastRequest);
@@ -181,14 +192,22 @@ class RewardedAdManager {
     final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
     final actualDelay = Duration(seconds: clampedSeconds);
 
+    _failedAdUnitCooldowns[placementId] = DateTime.now().add(actualDelay);
+
     debugPrint('Backing off (Rewarded: $_adType) for ${actualDelay.inSeconds}s due to failure');
+
+    if (_adUnitIds.length > 1) {
+      _currentLoadingIndex = (_currentLoadingIndex + 1) % _adUnitIds.length;
+    }
 
     Future.delayed(actualDelay, () {
       if (_failedAttempts < maxFailedLoadAttempts) {
         _loadNextAd();
       } else {
         _failedAttempts = 0;
-        _currentLoadingIndex++;
+        if (_adUnitIds.length <= 1) {
+          _currentLoadingIndex = 0;
+        }
         _topUpBuffer();
       }
     });

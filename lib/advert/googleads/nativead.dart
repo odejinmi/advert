@@ -9,12 +9,13 @@ class NativeAdManager {
   // Constants
   static const int AUTO_CLOSE_DELAY_SECONDS = 20;
   static const String FACTORY_ID = 'adFactoryExample';
-  static const Duration initialRetryDelay = Duration(seconds: 5);
-  static const Duration maxRetryDelay = Duration(seconds: 60);
-  static const Duration minRequestInterval = Duration(seconds: 10);
+  static const Duration initialRetryDelay = Duration(seconds: 15);
+  static const Duration maxRetryDelay = Duration(seconds: 120);
+  static const Duration minRequestInterval = Duration(seconds: 15);
 
   // Global tracker
   static final Map<String, DateTime> _globalLastRequestTimes = {};
+  static final Map<String, DateTime> _failedAdUnitCooldowns = {};
 
   final EventReporter _reporter;
   final String _adType;
@@ -67,9 +68,17 @@ class NativeAdManager {
     _isMountedInWidget = false;
 
     final adUnitId = _adUnitIds[_currentAdIndex % _adUnitIds.length];
+    final now = DateTime.now();
+
+    // FAILURE COOLDOWN CHECK
+    final failedCooldown = _failedAdUnitCooldowns[adUnitId];
+    if (failedCooldown != null && now.isBefore(failedCooldown)) {
+      final waitTime = failedCooldown.difference(now);
+      debugPrint('AdUnitId $adUnitId in failure backoff cooldown (Native). Waiting ${waitTime.inSeconds}s');
+      return;
+    }
 
     // GLOBAL THROTTLING CHECK
-    final now = DateTime.now();
     final lastRequest = _globalLastRequestTimes[adUnitId];
     if (lastRequest != null && now.difference(lastRequest) < minRequestInterval) {
       final waitTime = minRequestInterval - now.difference(lastRequest);
@@ -146,7 +155,8 @@ class NativeAdManager {
   }
 
   void _onAdFailedToLoad(Ad ad, LoadAdError error) {
-    debugPrint('Native ad failed to load: ${error.message}');
+    final nativeAd = ad as NativeAd;
+    debugPrint('Native ad failed to load (${nativeAd.adUnitId}): ${error.message}');
     ad.dispose();
     _nativeAd = null;
     _isAdLoaded = false;
@@ -159,11 +169,16 @@ class NativeAdManager {
     final clampedSeconds = backoffSeconds.toInt().clamp(initialRetryDelay.inSeconds, maxRetryDelay.inSeconds);
     final actualDelay = Duration(seconds: clampedSeconds);
 
+    _failedAdUnitCooldowns[nativeAd.adUnitId] = DateTime.now().add(actualDelay);
+
     debugPrint('Backing off (Native: $_adType) for ${actualDelay.inSeconds}s due to failure');
 
+    if (_adUnitIds.length > 1) {
+      _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
+    }
+
     Future.delayed(actualDelay, () {
-      if (_failedAttempts <= 3 && _adUnitIds.length > 1) {
-        _currentAdIndex = (_currentAdIndex + 1) % _adUnitIds.length;
+      if (_failedAttempts <= 3) {
         loadAd();
       }
     });
