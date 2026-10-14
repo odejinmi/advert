@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+// import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
 import '../event_reporter.dart';
@@ -40,43 +40,43 @@ class Rewardedvideo {
 
     _isloading = true;
     var adunitid = videoUnitId[currentIndex];
-    UnityAds.load(
-      placementId: adunitid,
-      onComplete: (placementId) {
-        debugPrint('Load Complete $placementId');
-        if (!intersAd1.contains(placementId)) {
-          intersAd1.add(placementId);
-        }
-        _isloading = false;
-        numInterstitialLoadAttempts = 0;
-        currentIndex++;
-
-        _triggerPendingCallbacks();
-
-        if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
-          createRewardedvideoAd();
-        }
-      },
-      onFailed: (placementId, error, message) {
-          debugPrint('Load Failed $placementId: $error $message');
-          _isloading = false;
-          _reporter.reportEvent(
-            event: AdEvent.failed,
-            adProvider: 'Unity',
-            adType: _adType,
-            placementId: placementId,
-            errorMessage: '$error: $message',
-          );
-          numInterstitialLoadAttempts += 1;
-          if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-            createRewardedvideoAd();
-          } else {
-            numInterstitialLoadAttempts = 0;
-            currentIndex++;
-            createRewardedvideoAd();
-          }
-      },
-    );
+    // UnityAds.load(
+    //   placementId: adunitid,
+    //   onComplete: (placementId) {
+    //     debugPrint('Load Complete $placementId');
+    //     if (!intersAd1.contains(placementId)) {
+    //       intersAd1.add(placementId);
+    //     }
+    //     _isloading = false;
+    //     numInterstitialLoadAttempts = 0;
+    //     currentIndex++;
+    //
+    //     _triggerPendingCallbacks();
+    //
+    //     if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
+    //       createRewardedvideoAd();
+    //     }
+    //   },
+    //   onFailed: (placementId, error, message) {
+    //       debugPrint('Load Failed $placementId: $error $message');
+    //       _isloading = false;
+    //       _reporter.reportEvent(
+    //         event: AdEvent.failed,
+    //         adProvider: 'Unity',
+    //         adType: _adType,
+    //         placementId: placementId,
+    //         errorMessage: '$error: $message',
+    //       );
+    //       numInterstitialLoadAttempts += 1;
+    //       if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
+    //         createRewardedvideoAd();
+    //       } else {
+    //         numInterstitialLoadAttempts = 0;
+    //         currentIndex++;
+    //         createRewardedvideoAd();
+    //       }
+    //   },
+    // );
   }
 
   void _triggerPendingCallbacks() {
@@ -95,71 +95,71 @@ class Rewardedvideo {
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
       return Advertresponse.defaults();
     }
-    UnityAds.showVideoAd(
-      placementId: intersAd1[0],
-      onComplete: (placementId) {
-        debugPrint('Video Ad $placementId completed');
-        _reporter.reportEvent(
-          event: AdEvent.completed,
-          adProvider: 'Unity',
-          adType: _adType,
-          placementId: placementId,
-        );
-        createRewardedvideoAd();
-        if (rewarded != null) {
-          rewarded();
-        }
-        if (onAdDismissed != null) {
-          onAdDismissed();
-        }
-      },
-      onFailed: (placementId, error, message) {
-        debugPrint('Video Ad $placementId failed: $error $message');
-        _reporter.reportEvent(
-          event: AdEvent.failed,
-          adProvider: 'Unity',
-          adType: _adType,
-          placementId: placementId,
-          errorMessage: '$error: $message',
-        );
-        if (onAdDismissed != null) {
-          onAdDismissed();
-        }
-        Future.delayed(Duration(seconds: 2), () {
-          createRewardedvideoAd();
-        });
-        addispose(placementId);
-      },
-      onStart: (placementId) {
-        addispose(placementId);
-        _reporter.reportEvent(
-          event: AdEvent.displayed,
-          adProvider: 'Unity',
-          adType: _adType,
-          placementId: placementId,
-        );
-        debugPrint('Video Ad $placementId started');
-      },
-      onClick: (placementId) {
-        debugPrint('Video Ad $placementId click');
-        _reporter.reportEvent(
-          event: AdEvent.clicked,
-          adProvider: 'Unity',
-          adType: _adType,
-          placementId: placementId,
-        );
-        if (onClicked != null) {
-          onClicked();
-        }
-      },
-      onSkipped: (placementId) {
-        debugPrint('Video Ad $placementId skipped');
-        if (onAdDismissed != null) {
-          onAdDismissed();
-        }
-        addispose(placementId);
-      },
-    );
+    // UnityAds.showVideoAd(
+    //   placementId: intersAd1[0],
+    //   onComplete: (placementId) {
+    //     debugPrint('Video Ad $placementId completed');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.completed,
+    //       adProvider: 'Unity',
+    //       adType: _adType,
+    //       placementId: placementId,
+    //     );
+    //     createRewardedvideoAd();
+    //     if (rewarded != null) {
+    //       rewarded();
+    //     }
+    //     if (onAdDismissed != null) {
+    //       onAdDismissed();
+    //     }
+    //   },
+    //   onFailed: (placementId, error, message) {
+    //     debugPrint('Video Ad $placementId failed: $error $message');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.failed,
+    //       adProvider: 'Unity',
+    //       adType: _adType,
+    //       placementId: placementId,
+    //       errorMessage: '$error: $message',
+    //     );
+    //     if (onAdDismissed != null) {
+    //       onAdDismissed();
+    //     }
+    //     Future.delayed(Duration(seconds: 2), () {
+    //       createRewardedvideoAd();
+    //     });
+    //     addispose(placementId);
+    //   },
+    //   onStart: (placementId) {
+    //     addispose(placementId);
+    //     _reporter.reportEvent(
+    //       event: AdEvent.displayed,
+    //       adProvider: 'Unity',
+    //       adType: _adType,
+    //       placementId: placementId,
+    //     );
+    //     debugPrint('Video Ad $placementId started');
+    //   },
+    //   onClick: (placementId) {
+    //     debugPrint('Video Ad $placementId click');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.clicked,
+    //       adProvider: 'Unity',
+    //       adType: _adType,
+    //       placementId: placementId,
+    //     );
+    //     if (onClicked != null) {
+    //       onClicked();
+    //     }
+    //   },
+    //   onSkipped: (placementId) {
+    //     debugPrint('Video Ad $placementId skipped');
+    //     if (onAdDismissed != null) {
+    //       onAdDismissed();
+    //     }
+    //     addispose(placementId);
+    //   },
+    // );
     return Advertresponse.showing();
   }
 

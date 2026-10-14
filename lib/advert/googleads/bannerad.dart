@@ -247,7 +247,9 @@ class BannerAdManager extends ChangeNotifier {
   /// Releases a reserved ad when a widget unmounts
   void releaseAd(BannerAd ad) {
     _reservedAds.remove(ad);
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   /// Refreshes an ad by disposing it and loading a new one
@@ -345,32 +347,49 @@ class _BannerAdSlotWidgetState extends State<BannerAdSlotWidget> {
 
   @override
   void dispose() {
-    if (_assignedAd != null) {
-      widget.manager.releaseAd(_assignedAd!);
-    }
     widget.manager.removeListener(_onManagerChanged);
+    final adToRelease = _assignedAd;
+    _assignedAd = null;
+    if (adToRelease != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.manager.releaseAd(adToRelease);
+      });
+    }
     super.dispose();
   }
 
   void _onManagerChanged() {
+    if (!mounted) return;
     if (_assignedAd != null && !widget.manager.isAdValid(_assignedAd!)) {
-      widget.manager.releaseAd(_assignedAd!);
-      setState(() {
-        _assignedAd = null;
+      final invalidAd = _assignedAd!;
+      _assignedAd = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.manager.releaseAd(invalidAd);
       });
+      _safeSetState(() {});
     }
-    if (_assignedAd == null) {
+    if (_assignedAd == null && mounted) {
       _checkAndAssignAd();
     }
   }
 
   void _checkAndAssignAd() {
+    if (!mounted) return;
     final ad = widget.manager.getUnmountedAd();
     if (ad != null && mounted) {
-      setState(() {
+      _safeSetState(() {
         _assignedAd = ad;
       });
     }
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(fn);
+      }
+    });
   }
 
   @override

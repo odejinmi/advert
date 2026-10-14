@@ -537,6 +537,8 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   Widget showBannerAd({String type = 'banner'}) {
     if (_googleProvider != null) {
       return _googleProvider!.showBannerAd(type: type);
+    } else if (_unityProvider != null) {
+      return _unityProvider!.adWidget();
     }
     return const SizedBox.shrink();
   }
@@ -545,6 +547,8 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   Widget showHighBannerAd({String type = 'banner'}) {
     if (_googleProvider != null) {
       return _googleProvider!.showHighBannerAd(type: type);
+    } else if (_unityProvider != null) {
+      return _unityProvider!.adWidget();
     }
     return const SizedBox.shrink();
   }
@@ -553,6 +557,8 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   Widget showLowBannerAd({String type = 'banner'}) {
     if (_googleProvider != null) {
       return _googleProvider!.showLowBannerAd(type: type);
+    } else if (_unityProvider != null) {
+      return _unityProvider!.adWidget();
     }
     return const SizedBox.shrink();
   }

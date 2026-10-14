@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+// import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../model/advertresponse.dart';
 import '../model/unity.dart';
@@ -21,25 +21,25 @@ class UnityProvider {
   final Map<String, Rewardedvideo> _rewardedManagers = {};
 
   void _initUnity() {
-    UnityAds.init(
-      gameId: unitymodel.gameId,
-      testMode: testmode,
-      onComplete: () {
-        debugPrint('Unity Ads Initialization Complete');
-        _isInitialized = true;
-        _initializeAdManagers();
-        loadAllAds();
-      },
-      onFailed: (error, message) {
-        debugPrint('Unity Ads Initialization Failed: $error $message');
-        _reporter.reportEvent(
-          event: AdEvent.failed,
-          adProvider: 'Unity',
-          adType: 'Initialization',
-          errorMessage: '$error: $message',
-        );
-      },
-    );
+    // UnityAds.init(
+    //   gameId: unitymodel.gameId,
+    //   testMode: testmode,
+    //   onComplete: () {
+    //     debugPrint('Unity Ads Initialization Complete');
+    //     _isInitialized = true;
+    //     _initializeAdManagers();
+    //     loadAllAds();
+    //   },
+    //   onFailed: (error, message) {
+    //     debugPrint('Unity Ads Initialization Failed: $error $message');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.failed,
+    //       adProvider: 'Unity',
+    //       adType: 'Initialization',
+    //       errorMessage: '$error: $message',
+    //     );
+    //   },
+    // );
   }
 
   void _initializeAdManagers() {
@@ -100,6 +100,45 @@ class UnityProvider {
   }
 
   Widget adWidget() {
-    return Container();
+    if (unitymodel.bannerAdPlacementId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final placementId = unitymodel.bannerAdPlacementId.first;
+    // return UnityBannerAd(
+    //   placementId: placementId,
+    //   size: BannerSize.standard,
+    //   onLoad: (placementId) {
+    //     debugPrint('Unity Banner ad loaded successfully: $placementId');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.displayed,
+    //       adProvider: 'Unity',
+    //       adType: 'Banner',
+    //       placementId: placementId,
+    //     );
+    //   },
+    //   onClick: (placementId) {
+    //     debugPrint('Unity Banner ad clicked: $placementId');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.clicked,
+    //       adProvider: 'Unity',
+    //       adType: 'Banner',
+    //       placementId: placementId,
+    //     );
+    //   },
+    //   onShown: (placementId) {
+    //     debugPrint('Unity Banner ad shown: $placementId');
+    //   },
+    //   onFailed: (placementId, error, message) {
+    //     debugPrint('Unity Banner ad failed to load ($placementId): $error $message');
+    //     _reporter.reportEvent(
+    //       event: AdEvent.failed,
+    //       adProvider: 'Unity',
+    //       adType: 'Banner',
+    //       placementId: placementId,
+    //       errorMessage: '$error: $message',
+    //     );
+    //   },
+    // );
+    return const SizedBox.shrink();
   }
 }
