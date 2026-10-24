@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-// import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 import '../../model/advertresponse.dart';
 import '../event_reporter.dart';
@@ -40,43 +40,42 @@ class Rewardedvideo {
 
     _isloading = true;
     var adunitid = videoUnitId[currentIndex];
-    // UnityAds.load(
-    //   placementId: adunitid,
-    //   onComplete: (placementId) {
-    //     debugPrint('Load Complete $placementId');
-    //     if (!intersAd1.contains(placementId)) {
-    //       intersAd1.add(placementId);
-    //     }
-    //     _isloading = false;
-    //     numInterstitialLoadAttempts = 0;
-    //     currentIndex++;
-    //
-    //     _triggerPendingCallbacks();
-    //
-    //     if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
-    //       createRewardedvideoAd();
-    //     }
-    //   },
-    //   onFailed: (placementId, error, message) {
-    //       debugPrint('Load Failed $placementId: $error $message');
-    //       _isloading = false;
-    //       _reporter.reportEvent(
-    //         event: AdEvent.failed,
-    //         adProvider: 'Unity',
-    //         adType: _adType,
-    //         placementId: placementId,
-    //         errorMessage: '$error: $message',
-    //       );
-    //       numInterstitialLoadAttempts += 1;
-    //       if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
-    //         createRewardedvideoAd();
-    //       } else {
-    //         numInterstitialLoadAttempts = 0;
-    //         currentIndex++;
-    //         createRewardedvideoAd();
-    //       }
-    //   },
-    // );
+    UnityAds.load(
+      placementId: adunitid,
+      onComplete: (placementId) {
+        if (!intersAd1.contains(placementId)) {
+          intersAd1.add(placementId);
+        }
+        _isloading = false;
+        numInterstitialLoadAttempts = 0;
+        currentIndex++;
+
+        _triggerPendingCallbacks();
+
+        if (currentIndex < videoUnitId.length && intersAd1.length < 2) {
+          createRewardedvideoAd();
+        }
+      },
+      onFailed: (placementId, error, message) {
+          debugPrint('Load Failed $placementId: $error $message');
+          _isloading = false;
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Unity',
+            adType: _adType,
+            placementId: placementId,
+            errorMessage: '$error: $message',
+          );
+          numInterstitialLoadAttempts += 1;
+          if (numInterstitialLoadAttempts < maxFailedLoadAttempts) {
+            createRewardedvideoAd();
+          } else {
+            numInterstitialLoadAttempts = 0;
+            currentIndex++;
+            createRewardedvideoAd();
+          }
+      },
+    );
   }
 
   void _triggerPendingCallbacks() {
@@ -93,74 +92,73 @@ class Rewardedvideo {
     if (intersAd1.isEmpty) {
       createRewardedvideoAd(show: () => showAd(rewarded, onClicked, onAdDismissed: onAdDismissed));
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
-      return Advertresponse.defaults();
+      return Advertresponse.defaults(provider: 'Unity');
     }
-    // UnityAds.showVideoAd(
-    //   placementId: intersAd1[0],
-    //   onComplete: (placementId) {
-    //     debugPrint('Video Ad $placementId completed');
-    //     _reporter.reportEvent(
-    //       event: AdEvent.completed,
-    //       adProvider: 'Unity',
-    //       adType: _adType,
-    //       placementId: placementId,
-    //     );
-    //     createRewardedvideoAd();
-    //     if (rewarded != null) {
-    //       rewarded();
-    //     }
-    //     if (onAdDismissed != null) {
-    //       onAdDismissed();
-    //     }
-    //   },
-    //   onFailed: (placementId, error, message) {
-    //     debugPrint('Video Ad $placementId failed: $error $message');
-    //     _reporter.reportEvent(
-    //       event: AdEvent.failed,
-    //       adProvider: 'Unity',
-    //       adType: _adType,
-    //       placementId: placementId,
-    //       errorMessage: '$error: $message',
-    //     );
-    //     if (onAdDismissed != null) {
-    //       onAdDismissed();
-    //     }
-    //     Future.delayed(Duration(seconds: 2), () {
-    //       createRewardedvideoAd();
-    //     });
-    //     addispose(placementId);
-    //   },
-    //   onStart: (placementId) {
-    //     addispose(placementId);
-    //     _reporter.reportEvent(
-    //       event: AdEvent.displayed,
-    //       adProvider: 'Unity',
-    //       adType: _adType,
-    //       placementId: placementId,
-    //     );
-    //     debugPrint('Video Ad $placementId started');
-    //   },
-    //   onClick: (placementId) {
-    //     debugPrint('Video Ad $placementId click');
-    //     _reporter.reportEvent(
-    //       event: AdEvent.clicked,
-    //       adProvider: 'Unity',
-    //       adType: _adType,
-    //       placementId: placementId,
-    //     );
-    //     if (onClicked != null) {
-    //       onClicked();
-    //     }
-    //   },
-    //   onSkipped: (placementId) {
-    //     debugPrint('Video Ad $placementId skipped');
-    //     if (onAdDismissed != null) {
-    //       onAdDismissed();
-    //     }
-    //     addispose(placementId);
-    //   },
-    // );
-    return Advertresponse.showing();
+    UnityAds.showVideoAd(
+      placementId: intersAd1[0],
+      onComplete: (placementId) {
+        _reporter.reportEvent(
+          event: AdEvent.completed,
+          adProvider: 'Unity',
+          adType: _adType,
+          placementId: placementId,
+        );
+        createRewardedvideoAd();
+        if (rewarded != null) {
+          _invokeOnRewarded(rewarded, 'Unity');
+        }
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
+      },
+      onFailed: (placementId, error, message) {
+        debugPrint('Video Ad $placementId failed: $error $message');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Unity',
+          adType: _adType,
+          placementId: placementId,
+          errorMessage: '$error: $message',
+        );
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
+        Future.delayed(Duration(seconds: 2), () {
+          createRewardedvideoAd();
+        });
+        addispose(placementId);
+      },
+      onStart: (placementId) {
+        addispose(placementId);
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Unity',
+          adType: _adType,
+          placementId: placementId,
+        );
+        debugPrint('Video Ad $placementId started');
+      },
+      onClick: (placementId) {
+        debugPrint('Video Ad $placementId click');
+        _reporter.reportEvent(
+          event: AdEvent.clicked,
+          adProvider: 'Unity',
+          adType: _adType,
+          placementId: placementId,
+        );
+        if (onClicked != null) {
+          onClicked();
+        }
+      },
+      onSkipped: (placementId) {
+        debugPrint('Video Ad $placementId skipped');
+        if (onAdDismissed != null) {
+          onAdDismissed();
+        }
+        addispose(placementId);
+      },
+    );
+    return Advertresponse.showing(provider: 'Unity');
   }
 
   void addispose(String ad) {
@@ -176,4 +174,48 @@ class Rewardedvideo {
   static String get appId => Platform.isAndroid
       ? 'ca-app-pub-6117361441866120~5829948546'
       : 'ca-app-pub-6117361441866120~7211527566';
+}
+
+void _invokeOnRewarded(Function? callback, [dynamic provider]) {
+  if (callback == null) return;
+  if (provider is String) {
+    if (callback is void Function(String?)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(Advertresponse)) {
+      callback(Advertresponse.loaded(provider: provider));
+      return;
+    }
+  } else if (provider is Advertresponse) {
+    if (callback is void Function(Advertresponse)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String?)) {
+      callback(provider.provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider.provider ?? '');
+      return;
+    }
+  }
+
+  if (callback is void Function()) {
+    callback();
+    return;
+  }
+
+  try {
+    (callback as dynamic)(provider);
+  } catch (_) {
+    try {
+      (callback as dynamic)();
+    } catch (_) {}
+  }
 }

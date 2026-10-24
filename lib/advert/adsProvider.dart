@@ -40,6 +40,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   String reasonads = "";
   late Map<String, String> _customData;
   late VoidCallback _onSequenceComplete;
+  void Function(Advertresponse)? _onAdWatched;
   Function? _onAdClicked;
   Function? _onAdImpression;
 
@@ -234,8 +235,10 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       if (onAdDismissed != null) onAdDismissed();
     };
 
-    final internalOnRewarded = () {
-      if (onRewarded != null) onRewarded();
+    final internalOnRewarded = ([dynamic provider]) {
+      if (onRewarded != null) {
+        _invokeOnRewarded(onRewarded, provider);
+      }
     };
 
     if (!useProviderCycling) {
@@ -614,12 +617,15 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   /// Starts a sequence of multiple ads.
   /// [adType] can be any registered placement name (e.g., 'rewarded', 'freemoney', 'giveaway')
+  /// [onAdWatched] or [onAdCompleted] is called for each individual ad watched in the sequence, passing [Advertresponse].
   void startAdSequence(BuildContext context, {
     required int total,
     required String adType,
     required String reason,
     required Map<String, String> customData,
     required VoidCallback onComplete,
+    void Function(Advertresponse response)? onAdWatched,
+    void Function(Advertresponse response)? onAdCompleted,
     Function? onAdClicked,
     Function? onAdImpression,
   }) {
@@ -628,6 +634,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     _customData = customData;
     reasonads = reason;
     _onSequenceComplete = onComplete;
+    _onAdWatched = onAdWatched ?? onAdCompleted;
     _onAdClicked = onAdClicked;
     _onAdImpression = onAdImpression;
     isShowingAds.value = true;
@@ -643,9 +650,10 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  void _handleAdCompletion(BuildContext context) {
+  void _handleAdCompletion(BuildContext context, Advertresponse response) {
     if (!context.mounted) return;
     adsWatched++;
+    _onAdWatched?.call(response);
     if (adsWatched < totalAds) {
       _showAdProgressDialog(context);
     } else {
@@ -716,7 +724,12 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   Future<void> _playCurrentAd(BuildContext context) async {
     Advertresponse result;
-    final onRewarded = () => _handleAdCompletion(context);
+    Advertresponse? currentAdResponse;
+
+    final onRewarded = () {
+      final response = currentAdResponse ?? Advertresponse.loaded();
+      _handleAdCompletion(context, response);
+    };
 
     switch (_currentAdType) {
       case 'mergeRewarded':
@@ -735,7 +748,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
-          useProviderCycling: false,
+          // useProviderCycling: false,
         );
         break;
       case 'googleMergeRewarded':
@@ -763,7 +776,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
-          useProviderCycling: false,
+          // useProviderCycling: false,
         );
         break;
       case 'freemoney':
@@ -773,7 +786,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           onAdClicked: _onAdClicked,
           onAdImpression: _onAdImpression,
           customData: _customData,
-          useProviderCycling: false,
+          // useProviderCycling: false,
         );
         break;
       default:
@@ -786,6 +799,8 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         );
     }
 
+    currentAdResponse = result;
+
     if (!result.status) {
       if (context.mounted) {
         _showRetryDialog(context);
@@ -797,5 +812,49 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _googleProvider?.dispose();
     super.dispose();
+  }
+}
+
+void _invokeOnRewarded(Function? callback, [dynamic provider]) {
+  if (callback == null) return;
+  if (provider is String) {
+    if (callback is void Function(String?)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(Advertresponse)) {
+      callback(Advertresponse.loaded(provider: provider));
+      return;
+    }
+  } else if (provider is Advertresponse) {
+    if (callback is void Function(Advertresponse)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String?)) {
+      callback(provider.provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider.provider ?? '');
+      return;
+    }
+  }
+
+  if (callback is void Function()) {
+    callback();
+    return;
+  }
+
+  try {
+    (callback as dynamic)(provider);
+  } catch (_) {
+    try {
+      (callback as dynamic)();
+    } catch (_) {}
   }
 }

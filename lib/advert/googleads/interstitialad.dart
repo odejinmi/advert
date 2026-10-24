@@ -197,7 +197,7 @@ class InterstitialAdManager {
             onAdDismissed: onAdDismissed,
           ));
       _loadNextAd();
-      return Advertresponse.defaults();
+      return Advertresponse.defaults(provider: 'Google');
     }
 
     final ad = _loadedAds.removeAt(0);
@@ -257,7 +257,7 @@ class InterstitialAdManager {
     ad.setImmersiveMode(true);
     ad.show();
 
-    return Advertresponse.showing();
+    return Advertresponse.showing(provider: 'Google');
   }
 
   /// Loads a replacement ad after one is shown or fails

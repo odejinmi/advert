@@ -40,11 +40,14 @@ class _HomepageState extends State<Homepage> {
         low: ['ca-app-pub-3940256099942544/5224354917'],
       );
 
-    Unitymodel unitymodel = Unitymodel()
-      ..gameId = gameid
-      ..interstitialVideoAdPlacementId = interstitialVideoAdPlacementId
-      ..rewardedVideoAdPlacementId = rewardedVideoAdPlacementId
-      ..bannerAdPlacementId = bannerAdPlacementId;
+    Unitymodel unitymodel = Unitymodel();
+    unitymodel.gameId = gameid;
+    unitymodel.interstitialVideoAdPlacementId = interstitialVideoAdPlacementId;
+    unitymodel.rewardedVideoAdPlacementId = rewardedVideoAdPlacementId;
+    unitymodel.bannerAdPlacementId = bannerAdPlacementId;
+    unitymodel.addRewardedPlacement(
+      'freemoney', ['freemoney'],
+    );
 
     final adsModel = Adsmodel(
         // googlemodel: googleConfig,

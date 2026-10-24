@@ -195,7 +195,7 @@ class RewardedInterstitialAdManager {
             customData: customData,
           ));
       _loadNextAd();
-      return Advertresponse.defaults();
+      return Advertresponse.defaults(provider: 'Google');
     }
 
     final ad = _loadedAds[0];
@@ -276,12 +276,12 @@ class RewardedInterstitialAdManager {
         debugPrint('User earned reward: ${reward.amount} ${reward.type}');
         _rewardEarned = true;
         if (onRewarded != null) {
-          onRewarded();
+          _invokeOnRewarded(onRewarded, 'Google');
         }
       },
     );
 
-    return Advertresponse.showing();
+    return Advertresponse.showing(provider: 'Google');
   }
 
   /// Disposes the current ad and loads a replacement
@@ -293,5 +293,49 @@ class RewardedInterstitialAdManager {
   void _topUpBuffer() {
     if (_loadedAds.length >= TARGET_BUFFER_SIZE) return;
     _loadNextAd();
+  }
+}
+
+void _invokeOnRewarded(Function? callback, [dynamic provider]) {
+  if (callback == null) return;
+  if (provider is String) {
+    if (callback is void Function(String?)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(Advertresponse)) {
+      callback(Advertresponse.loaded(provider: provider));
+      return;
+    }
+  } else if (provider is Advertresponse) {
+    if (callback is void Function(Advertresponse)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String?)) {
+      callback(provider.provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider.provider ?? '');
+      return;
+    }
+  }
+
+  if (callback is void Function()) {
+    callback();
+    return;
+  }
+
+  try {
+    (callback as dynamic)(provider);
+  } catch (_) {
+    try {
+      (callback as dynamic)();
+    } catch (_) {}
   }
 }

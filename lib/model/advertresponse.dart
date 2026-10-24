@@ -9,29 +9,32 @@ class Advertresponse{
   /// otherwise
   bool status;
 
-  Advertresponse.defaults()
+  /// The ad provider that served or attempted to serve the ad (e.g., 'Google', 'Unity')
+  String? provider;
+
+  Advertresponse.defaults({this.provider})
       : message = deviceallow.allow()?"kindly check your network":"Kindly use a mobile device",
         status = false;
 
-  Advertresponse.showing()
+  Advertresponse.showing({this.provider})
       : message = "advert showing",
         status = true;
 
-  Advertresponse.loading()
+  Advertresponse.loading({this.provider})
       : message = "advert loading",
         status = true;
 
-  Advertresponse.loaded()
+  Advertresponse.loaded({this.provider})
       : message = "advert loaded",
         status = true;
 
   Advertresponse(
       {required this.message,
-        required this.status,});
-      // : assert();
+        required this.status,
+        this.provider,});
 
   @override
   String toString() {
-    return 'CheckoutResponse{message: $message, status: $status, }';
+    return 'Advertresponse{message: $message, status: $status, provider: $provider}';
   }
 }

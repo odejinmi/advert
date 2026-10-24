@@ -232,7 +232,7 @@ class RewardedAdManager {
   }) {
     if (_isShowing) {
       _pendingShowRequests++;
-      return Advertresponse.defaults();
+      return Advertresponse.defaults(provider: 'Google');
     }
     if (_loadedAds.isEmpty) {
       debugPrint('Warning: attempt to show rewarded ad before loaded.');
@@ -244,7 +244,7 @@ class RewardedAdManager {
             customData: customData,
           ));
       _loadNextAd();
-      return Advertresponse.defaults();
+      return Advertresponse.defaults(provider: 'Google');
     }
 
     final adData = _loadedAds[0];
@@ -261,13 +261,13 @@ class RewardedAdManager {
         );
       } else {
         preloadAds();
-        return Advertresponse.defaults();
+        return Advertresponse.defaults(provider: 'Google');
       }
     }
 
     _configureAndShowAd(
         adData, onRewarded, onAdClicked, onAdImpression, onAdDismissed, customData);
-    return Advertresponse.showing();
+    return Advertresponse.showing(provider: 'Google');
   }
 
   void _configureAndShowAd(
@@ -311,7 +311,7 @@ class RewardedAdManager {
           extraData: {'rewardEarned': _rewardEarned},
         );
         if (onRewarded != null && _rewardEarned) {
-          onRewarded();
+          _invokeOnRewarded(onRewarded, 'Google');
         }
         if (onAdDismissed != null) {
           onAdDismissed();
@@ -404,5 +404,49 @@ class RewardedAdManager {
 
   bool _isAdExpired(DateTime adTime) {
     return DateTime.now().difference(adTime) > adExpiration;
+  }
+}
+
+void _invokeOnRewarded(Function? callback, [dynamic provider]) {
+  if (callback == null) return;
+  if (provider is String) {
+    if (callback is void Function(String?)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(Advertresponse)) {
+      callback(Advertresponse.loaded(provider: provider));
+      return;
+    }
+  } else if (provider is Advertresponse) {
+    if (callback is void Function(Advertresponse)) {
+      callback(provider);
+      return;
+    }
+    if (callback is void Function(String?)) {
+      callback(provider.provider);
+      return;
+    }
+    if (callback is void Function(String)) {
+      callback(provider.provider ?? '');
+      return;
+    }
+  }
+
+  if (callback is void Function()) {
+    callback();
+    return;
+  }
+
+  try {
+    (callback as dynamic)(provider);
+  } catch (_) {
+    try {
+      (callback as dynamic)();
+    } catch (_) {}
   }
 }
