@@ -49,9 +49,15 @@ class _HomepageState extends State<Homepage> {
       'freemoney', ['freemoney'],
     );
 
+    final vungleModel = Vunglemodel()
+      ..appId = "vungle_test_app_id"
+      ..addRewardedPlacement('freemoney', ['vungle_rewarded_placement'])
+      ..addRewardedPlacement('giveaway', ['vungle_rewarded_placement']);
+
     final adsModel = Adsmodel(
-        // googlemodel: googleConfig,
-      unitymodel: unitymodel
+      googlemodel: googleConfig,
+      unitymodel: unitymodel,
+      vunglemodel: vungleModel,
     );
 
     _advertPlugin.initialize(testmode: false, adsmodel: adsModel).then((_) {

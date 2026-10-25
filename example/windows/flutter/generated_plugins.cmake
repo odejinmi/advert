@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   advert
+  hx_liftoff_ads
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

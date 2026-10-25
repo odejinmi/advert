@@ -433,6 +433,8 @@ class GoogleAdProvider {
     }
   }
 
+  BannerAdManager? getBannerManager(String key) => _bannerManagers[key];
+
   /// Returns a banner ad widget with fallback (High -> Low)
   Widget showBannerAd({String type = 'banner'}) {
     final highManager = _bannerManagers['${type}_high'];

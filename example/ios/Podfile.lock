@@ -21,6 +21,10 @@ PODS:
   - UnityAds (4.20.1):
     - UnityCoherenceLib (= 0.1.0)
   - UnityCoherenceLib (0.1.0)
+  - vungle (6.12.2):
+    - Flutter
+    - VungleSDK-iOS
+  - VungleSDK-iOS (6.12.3)
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -33,6 +37,7 @@ DEPENDENCIES:
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - unity_ads_plugin (from `.symlinks/plugins/unity_ads_plugin/ios`)
+  - vungle (from `.symlinks/plugins/vungle/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
@@ -41,6 +46,7 @@ SPEC REPOS:
     - GoogleUserMessagingPlatform
     - UnityAds
     - UnityCoherenceLib
+    - VungleSDK-iOS
 
 EXTERNAL SOURCES:
   advert:
@@ -57,6 +63,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/package_info_plus/ios"
   unity_ads_plugin:
     :path: ".symlinks/plugins/unity_ads_plugin/ios"
+  vungle:
+    :path: ".symlinks/plugins/vungle/ios"
   webview_flutter_wkwebview:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
@@ -72,6 +80,8 @@ SPEC CHECKSUMS:
   unity_ads_plugin: 10418650a07ad903d454ec8d38666b32620e0de8
   UnityAds: 70ddc29f85c2e26967afca937e5379118f435747
   UnityCoherenceLib: d9be08c5b9c2880cb220c7ecd643f97ebda422b7
+  vungle: 7335eeaed096591bba02f2bca31334f1947c5098
+  VungleSDK-iOS: 27725029a42dfb9e39c67956637233fde1ee1797
   webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
 PODFILE CHECKSUM: 9c46fd01abff66081b39f5fa5767b3f1d0b11d76

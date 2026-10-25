@@ -59,9 +59,6 @@ class UnityProvider {
   get unityintersAd1 => hasInterstitialAdByType('interstitial');
 
   bool hasRewardedAdByType(String type) {
-    print("adstype: $type");
-    print("adstype: $_rewardedManagers");
-    print("adstype: ${_rewardedManagers[type]?.intersAd1}");
   return _rewardedManagers[type]?.intersAd1.isNotEmpty ?? false;
 }
   get unityrewardedAd => hasRewardedAdByType('rewarded');

@@ -42,6 +42,7 @@ class BannerAdManager extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get bannerReady => _bannerReady && _loadedAds.isNotEmpty;
   bool get hasAds => _loadedAds.isNotEmpty;
+  bool get hasFailed => _loadedAds.isEmpty && (_failedAdUnitCooldowns.isNotEmpty || _failedAttemptsPerAdUnit.values.any((a) => a > 0));
 
   // Banner ad listener
   late final BannerAdListener _listener;

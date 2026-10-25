@@ -40,6 +40,7 @@ class Rewardedvideo {
 
     _isloading = true;
     var adunitid = videoUnitId[currentIndex];
+
     UnityAds.load(
       placementId: adunitid,
       onComplete: (placementId) {
