@@ -22,11 +22,14 @@ class VungleInterstitialAdManager {
     _isLoading = true;
 
     final placementId = placementIds.first;
+    debugPrint('Loading Vungle Interstitial ad ($_adType) for placement: $placementId');
+
     try {
       final ad = await InterstitialAd.load(
         placementId: placementId,
         listener: FullscreenAdListener(
           onShown: () {
+            debugPrint('Vungle Interstitial ad shown ($_adType): $placementId');
             _reporter.reportEvent(
               event: AdEvent.displayed,
               adProvider: 'Vungle',
@@ -35,6 +38,7 @@ class VungleInterstitialAdManager {
             );
           },
           onClicked: () {
+            debugPrint('Vungle Interstitial ad clicked ($_adType): $placementId');
             _reporter.reportEvent(
               event: AdEvent.clicked,
               adProvider: 'Vungle',
@@ -43,10 +47,12 @@ class VungleInterstitialAdManager {
             );
           },
           onClosed: () {
+            debugPrint('Vungle Interstitial ad closed ($_adType): $placementId');
             _loadedAd = null;
             loadNextAd();
           },
           onFailedToShow: (error) {
+            debugPrint('Vungle Interstitial ad failed to show ($_adType: $placementId): ${error.message}');
             _reporter.reportEvent(
               event: AdEvent.failed,
               adProvider: 'Vungle',
@@ -61,8 +67,10 @@ class VungleInterstitialAdManager {
       );
       _loadedAd = ad;
       _isLoading = false;
+      debugPrint('Vungle Interstitial ad loaded successfully ($_adType): $placementId');
     } catch (e) {
       _isLoading = false;
+      debugPrint('Vungle Interstitial ad failed to load ($_adType: $placementId): $e');
       _reporter.reportEvent(
         event: AdEvent.failed,
         adProvider: 'Vungle',
@@ -76,16 +84,18 @@ class VungleInterstitialAdManager {
   Advertresponse showAd(Function? onClick) {
     if (!hasAds) {
       loadNextAd();
-      debugPrint('Warning: attempt to show Vungle interstitial ad before loaded.');
+      debugPrint('Warning: attempt to show Vungle Interstitial ad before loaded.');
       return Advertresponse.defaults(provider: 'Vungle');
     }
 
-    final ad = _loadedAd!;
+    final currentAd = _loadedAd!;
     _loadedAd = null;
 
     if (onClick != null) onClick();
-    ad.show().catchError((e) {
-      debugPrint('Error showing Vungle Interstitial ad: $e');
+
+    debugPrint('Showing Vungle Interstitial ad ($_adType)');
+    currentAd.show().catchError((e) {
+      debugPrint('Error showing Vungle Interstitial ad ($_adType): $e');
     });
 
     return Advertresponse.showing(provider: 'Vungle');

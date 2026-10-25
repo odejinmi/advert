@@ -20,10 +20,12 @@ class VungleBannerAdWidget extends StatelessWidget {
     }
 
     final placementId = placementIds.first;
+    debugPrint('Building Vungle Banner ad widget for placement: $placementId');
 
     return LiftoffBannerAd(
       placementId: placementId,
       onLoaded: () {
+        debugPrint('Vungle Banner ad loaded successfully: $placementId');
         reporter.reportEvent(
           event: AdEvent.displayed,
           adProvider: 'Vungle',
@@ -32,6 +34,7 @@ class VungleBannerAdWidget extends StatelessWidget {
         );
       },
       onClicked: () {
+        debugPrint('Vungle Banner ad clicked: $placementId');
         reporter.reportEvent(
           event: AdEvent.clicked,
           adProvider: 'Vungle',
@@ -40,6 +43,7 @@ class VungleBannerAdWidget extends StatelessWidget {
         );
       },
       onFailedToLoad: (error) {
+        debugPrint('Vungle Banner ad failed to load ($placementId): ${error.message}');
         reporter.reportEvent(
           event: AdEvent.failed,
           adProvider: 'Vungle',
