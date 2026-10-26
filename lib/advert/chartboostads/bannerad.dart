@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chartboost/banner.dart';
+// import 'package:chartboost/banner.dart';
 import 'package:flutter/material.dart';
 
 import '../event_reporter.dart';
@@ -24,9 +24,10 @@ class ChartboostBannerAdWidget extends StatelessWidget {
     final location = locations.first;
     debugPrint('Building Chartboost Banner ad widget for location: $location');
 
-    return ChartboostBanner(
-      BannerAdSize.STANDARD,
-      location,
-    );
+    // return ChartboostBanner(
+    //   BannerAdSize.STANDARD,
+    //   location,
+    // );
+    return const SizedBox.shrink();
   }
 }

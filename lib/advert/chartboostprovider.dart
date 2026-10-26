@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chartboost/chartboost.dart';
+// import 'package:chartboost/chartboost.dart';
 import 'package:flutter/material.dart';
 
 import '../model/advertresponse.dart';
@@ -31,7 +31,7 @@ class ChartboostProvider {
     if (chartboostmodel.appId.isEmpty || chartboostmodel.appSignature.isEmpty) return;
 
     try {
-      await Chartboost.init(chartboostmodel.appId, chartboostmodel.appSignature);
+      // await Chartboost.init(chartboostmodel.appId, chartboostmodel.appSignature);
       debugPrint('Chartboost Ads Initialized with App ID: ${chartboostmodel.appId}');
       _isInitialized = true;
       _initializeAdManagers();

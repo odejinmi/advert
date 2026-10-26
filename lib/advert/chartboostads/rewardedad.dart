@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chartboost/chartboost.dart';
+// import 'package:chartboost/chartboost.dart';
 import 'package:flutter/material.dart';
 
 import '../../model/advertresponse.dart';
@@ -27,7 +27,7 @@ class ChartboostRewardedAdManager {
     debugPrint('Caching Chartboost Rewarded ad ($_adType) for location: $location');
 
     try {
-      await Chartboost.cacheInterstitial(location: location);
+      // await Chartboost.cacheInterstitial(location: location);
     } catch (e) {
       _isLoading = false;
       debugPrint('Chartboost Rewarded cache exception ($_adType): $e');
@@ -60,49 +60,49 @@ class ChartboostRewardedAdManager {
     debugPrint('Showing Chartboost Rewarded ad ($_adType) at location: $location');
 
     try {
-      Chartboost.showInterstitial(
-        location: location,
-        listener: (event) {
-          debugPrint('Chartboost Rewarded event: $event');
-          switch (event) {
-            case ChartboostEventListener.didDisplayRewardedVideo:
-            case ChartboostEventListener.didDisplayInterstitial:
-              _reporter.reportEvent(
-                event: AdEvent.displayed,
-                adProvider: 'Chartboost',
-                adType: _adType,
-                placementId: location,
-              );
-            case ChartboostEventListener.didClickRewardedVideo:
-            case ChartboostEventListener.didClickInterstitial:
-              _reporter.reportEvent(
-                event: AdEvent.clicked,
-                adProvider: 'Chartboost',
-                adType: _adType,
-                placementId: location,
-              );
-            case ChartboostEventListener.didCompleteRewardedVideo:
-              _reporter.reportEvent(
-                event: AdEvent.completed,
-                adProvider: 'Chartboost',
-                adType: _adType,
-                placementId: location,
-              );
-              if (onRewarded != null) {
-                _invokeOnRewarded(onRewarded, 'Chartboost');
-              }
-            case ChartboostEventListener.didDismissRewardedVideo:
-            case ChartboostEventListener.didCloseRewardedVideo:
-            case ChartboostEventListener.didDismissInterstitial:
-            case ChartboostEventListener.didCloseInterstitial:
-              _cachedLocations.remove(location);
-              if (onAdDismissed != null) onAdDismissed();
-              cacheNextAd();
-            default:
-              break;
-          }
-        },
-      );
+      // Chartboost.showInterstitial(
+      //   location: location,
+      //   listener: (event) {
+      //     debugPrint('Chartboost Rewarded event: $event');
+      //     switch (event) {
+      //       case ChartboostEventListener.didDisplayRewardedVideo:
+      //       case ChartboostEventListener.didDisplayInterstitial:
+      //         _reporter.reportEvent(
+      //           event: AdEvent.displayed,
+      //           adProvider: 'Chartboost',
+      //           adType: _adType,
+      //           placementId: location,
+      //         );
+      //       case ChartboostEventListener.didClickRewardedVideo:
+      //       case ChartboostEventListener.didClickInterstitial:
+      //         _reporter.reportEvent(
+      //           event: AdEvent.clicked,
+      //           adProvider: 'Chartboost',
+      //           adType: _adType,
+      //           placementId: location,
+      //         );
+      //       case ChartboostEventListener.didCompleteRewardedVideo:
+      //         _reporter.reportEvent(
+      //           event: AdEvent.completed,
+      //           adProvider: 'Chartboost',
+      //           adType: _adType,
+      //           placementId: location,
+      //         );
+      //         if (onRewarded != null) {
+      //           _invokeOnRewarded(onRewarded, 'Chartboost');
+      //         }
+      //       case ChartboostEventListener.didDismissRewardedVideo:
+      //       case ChartboostEventListener.didCloseRewardedVideo:
+      //       case ChartboostEventListener.didDismissInterstitial:
+      //       case ChartboostEventListener.didCloseInterstitial:
+      //         _cachedLocations.remove(location);
+      //         if (onAdDismissed != null) onAdDismissed();
+      //         cacheNextAd();
+      //       default:
+      //         break;
+      //     }
+      //   },
+      // );
     } catch (e) {
       debugPrint('Error showing Chartboost Rewarded ad ($_adType): $e');
       return Advertresponse.defaults(provider: 'Chartboost');

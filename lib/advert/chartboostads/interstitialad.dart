@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chartboost/chartboost.dart';
+// import 'package:chartboost/chartboost.dart';
 import 'package:flutter/material.dart';
 
 import '../../model/advertresponse.dart';
@@ -27,7 +27,7 @@ class ChartboostInterstitialAdManager {
     debugPrint('Caching Chartboost Interstitial ad ($_adType) for location: $location');
 
     try {
-      await Chartboost.cacheInterstitial(location: location);
+      // await Chartboost.cacheInterstitial(location: location);
     } catch (e) {
       _isLoading = false;
       debugPrint('Chartboost Interstitial cache exception ($_adType): $e');
@@ -60,34 +60,34 @@ class ChartboostInterstitialAdManager {
     debugPrint('Showing Chartboost Interstitial ad ($_adType) at location: $location');
 
     try {
-      Chartboost.showInterstitial(
-        location: location,
-        listener: (event) {
-          debugPrint('Chartboost Interstitial event: $event');
-          switch (event) {
-            case ChartboostEventListener.didDisplayInterstitial:
-              _reporter.reportEvent(
-                event: AdEvent.displayed,
-                adProvider: 'Chartboost',
-                adType: _adType,
-                placementId: location,
-              );
-            case ChartboostEventListener.didClickInterstitial:
-              _reporter.reportEvent(
-                event: AdEvent.clicked,
-                adProvider: 'Chartboost',
-                adType: _adType,
-                placementId: location,
-              );
-            case ChartboostEventListener.didDismissInterstitial:
-            case ChartboostEventListener.didCloseInterstitial:
-              _cachedLocations.remove(location);
-              cacheNextAd();
-            default:
-              break;
-          }
-        },
-      );
+      // Chartboost.showInterstitial(
+      //   location: location,
+      //   listener: (event) {
+      //     debugPrint('Chartboost Interstitial event: $event');
+      //     switch (event) {
+      //       case ChartboostEventListener.didDisplayInterstitial:
+      //         _reporter.reportEvent(
+      //           event: AdEvent.displayed,
+      //           adProvider: 'Chartboost',
+      //           adType: _adType,
+      //           placementId: location,
+      //         );
+      //       case ChartboostEventListener.didClickInterstitial:
+      //         _reporter.reportEvent(
+      //           event: AdEvent.clicked,
+      //           adProvider: 'Chartboost',
+      //           adType: _adType,
+      //           placementId: location,
+      //         );
+      //       case ChartboostEventListener.didDismissInterstitial:
+      //       case ChartboostEventListener.didCloseInterstitial:
+      //         _cachedLocations.remove(location);
+      //         cacheNextAd();
+      //       default:
+      //         break;
+      //     }
+      //   },
+      // );
     } catch (e) {
       debugPrint('Error showing Chartboost Interstitial ad ($_adType): $e');
       return Advertresponse.defaults(provider: 'Chartboost');
