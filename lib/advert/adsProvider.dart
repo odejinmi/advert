@@ -10,6 +10,7 @@ import 'googleProvider.dart';
 import 'googleads/bannerad.dart';
 import 'unityprovider.dart';
 import 'vungleprovider.dart';
+import 'chartboostprovider.dart';
 
 class AdManager extends GetxController with WidgetsBindingObserver {
   // Constants
@@ -25,6 +26,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   UnityProvider? _unityProvider;
   GoogleAdProvider? _googleProvider;
   VungleProvider? _vungleProvider;
+  ChartboostProvider? _chartboostProvider;
   late final AdcolonyProvider _adcolonyProvider;
 
   // State variables for provider cycling
@@ -94,12 +96,17 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     if (_adsConfig.vunglemodel != null) {
       _vungleProvider = VungleProvider(_adsConfig.vunglemodel!, _eventReporter, testmode);
     }
+
+    if (_adsConfig.chartboostmodel != null) {
+      _chartboostProvider = ChartboostProvider(_adsConfig.chartboostmodel!, _eventReporter, testmode);
+    }
   }
 
   // Getters
   GoogleAdProvider? get googleProvider => _googleProvider;
   UnityProvider? get unityProvider => _unityProvider;
   VungleProvider? get vungleProvider => _vungleProvider;
+  ChartboostProvider? get chartboostProvider => _chartboostProvider;
   int get providerCount => _getAvailableProviderCount();
   bool get isRewardedAdReady => _isAnyRewardedAdReady();
 
@@ -108,13 +115,15 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     if (_unityProvider != null) count++;
     if (_googleProvider != null) count++;
     if (_vungleProvider != null) count++;
+    if (_chartboostProvider != null) count++;
     return count > 0 ? count : 1;
   }
 
   bool _isAnyRewardedAdReady() {
     return (_unityProvider?.unityrewardedAd == true) ||
         (_googleProvider?.hasRewardedAd == true) ||
-        (_vungleProvider?.hasRewardedAd == true);
+        (_vungleProvider?.hasRewardedAd == true) ||
+        (_chartboostProvider?.hasRewardedAd == true);
   }
 
   void preloadAllAds() {
@@ -126,12 +135,14 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     if (_unityProvider != null) _unityProvider!.loadinterrtitialad();
     if (_googleProvider != null) _googleProvider!.loadInterstitialAd();
     if (_vungleProvider != null) _vungleProvider!.loadAllAds();
+    if (_chartboostProvider != null) _chartboostProvider!.loadAllAds();
   }
 
   void _preloadRewardedAds() {
     if (_unityProvider != null) _unityProvider!.loadrewardedad();
     if (_googleProvider != null) _googleProvider!.loadRewardAds();
     if (_vungleProvider != null) _vungleProvider!.loadAllAds();
+    if (_chartboostProvider != null) _chartboostProvider!.loadAllAds();
   }
 
   /// Shows an interstitial ad
@@ -182,6 +193,15 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           if (onAdClicked != null) onAdClicked();
         }, type: type);
       }
+      // Fallback to Chartboost
+      else if (_chartboostProvider != null && _chartboostProvider!.hasInterstitialAdByType(type)) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _chartboostProvider!.showInterstitialAd(() {
+          internalOnDismissed();
+          if (onAdClicked != null) onAdClicked();
+        }, type: type);
+      }
     } else {
       // Try Google first
       if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
@@ -209,6 +229,15 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         _advanceInterstitialProvider();
         _interstitialRetryAttempts = 0;
         return _vungleProvider!.showInterstitialAd(() {
+          internalOnDismissed();
+          if (onAdClicked != null) onAdClicked();
+        }, type: type);
+      }
+      // Fallback to Chartboost
+      else if (_chartboostProvider != null && _chartboostProvider!.hasInterstitialAdByType(type)) {
+        _advanceInterstitialProvider();
+        _interstitialRetryAttempts = 0;
+        return _chartboostProvider!.showInterstitialAd(() {
           internalOnDismissed();
           if (onAdClicked != null) onAdClicked();
         }, type: type);
@@ -316,6 +345,14 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           type: type,
           onAdDismissed: internalOnDismissed,
         );
+      } else if (_chartboostProvider != null && _chartboostProvider!.hasRewardedAdByType(type)) {
+        _rewardedRetryAttempts = 0;
+        return _chartboostProvider!.showRewardedAd(
+          internalOnRewarded,
+          () { if (onAdClicked != null) onAdClicked(); },
+          type: type,
+          onAdDismissed: internalOnDismissed,
+        );
       }
     } else {
       if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
@@ -338,6 +375,14 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       } else if (_vungleProvider != null && _vungleProvider!.hasRewardedAdByType(type)) {
         _rewardedRetryAttempts = 0;
         return _vungleProvider!.showRewardedAd(
+          internalOnRewarded,
+          () { if (onAdClicked != null) onAdClicked(); },
+          type: type,
+          onAdDismissed: internalOnDismissed,
+        );
+      } else if (_chartboostProvider != null && _chartboostProvider!.hasRewardedAdByType(type)) {
+        _rewardedRetryAttempts = 0;
+        return _chartboostProvider!.showRewardedAd(
           internalOnRewarded,
           () { if (onAdClicked != null) onAdClicked(); },
           type: type,
@@ -987,6 +1032,7 @@ class _UnifiedBannerSlotWidgetState extends State<UnifiedBannerSlotWidget> {
     final google = widget.adManager.googleProvider;
     final unity = widget.adManager.unityProvider;
     final vungle = widget.adManager.vungleProvider;
+    final chartboost = widget.adManager.chartboostProvider;
 
     if (!_googleFailed && google != null) {
       if (widget.priority == 'high') {
@@ -1007,6 +1053,10 @@ class _UnifiedBannerSlotWidgetState extends State<UnifiedBannerSlotWidget> {
 
     if (vungle != null) {
       return vungle.adWidget();
+    }
+
+    if (chartboost != null) {
+      return chartboost.adWidget();
     }
 
     return const SizedBox.shrink();

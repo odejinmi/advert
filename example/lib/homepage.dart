@@ -54,10 +54,17 @@ class _HomepageState extends State<Homepage> {
       ..addRewardedPlacement('freemoney', ['vungle_rewarded_placement'])
       ..addRewardedPlacement('giveaway', ['vungle_rewarded_placement']);
 
+    final chartboostModel = Chartboostmodel()
+      ..appId = "chartboost_test_app_id"
+      ..appSignature = "chartboost_test_app_signature"
+      ..addRewardedPlacement('freemoney', ['Default'])
+      ..addRewardedPlacement('giveaway', ['Default']);
+
     final adsModel = Adsmodel(
       googlemodel: googleConfig,
       unitymodel: unitymodel,
       vunglemodel: vungleModel,
+      chartboostmodel: chartboostModel,
     );
 
     _advertPlugin.initialize(testmode: false, adsmodel: adsModel).then((_) {

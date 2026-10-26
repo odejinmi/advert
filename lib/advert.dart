@@ -5,6 +5,7 @@ export 'package:advert/advert/event_reporter.dart';
 export 'package:advert/model/google.dart';
 export 'package:advert/model/unity.dart';
 export 'package:advert/model/vungle.dart';
+export 'package:advert/model/chartboost.dart';
 export 'package:advert/model/adsmodel.dart';
 export 'package:advert/model/advertresponse.dart';
 export 'package:advert/model/linked_device.dart';

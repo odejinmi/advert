@@ -32,6 +32,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  chartboost:
+    dependency: transitive
+    description:
+      name: chartboost
+      sha256: "094c99199e15cb79a7ceaf58f5fd43d262bb7c85a887845055d8f92388bfe464"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   clock:
     dependency: transitive
     description:
