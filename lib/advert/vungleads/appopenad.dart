@@ -27,34 +27,6 @@ class VungleAppOpenAdManager {
     try {
       final ad = await AppOpenAd.load(
         placementId: placementId,
-        listener: FullscreenAdListener(
-          onShown: () {
-            debugPrint('Vungle App Open ad shown ($_adType): $placementId');
-            _reporter.reportEvent(
-              event: AdEvent.displayed,
-              adProvider: 'Vungle',
-              adType: _adType,
-              placementId: placementId,
-            );
-          },
-          onClosed: () {
-            debugPrint('Vungle App Open ad closed ($_adType): $placementId');
-            _loadedAd = null;
-            loadAd();
-          },
-          onFailedToShow: (error) {
-            debugPrint('Vungle App Open ad failed to show ($_adType: $placementId): ${error.message}');
-            _reporter.reportEvent(
-              event: AdEvent.failed,
-              adProvider: 'Vungle',
-              adType: _adType,
-              placementId: placementId,
-              errorMessage: error.message,
-            );
-            _loadedAd = null;
-            loadAd();
-          },
-        ),
       );
       _loadedAd = ad;
       _isLoading = false;
@@ -81,13 +53,42 @@ class VungleAppOpenAdManager {
 
     final currentAd = _loadedAd!;
     _loadedAd = null;
+    final placementId = currentAd.placementId;
+    currentAd.listener = FullscreenAdListener(
+      onShown: () {
+        debugPrint('Vungle App Open ad shown ($_adType): $placementId');
+        _reporter.reportEvent(
+          event: AdEvent.displayed,
+          adProvider: 'Vungle',
+          adType: _adType,
+          placementId: placementId,
+        );
+      },
+      onClosed: () {
+        debugPrint('Vungle App Open ad closed ($_adType): $placementId');
+        _loadedAd = null;
+        loadAd();
+
+        if (onAdDismissed != null) onAdDismissed();
+      },
+      onFailedToShow: (error) {
+        debugPrint('Vungle App Open ad failed to show ($_adType: $placementId): ${error.message}');
+        _reporter.reportEvent(
+          event: AdEvent.failed,
+          adProvider: 'Vungle',
+          adType: _adType,
+          placementId: placementId,
+          errorMessage: error.message,
+        );
+        _loadedAd = null;
+        loadAd();
+      },
+    );
 
     debugPrint('Showing Vungle App Open ad ($_adType)');
     currentAd.show().catchError((e) {
       debugPrint('Error showing Vungle App Open ad ($_adType): $e');
     });
-
-    if (onAdDismissed != null) onAdDismissed();
 
     return Advertresponse.showing(provider: 'Vungle');
   }

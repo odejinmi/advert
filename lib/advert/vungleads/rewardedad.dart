@@ -27,43 +27,6 @@ class VungleRewardedAdManager {
     try {
       final ad = await RewardedAd.load(
         placementId: placementId,
-        listener: FullscreenAdListener(
-          onShown: () {
-            debugPrint('Vungle Rewarded ad shown ($_adType): $placementId');
-            _reporter.reportEvent(
-              event: AdEvent.displayed,
-              adProvider: 'Vungle',
-              adType: _adType,
-              placementId: placementId,
-            );
-          },
-          onClicked: () {
-            debugPrint('Vungle Rewarded ad clicked ($_adType): $placementId');
-            _reporter.reportEvent(
-              event: AdEvent.clicked,
-              adProvider: 'Vungle',
-              adType: _adType,
-              placementId: placementId,
-            );
-          },
-          onClosed: () {
-            debugPrint('Vungle Rewarded ad closed ($_adType): $placementId');
-            _loadedAd = null;
-            loadNextAd();
-          },
-          onFailedToShow: (error) {
-            debugPrint('Vungle Rewarded ad failed to show ($_adType: $placementId): ${error.message}');
-            _reporter.reportEvent(
-              event: AdEvent.failed,
-              adProvider: 'Vungle',
-              adType: _adType,
-              placementId: placementId,
-              errorMessage: error.message,
-            );
-            _loadedAd = null;
-            loadNextAd();
-          },
-        ),
       );
       _loadedAd = ad;
       _isLoading = false;
@@ -89,22 +52,58 @@ class VungleRewardedAdManager {
     }
 
     final currentAd = _loadedAd!;
+    final placementId = currentAd.placementId;
     _loadedAd = null;
+      currentAd.listener = FullscreenAdListener(
+        onShown: () {
+          debugPrint('Vungle Rewarded ad shown ($_adType): $placementId');
+          _reporter.reportEvent(
+            event: AdEvent.displayed,
+            adProvider: 'Vungle',
+            adType: _adType,
+            placementId: placementId,
+          );
+        },
+        onClicked: () {
+          debugPrint('Vungle Rewarded ad clicked ($_adType): $placementId');
+          _reporter.reportEvent(
+            event: AdEvent.clicked,
+            adProvider: 'Vungle',
+            adType: _adType,
+            placementId: placementId,
+          );
+          if (onClicked != null) onClicked();
+        },
+        onClosed: () {
+          debugPrint('Vungle Rewarded ad closed ($_adType): $placementId');
+          _loadedAd = null;
+          loadNextAd();
+          if (onAdDismissed != null) {
+            onAdDismissed();
+          }
+          if (onRewarded != null) {
+            _invokeOnRewarded(onRewarded, 'Vungle');
+          }
+        },
+        onFailedToShow: (error) {
+          debugPrint('Vungle Rewarded ad failed to show ($_adType: $placementId): ${error.message}');
+          _reporter.reportEvent(
+            event: AdEvent.failed,
+            adProvider: 'Vungle',
+            adType: _adType,
+            placementId: placementId,
+            errorMessage: error.message,
+          );
+          _loadedAd = null;
+          loadNextAd();
+        },
+      );
 
-    if (onRewarded != null) {
-      _invokeOnRewarded(onRewarded, 'Vungle');
-    }
-
-    if (onClicked != null) onClicked();
 
     debugPrint('Showing Vungle Rewarded ad ($_adType)');
     currentAd.show().catchError((e) {
       debugPrint('Error showing Vungle Rewarded ad ($_adType): $e');
     });
-
-    if (onAdDismissed != null) {
-      onAdDismissed();
-    }
 
     return Advertresponse.showing(provider: 'Vungle');
   }
