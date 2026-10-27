@@ -9,3 +9,4 @@ export 'package:advert/model/chartboost.dart';
 export 'package:advert/model/adsmodel.dart';
 export 'package:advert/model/advertresponse.dart';
 export 'package:advert/model/linked_device.dart';
+export 'package:google_mobile_ads/google_mobile_ads.dart';
