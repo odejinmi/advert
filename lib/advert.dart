@@ -6,6 +6,8 @@ export 'package:advert/model/google.dart';
 export 'package:advert/model/unity.dart';
 export 'package:advert/model/vungle.dart';
 export 'package:advert/model/chartboost.dart';
+export 'package:advert/model/levelplay.dart';
+export 'package:advert/model/ad_provider_type.dart';
 export 'package:advert/model/adsmodel.dart';
 export 'package:advert/model/advertresponse.dart';
 export 'package:advert/model/linked_device.dart';

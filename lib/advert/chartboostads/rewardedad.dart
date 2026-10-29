@@ -1,108 +1,133 @@
-import 'dart:io';
-
-// import 'package:chartboost/chartboost.dart';
+import 'package:chartboost_flutter/chartboost_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../model/advertresponse.dart';
 import '../event_reporter.dart';
 
-class ChartboostRewardedAdManager {
+class ChartboostRewardedAdManager implements ChartboostRewardedDelegate {
   final List<String> locations;
   final EventReporter _reporter;
   final String _adType;
 
   final Set<String> _cachedLocations = {};
   bool _isLoading = false;
+  Function? _pendingOnRewarded;
+  Function? _pendingOnDismissed;
 
   ChartboostRewardedAdManager(this.locations, this._reporter, {String adType = 'Chartboost_Rewarded'})
-      : _adType = adType;
+      : _adType = adType {
+    Chartboost.setRewardedDelegate(this);
+  }
 
   bool get hasAds => _cachedLocations.isNotEmpty;
 
   void cacheNextAd() async {
-    if (!Platform.isAndroid || _isLoading || locations.isEmpty) return;
+    if (_isLoading || locations.isEmpty) return;
     _isLoading = true;
 
     final location = locations.first;
     debugPrint('Caching Chartboost Rewarded ad ($_adType) for location: $location');
 
     try {
-      // await Chartboost.cacheInterstitial(location: location);
+      await Chartboost.cacheRewarded(location);
     } catch (e) {
       _isLoading = false;
       debugPrint('Chartboost Rewarded cache exception ($_adType): $e');
     }
   }
 
-  void onAdCached(String location) {
-    _cachedLocations.add(location);
+  @override
+  void onRewardedCached(String location, String? error) {
     _isLoading = false;
-    debugPrint('Chartboost Rewarded ad cached successfully ($_adType): $location');
+    if (error == null || error.isEmpty) {
+      _cachedLocations.add(location);
+      debugPrint('Chartboost Rewarded ad cached successfully ($_adType): $location');
+    } else {
+      debugPrint('Chartboost Rewarded ad failed to cache ($_adType: $location): $error');
+      _reporter.reportEvent(
+        event: AdEvent.failed,
+        adProvider: 'Chartboost',
+        adType: _adType,
+        placementId: location,
+        errorMessage: error,
+      );
+    }
   }
 
-  void onAdFailedToLoad(String location, String error) {
-    _isLoading = false;
-    debugPrint('Chartboost Rewarded ad failed to load ($_adType: $location): $error');
+  @override
+  void onRewardedShown(String location, String? error) {
+    if (error == null || error.isEmpty) {
+      debugPrint('Chartboost Rewarded ad shown ($_adType): $location');
+      _reporter.reportEvent(
+        event: AdEvent.displayed,
+        adProvider: 'Chartboost',
+        adType: _adType,
+        placementId: location,
+      );
+    } else {
+      debugPrint('Chartboost Rewarded ad show error ($_adType: $location): $error');
+      _reporter.reportEvent(
+        event: AdEvent.failed,
+        adProvider: 'Chartboost',
+        adType: _adType,
+        placementId: location,
+        errorMessage: error,
+      );
+    }
+  }
+
+  @override
+  void onRewardEarned(String location, int rewardAmount) {
+    debugPrint('Chartboost Rewarded ad reward earned ($_adType): $rewardAmount');
     _reporter.reportEvent(
-      event: AdEvent.failed,
+      event: AdEvent.completed,
       adProvider: 'Chartboost',
       adType: _adType,
       placementId: location,
-      errorMessage: error,
+    );
+    if (_pendingOnRewarded != null) {
+      _invokeOnRewarded(_pendingOnRewarded, 'Chartboost');
+      _pendingOnRewarded = null;
+    }
+  }
+
+  @override
+  void onRewardedDismissed(String location) {
+    debugPrint('Chartboost Rewarded ad dismissed ($_adType): $location');
+    _cachedLocations.remove(location);
+    if (_pendingOnDismissed != null) {
+      _pendingOnDismissed!();
+      _pendingOnDismissed = null;
+    }
+    cacheNextAd();
+  }
+
+  @override
+  void onRewardedClicked(String location, String? error) {
+    debugPrint('Chartboost Rewarded ad clicked ($_adType): $location');
+    _reporter.reportEvent(
+      event: AdEvent.clicked,
+      adProvider: 'Chartboost',
+      adType: _adType,
+      placementId: location,
     );
   }
 
+  @override
+  void onRewardedImpressionRecorded(String location) {}
+
   Advertresponse showAd(Function? onRewarded, Function? onClicked, {Function? onAdDismissed}) {
     final location = locations.isNotEmpty ? locations.first : 'Default';
+
+    _pendingOnRewarded = onRewarded;
+    _pendingOnDismissed = onAdDismissed;
 
     if (onClicked != null) onClicked();
 
     debugPrint('Showing Chartboost Rewarded ad ($_adType) at location: $location');
 
     try {
-      // Chartboost.showInterstitial(
-      //   location: location,
-      //   listener: (event) {
-      //     debugPrint('Chartboost Rewarded event: $event');
-      //     switch (event) {
-      //       case ChartboostEventListener.didDisplayRewardedVideo:
-      //       case ChartboostEventListener.didDisplayInterstitial:
-      //         _reporter.reportEvent(
-      //           event: AdEvent.displayed,
-      //           adProvider: 'Chartboost',
-      //           adType: _adType,
-      //           placementId: location,
-      //         );
-      //       case ChartboostEventListener.didClickRewardedVideo:
-      //       case ChartboostEventListener.didClickInterstitial:
-      //         _reporter.reportEvent(
-      //           event: AdEvent.clicked,
-      //           adProvider: 'Chartboost',
-      //           adType: _adType,
-      //           placementId: location,
-      //         );
-      //       case ChartboostEventListener.didCompleteRewardedVideo:
-      //         _reporter.reportEvent(
-      //           event: AdEvent.completed,
-      //           adProvider: 'Chartboost',
-      //           adType: _adType,
-      //           placementId: location,
-      //         );
-      //         if (onRewarded != null) {
-      //           _invokeOnRewarded(onRewarded, 'Chartboost');
-      //         }
-      //       case ChartboostEventListener.didDismissRewardedVideo:
-      //       case ChartboostEventListener.didCloseRewardedVideo:
-      //       case ChartboostEventListener.didDismissInterstitial:
-      //       case ChartboostEventListener.didCloseInterstitial:
-      //         _cachedLocations.remove(location);
-      //         if (onAdDismissed != null) onAdDismissed();
-      //         cacheNextAd();
-      //       default:
-      //         break;
-      //     }
-      //   },
-      // );
+      Chartboost.showRewarded(location);
     } catch (e) {
       debugPrint('Error showing Chartboost Rewarded ad ($_adType): $e');
       return Advertresponse.defaults(provider: 'Chartboost');

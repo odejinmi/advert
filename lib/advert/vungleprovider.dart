@@ -14,7 +14,6 @@ class VungleProvider {
   final Vunglemodel vunglemodel;
   final EventReporter _reporter;
   final bool testmode;
-  bool _isInitialized = false;
 
   final Map<String, VungleInterstitialAdManager> _interstitialManagers = {};
   final Map<String, VungleRewardedAdManager> _rewardedManagers = {};
@@ -33,7 +32,6 @@ class VungleProvider {
         appId: vunglemodel.appId,
       );
       debugPrint('Liftoff/Vungle Ads Initialized with App ID: ${vunglemodel.appId}');
-      _isInitialized = true;
       _initializeAdManagers();
       loadAllAds();
     } catch (e) {

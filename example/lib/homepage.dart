@@ -60,11 +60,17 @@ class _HomepageState extends State<Homepage> {
       ..addRewardedPlacement('freemoney', ['Default'])
       ..addRewardedPlacement('giveaway', ['Default']);
 
+    final levelPlayModel = Levelplaymodel()
+      ..appKey = "levelplay_test_app_key"
+      ..addRewardedPlacement('freemoney', ['levelplay_rewarded_ad_unit_id'])
+      ..addRewardedPlacement('giveaway', ['levelplay_rewarded_ad_unit_id']);
+
     final adsModel = Adsmodel(
       googlemodel: googleConfig,
       unitymodel: unitymodel,
       vunglemodel: vungleModel,
       chartboostmodel: chartboostModel,
+      levelplaymodel: levelPlayModel,
     );
 
     _advertPlugin.initialize(testmode: false, adsmodel: adsModel).then((_) {
@@ -132,6 +138,44 @@ class _HomepageState extends State<Homepage> {
               ),
             ),
             const SizedBox(height: 20),
+
+            _buildSection(
+              title: "Provider Controls (Enable/Disable & Priority)",
+              children: [
+                ...AdProviderType.values.map((type) {
+                  final isEnabled = adsProv.isProviderEnabled(type);
+                  return SwitchListTile(
+                    dense: true,
+                    title: Text(type.nameString),
+                    subtitle: Text(isEnabled ? "Active in waterfall" : "Disabled"),
+                    value: isEnabled,
+                    onChanged: (val) {
+                      setState(() {
+                        adsProv.setProviderEnabled(type, val);
+                      });
+                    },
+                  );
+                }),
+                const SizedBox(height: 8),
+                Text(
+                  "Waterfall Order:\n${adsProv.getActiveOrderedProviders().map((e) => e.nameString).join(' -> ')}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      final current = List<AdProviderType>.from(adsProv.providerPriorityOrder);
+                      current.add(current.removeAt(0));
+                      adsProv.setProviderPriorityOrder(current);
+                    });
+                  },
+                  icon: const Icon(Icons.swap_calls),
+                  label: const Text("Rotate Priority Order"),
+                ),
+              ],
+            ),
             
             _buildSection(
               title: "Interstitial Ads",

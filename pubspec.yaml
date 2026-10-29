@@ -20,7 +20,8 @@ dependencies:
   package_info_plus: ^10.2.2
   get: ^4.7.3
   hx_liftoff_ads: ^0.1.2
-#  chartboost: ^1.0.0
+  unity_levelplay_mediation: ^9.4.0
+  chartboost_flutter: ^1.0.0
 
 dev_dependencies:
   flutter_test:

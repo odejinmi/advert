@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../model/ad_provider_type.dart';
 import '../model/adsmodel.dart';
 import '../model/advertresponse.dart';
 import 'AdProgressDialog.dart';
-import 'adcolonyProvider.dart';
 import 'event_reporter.dart';
 import 'googleProvider.dart';
 import 'googleads/bannerad.dart';
 import 'unityprovider.dart';
 import 'vungleprovider.dart';
 import 'chartboostprovider.dart';
+import 'levelplayprovider.dart';
 
 class AdManager extends GetxController with WidgetsBindingObserver {
   // Constants
@@ -27,7 +28,25 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   GoogleAdProvider? _googleProvider;
   VungleProvider? _vungleProvider;
   ChartboostProvider? _chartboostProvider;
-  late final AdcolonyProvider _adcolonyProvider;
+  LevelPlayProvider? _levelPlayProvider;
+
+  // Provider Enabled/Disabled State
+  final Map<AdProviderType, bool> _enabledProviders = {
+    AdProviderType.google: true,
+    AdProviderType.unity: true,
+    AdProviderType.vungle: true,
+    AdProviderType.chartboost: true,
+    AdProviderType.levelplay: true,
+  };
+
+  // Provider Priority Order
+  List<AdProviderType> _providerPriorityOrder = [
+    AdProviderType.google,
+    AdProviderType.unity,
+    AdProviderType.vungle,
+    AdProviderType.chartboost,
+    AdProviderType.levelplay,
+  ];
 
   // State variables for provider cycling
   int _interstitialProviderIndex = 1;
@@ -53,6 +72,8 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   bool enableAppOpenOnResume = true;
   DateTime? _lastAppOpenTime;
   bool _isAnyFullScreenAdShowing = false;
+  bool _isAdLoadingDialogShowing = false;
+  BuildContext? _adLoadingDialogContext;
   static const Duration appOpenCooldown = Duration(seconds: 30);
 
   // Constructor
@@ -83,7 +104,13 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   }
 
   void _initializeAdProviders() {
-    _adcolonyProvider = AdcolonyProvider();
+    if (_adsConfig.enabledProviders != null) {
+      _enabledProviders.addAll(_adsConfig.enabledProviders!);
+    }
+
+    if (_adsConfig.providerPriorityOrder != null && _adsConfig.providerPriorityOrder!.isNotEmpty) {
+      _providerPriorityOrder = List.from(_adsConfig.providerPriorityOrder!);
+    }
     
     if (_adsConfig.googlemodel != null) {
       _googleProvider = GoogleAdProvider(_adsConfig.googlemodel!, _eventReporter);
@@ -100,6 +127,47 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     if (_adsConfig.chartboostmodel != null) {
       _chartboostProvider = ChartboostProvider(_adsConfig.chartboostmodel!, _eventReporter, testmode);
     }
+
+    if (_adsConfig.levelplaymodel != null) {
+      _levelPlayProvider = LevelPlayProvider(_adsConfig.levelplaymodel!, _eventReporter, testmode);
+    }
+  }
+
+  // Dynamic Provider Control Methods
+  void setProviderEnabled(AdProviderType provider, bool enabled) {
+    _enabledProviders[provider] = enabled;
+    debugPrint('Provider ${provider.nameString} ${enabled ? "ENABLED" : "DISABLED"}');
+  }
+
+  void enableProvider(AdProviderType provider) => setProviderEnabled(provider, true);
+  void disableProvider(AdProviderType provider) => setProviderEnabled(provider, false);
+
+  bool isProviderEnabled(AdProviderType provider) => _enabledProviders[provider] ?? true;
+
+  void setProviderPriorityOrder(List<AdProviderType> order) {
+    _providerPriorityOrder = List.from(order);
+    debugPrint('Provider Priority Order Updated: ${_providerPriorityOrder.map((e) => e.nameString).join(" -> ")}');
+  }
+
+  List<AdProviderType> get providerPriorityOrder => List.unmodifiable(_providerPriorityOrder);
+
+  /// Returns list of active, initialized, and enabled providers in priority order
+  List<AdProviderType> getActiveOrderedProviders() {
+    return _providerPriorityOrder.where((type) {
+      if (!isProviderEnabled(type)) return false;
+      switch (type) {
+        case AdProviderType.google:
+          return _googleProvider != null;
+        case AdProviderType.unity:
+          return _unityProvider != null;
+        case AdProviderType.vungle:
+          return _vungleProvider != null;
+        case AdProviderType.chartboost:
+          return _chartboostProvider != null;
+        case AdProviderType.levelplay:
+          return _levelPlayProvider != null;
+      }
+    }).toList();
   }
 
   // Getters
@@ -107,23 +175,30 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   UnityProvider? get unityProvider => _unityProvider;
   VungleProvider? get vungleProvider => _vungleProvider;
   ChartboostProvider? get chartboostProvider => _chartboostProvider;
+  LevelPlayProvider? get levelPlayProvider => _levelPlayProvider;
   int get providerCount => _getAvailableProviderCount();
   bool get isRewardedAdReady => _isAnyRewardedAdReady();
 
   int _getAvailableProviderCount() {
-    int count = 0;
-    if (_unityProvider != null) count++;
-    if (_googleProvider != null) count++;
-    if (_vungleProvider != null) count++;
-    if (_chartboostProvider != null) count++;
-    return count > 0 ? count : 1;
+    return getActiveOrderedProviders().length;
   }
 
   bool _isAnyRewardedAdReady() {
-    return (_unityProvider?.unityrewardedAd == true) ||
-        (_googleProvider?.hasRewardedAd == true) ||
-        (_vungleProvider?.hasRewardedAd == true) ||
-        (_chartboostProvider?.hasRewardedAd == true);
+    for (final type in getActiveOrderedProviders()) {
+      switch (type) {
+        case AdProviderType.google:
+          if (_googleProvider?.hasRewardedAd == true) return true;
+        case AdProviderType.unity:
+          if (_unityProvider?.unityrewardedAd == true) return true;
+        case AdProviderType.vungle:
+          if (_vungleProvider?.hasRewardedAd == true) return true;
+        case AdProviderType.chartboost:
+          if (_chartboostProvider?.hasRewardedAd == true) return true;
+        case AdProviderType.levelplay:
+          if (_levelPlayProvider?.hasRewardedAd == true) return true;
+      }
+    }
+    return false;
   }
 
   void preloadAllAds() {
@@ -132,119 +207,111 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   }
 
   void _preloadInterstitialAds() {
-    if (_unityProvider != null) _unityProvider!.loadinterrtitialad();
-    if (_googleProvider != null) _googleProvider!.loadInterstitialAd();
-    if (_vungleProvider != null) _vungleProvider!.loadAllAds();
-    if (_chartboostProvider != null) _chartboostProvider!.loadAllAds();
+    for (final type in getActiveOrderedProviders()) {
+      switch (type) {
+        case AdProviderType.google:
+          _googleProvider?.loadInterstitialAd();
+        case AdProviderType.unity:
+          _unityProvider?.loadinterrtitialad();
+        case AdProviderType.vungle:
+          _vungleProvider?.loadAllAds();
+        case AdProviderType.chartboost:
+          _chartboostProvider?.loadAllAds();
+        case AdProviderType.levelplay:
+          _levelPlayProvider?.loadAllAds();
+      }
+    }
   }
 
   void _preloadRewardedAds() {
-    if (_unityProvider != null) _unityProvider!.loadrewardedad();
-    if (_googleProvider != null) _googleProvider!.loadRewardAds();
-    if (_vungleProvider != null) _vungleProvider!.loadAllAds();
-    if (_chartboostProvider != null) _chartboostProvider!.loadAllAds();
+    for (final type in getActiveOrderedProviders()) {
+      switch (type) {
+        case AdProviderType.google:
+          _googleProvider?.loadRewardAds();
+        case AdProviderType.unity:
+          _unityProvider?.loadrewardedad();
+        case AdProviderType.vungle:
+          _vungleProvider?.loadAllAds();
+        case AdProviderType.chartboost:
+          _chartboostProvider?.loadAllAds();
+        case AdProviderType.levelplay:
+          _levelPlayProvider?.loadAllAds();
+      }
+    }
   }
 
-  /// Shows an interstitial ad
+  /// Shows an interstitial ad following active provider priority order
   Future<Advertresponse> showInterstitialAd({
+    BuildContext? context,
     String type = 'interstitial',
     Function? onAdClicked,
     Function? onAdImpression,
     Function? onAdDismissed,
   }) async {
+    if (context != null) _showAdLoadingDialog(context);
     _preloadInterstitialAds();
     _isAnyFullScreenAdShowing = true;
     
     final internalOnDismissed = () {
       _isAnyFullScreenAdShowing = false;
+      _hideAdLoadingDialog();
       if (onAdDismissed != null) onAdDismissed();
     };
 
-    int turn = _interstitialProviderIndex;
-    
-    if (turn == 1) {
-      // Try Unity first
-      if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        final res = _unityProvider!.showAd1(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
-        return res;
-      } 
-      // Fallback to Google
-      else if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(
-          type: type, 
-          onAdClicked: onAdClicked, 
-          onAdImpression: onAdImpression, 
-          onAdDismissed: internalOnDismissed
-        );
-      }
-      // Fallback to Vungle
-      else if (_vungleProvider != null && _vungleProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _vungleProvider!.showInterstitialAd(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
-      }
-      // Fallback to Chartboost
-      else if (_chartboostProvider != null && _chartboostProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _chartboostProvider!.showInterstitialAd(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
-      }
-    } else {
-      // Try Google first
-      if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _googleProvider!.showInterstitialAd(
-          type: type, 
-          onAdClicked: onAdClicked, 
-          onAdImpression: onAdImpression, 
-          onAdDismissed: internalOnDismissed
-        );
-      }
-      // Fallback to Unity
-      else if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        final res = _unityProvider!.showAd1(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
-        return res;
-      }
-      // Fallback to Vungle
-      else if (_vungleProvider != null && _vungleProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _vungleProvider!.showInterstitialAd(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
-      }
-      // Fallback to Chartboost
-      else if (_chartboostProvider != null && _chartboostProvider!.hasInterstitialAdByType(type)) {
-        _advanceInterstitialProvider();
-        _interstitialRetryAttempts = 0;
-        return _chartboostProvider!.showInterstitialAd(() {
-          internalOnDismissed();
-          if (onAdClicked != null) onAdClicked();
-        }, type: type);
+    final activeProviders = getActiveOrderedProviders();
+
+    for (final providerType in activeProviders) {
+      switch (providerType) {
+        case AdProviderType.google:
+          if (_googleProvider != null && _googleProvider!.hasInterstitialAdByType(type)) {
+            _interstitialRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _googleProvider!.showInterstitialAd(
+              type: type, 
+              onAdClicked: onAdClicked, 
+              onAdImpression: onAdImpression, 
+              onAdDismissed: internalOnDismissed
+            );
+          }
+        case AdProviderType.unity:
+          if (_unityProvider != null && _unityProvider!.hasInterstitialAdByType(type)) {
+            _interstitialRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _unityProvider!.showAd1(() {
+              internalOnDismissed();
+              if (onAdClicked != null) onAdClicked();
+            }, type: type);
+          }
+        case AdProviderType.vungle:
+          if (_vungleProvider != null && _vungleProvider!.hasInterstitialAdByType(type)) {
+            _interstitialRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _vungleProvider!.showInterstitialAd(() {
+              internalOnDismissed();
+              if (onAdClicked != null) onAdClicked();
+            }, type: type);
+          }
+        case AdProviderType.chartboost:
+          if (_chartboostProvider != null && _chartboostProvider!.hasInterstitialAdByType(type)) {
+            _interstitialRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _chartboostProvider!.showInterstitialAd(() {
+              internalOnDismissed();
+              if (onAdClicked != null) onAdClicked();
+            }, type: type);
+          }
+        case AdProviderType.levelplay:
+          if (_levelPlayProvider != null && _levelPlayProvider!.hasInterstitialAdByType(type)) {
+            _interstitialRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _levelPlayProvider!.showInterstitialAd(() {
+              internalOnDismissed();
+              if (onAdClicked != null) onAdClicked();
+            }, type: type);
+          }
       }
     }
 
-    // Both failed or not ready, try retry logic
     _isAnyFullScreenAdShowing = false;
     return await _handleInterstitialRetry(
       type: type,
@@ -269,6 +336,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       );
     } else {
       _interstitialRetryAttempts = 0;
+      _hideAdLoadingDialog();
       return Advertresponse.defaults();
     }
   }
@@ -279,6 +347,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   /// Shows a rewarded ad with fallback logic (High -> Low -> ...).
   Future<Advertresponse> showRewardedAd({
+    BuildContext? context,
     String type = 'rewarded',
     Function? onRewarded,
     Function? onAdClicked,
@@ -288,11 +357,13 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     int retryDelaySeconds = 1,
     bool useProviderCycling = true,
   }) async {
+    if (context != null) _showAdLoadingDialog(context);
     _preloadRewardedAds();
     _isAnyFullScreenAdShowing = true;
     
     final internalOnDismissed = () {
       _isAnyFullScreenAdShowing = false;
+      _hideAdLoadingDialog();
       if (onAdDismissed != null) onAdDismissed();
     };
 
@@ -316,89 +387,74 @@ class AdManager extends GetxController with WidgetsBindingObserver {
       return res;
     }
 
-    // 1: Unity, 2: Google
-    int turn = _rewardedProviderIndex;
+    final activeProviders = getActiveOrderedProviders();
 
-    if (turn == 1) {
-      if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
-        _rewardedProviderIndex = 2; 
-        _rewardedRetryAttempts = 0;
-        return _unityProvider!.showRewardedAd(internalOnRewarded, () {
-          if (onAdClicked != null) onAdClicked();
-        }, type: type, onAdDismissed: internalOnDismissed);
-      } else if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
-        _rewardedProviderIndex = 1; 
-        _rewardedRetryAttempts = 0;
-        return _googleProvider!.showRewardedAd(
-          type: type,
-          onRewarded: internalOnRewarded,
-          onAdClicked: onAdClicked,
-          onAdImpression: onAdImpression,
-          onAdDismissed: internalOnDismissed,
-          customData: customData,
-        );
-      } else if (_vungleProvider != null && _vungleProvider!.hasRewardedAdByType(type)) {
-        _rewardedRetryAttempts = 0;
-        return _vungleProvider!.showRewardedAd(
-          internalOnRewarded,
-          () { if (onAdClicked != null) onAdClicked(); },
-          type: type,
-          onAdDismissed: internalOnDismissed,
-        );
-      } else if (_chartboostProvider != null && _chartboostProvider!.hasRewardedAdByType(type)) {
-        _rewardedRetryAttempts = 0;
-        return _chartboostProvider!.showRewardedAd(
-          internalOnRewarded,
-          () { if (onAdClicked != null) onAdClicked(); },
-          type: type,
-          onAdDismissed: internalOnDismissed,
-        );
-      }
-    } else {
-      if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
-        _rewardedProviderIndex = 1; 
-        _rewardedRetryAttempts = 0;
-        return _googleProvider!.showRewardedAd(
-          type: type,
-          onRewarded: internalOnRewarded,
-          onAdClicked: onAdClicked,
-          onAdImpression: onAdImpression,
-          onAdDismissed: internalOnDismissed,
-          customData: customData,
-        );
-      } else if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
-        _rewardedProviderIndex = 2; 
-        _rewardedRetryAttempts = 0;
-        return _unityProvider!.showRewardedAd(internalOnRewarded, () {
-          if (onAdClicked != null) onAdClicked();
-        }, type: type, onAdDismissed: internalOnDismissed);
-      } else if (_vungleProvider != null && _vungleProvider!.hasRewardedAdByType(type)) {
-        _rewardedRetryAttempts = 0;
-        return _vungleProvider!.showRewardedAd(
-          internalOnRewarded,
-          () { if (onAdClicked != null) onAdClicked(); },
-          type: type,
-          onAdDismissed: internalOnDismissed,
-        );
-      } else if (_chartboostProvider != null && _chartboostProvider!.hasRewardedAdByType(type)) {
-        _rewardedRetryAttempts = 0;
-        return _chartboostProvider!.showRewardedAd(
-          internalOnRewarded,
-          () { if (onAdClicked != null) onAdClicked(); },
-          type: type,
-          onAdDismissed: internalOnDismissed,
-        );
+    for (final providerType in activeProviders) {
+      switch (providerType) {
+        case AdProviderType.google:
+          if (_googleProvider != null && _googleProvider!.hasRewardedAdByType(type)) {
+            _rewardedRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _googleProvider!.showRewardedAd(
+              type: type,
+              onRewarded: internalOnRewarded,
+              onAdClicked: onAdClicked,
+              onAdImpression: onAdImpression,
+              onAdDismissed: internalOnDismissed,
+              customData: customData,
+            );
+          }
+        case AdProviderType.unity:
+          if (_unityProvider != null && _unityProvider!.hasRewardedAdByType(type)) {
+            _rewardedRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _unityProvider!.showRewardedAd(internalOnRewarded, () {
+              if (onAdClicked != null) onAdClicked();
+            }, type: type, onAdDismissed: internalOnDismissed);
+          }
+        case AdProviderType.vungle:
+          if (_vungleProvider != null && _vungleProvider!.hasRewardedAdByType(type)) {
+            _rewardedRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _vungleProvider!.showRewardedAd(
+              internalOnRewarded,
+              () { if (onAdClicked != null) onAdClicked(); },
+              type: type,
+              onAdDismissed: internalOnDismissed,
+            );
+          }
+        case AdProviderType.chartboost:
+          if (_chartboostProvider != null && _chartboostProvider!.hasRewardedAdByType(type)) {
+            _rewardedRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _chartboostProvider!.showRewardedAd(
+              internalOnRewarded,
+              () { if (onAdClicked != null) onAdClicked(); },
+              type: type,
+              onAdDismissed: internalOnDismissed,
+            );
+          }
+        case AdProviderType.levelplay:
+          if (_levelPlayProvider != null && _levelPlayProvider!.hasRewardedAdByType(type)) {
+            _rewardedRetryAttempts = 0;
+            _hideAdLoadingDialog();
+            return _levelPlayProvider!.showRewardedAd(
+              internalOnRewarded,
+              () { if (onAdClicked != null) onAdClicked(); },
+              type: type,
+              onAdDismissed: internalOnDismissed,
+            );
+          }
       }
     }
 
     // RETRY LOGIC
     if (_rewardedRetryAttempts < MAX_RETRY_ATTEMPTS) {
       _rewardedRetryAttempts++;
-      _rewardedProviderIndex = (turn == 1) ? 2 : 1;
-
       debugPrint('No rewarded ads ($type) ready. Retry attempt ${_rewardedRetryAttempts}/$MAX_RETRY_ATTEMPTS');
       await Future.delayed(Duration(seconds: retryDelaySeconds));
       return showRewardedAd(
+        context: context,
         type: type,
         onRewarded: onRewarded,
         onAdClicked: onAdClicked,
@@ -411,6 +467,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     } else {
       _rewardedRetryAttempts = 0;
       _isAnyFullScreenAdShowing = false;
+      _hideAdLoadingDialog();
       return Advertresponse.defaults();
     }
   }
@@ -757,6 +814,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   void _showAdProgressDialog(BuildContext context) {
     if (!context.mounted) return;
+    _hideAdLoadingDialog();
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -773,6 +831,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
         onCancel: () {
           isShowingAds.value = false;
           Navigator.of(dialogContext).pop();
+          _hideAdLoadingDialog();
         },
       ),
     );
@@ -780,6 +839,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
 
   void _showRetryDialog(BuildContext context) {
     if (!context.mounted) return;
+    _hideAdLoadingDialog();
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -798,6 +858,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
           TextButton(
             onPressed: () {
               isShowingAds.value = false;
+              _hideAdLoadingDialog();
               Navigator.of(dialogContext).pop();
             },
             child: const Text("Cancel", style: TextStyle(color: Color(0xFFF9C304))),
@@ -814,7 +875,78 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     );
   }
 
+  void _showAdLoadingDialog(BuildContext context) {
+    if (!context.mounted || _isAdLoadingDialogShowing) return;
+    _isAdLoadingDialogShowing = true;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        _adLoadingDialogContext = dialogContext;
+        return PopScope(
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) {
+              _isAdLoadingDialogShowing = false;
+              _adLoadingDialogContext = null;
+              isShowingAds.value = false;
+            }
+          },
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1A1C23),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFFF9C304),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    "Loading ad...",
+                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                  onPressed: () {
+                    _hideAdLoadingDialog();
+                    isShowingAds.value = false;
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isAdLoadingDialogShowing = false;
+      _adLoadingDialogContext = null;
+    });
+  }
+
+  void _hideAdLoadingDialog() {
+    if (_isAdLoadingDialogShowing) {
+      if (_adLoadingDialogContext != null && _adLoadingDialogContext!.mounted) {
+        try {
+          Navigator.of(_adLoadingDialogContext!).pop();
+        } catch (_) {}
+      }
+      _isAdLoadingDialogShowing = false;
+      _adLoadingDialogContext = null;
+    }
+  }
+
   Future<void> _playCurrentAd(BuildContext context) async {
+    _showAdLoadingDialog(context);
+
     Advertresponse result;
     Advertresponse? currentAdResponse;
 
@@ -892,6 +1024,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
     }
 
     currentAdResponse = result;
+    _hideAdLoadingDialog();
 
     if (!result.status) {
       if (context.mounted) {
@@ -1033,6 +1166,7 @@ class _UnifiedBannerSlotWidgetState extends State<UnifiedBannerSlotWidget> {
     final unity = widget.adManager.unityProvider;
     final vungle = widget.adManager.vungleProvider;
     final chartboost = widget.adManager.chartboostProvider;
+    final levelplay = widget.adManager.levelPlayProvider;
 
     if (!_googleFailed && google != null) {
       if (widget.priority == 'high') {
@@ -1057,6 +1191,10 @@ class _UnifiedBannerSlotWidgetState extends State<UnifiedBannerSlotWidget> {
 
     if (chartboost != null) {
       return chartboost.adWidget();
+    }
+
+    if (levelplay != null) {
+      return levelplay.adWidget();
     }
 
     return const SizedBox.shrink();

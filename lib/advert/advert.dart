@@ -57,8 +57,6 @@ class _AdConfig {
   // Unity placement IDs
   static const List<String> androidBannerPlacements = ['newandroidbanner'];
   static const List<String> iosBannerPlacements = ['iOS_Banner'];
-  static const List<String> interstitialPlacements = ['video', 'iOS_Interstitial'];
-  static const List<String> rewardedPlacements = ['Android_Rewarded', 'rewardedVideo', 'iOS_Rewarded'];
 }
 
 class Advert {

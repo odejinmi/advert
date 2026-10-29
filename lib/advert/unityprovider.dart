@@ -142,6 +142,5 @@ class UnityProvider {
         );
       },
     );
-    return const SizedBox.shrink();
   }
 }

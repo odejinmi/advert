@@ -1,6 +1,4 @@
-import 'dart:io';
-
-// import 'package:chartboost/chartboost.dart';
+import 'package:chartboost_flutter/chartboost_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../model/advertresponse.dart';
@@ -20,24 +18,27 @@ class ChartboostProvider {
   final Map<String, ChartboostRewardedAdManager> _rewardedManagers = {};
 
   ChartboostProvider(this.chartboostmodel, this._reporter, this.testmode) {
-    if (Platform.isAndroid) {
-      _initChartboost();
-    } else {
-      debugPrint('Chartboost 1.0.0 package only supports Android platform.');
-    }
+    _initChartboost();
   }
 
   Future<void> _initChartboost() async {
     if (chartboostmodel.appId.isEmpty || chartboostmodel.appSignature.isEmpty) return;
 
     try {
-      // await Chartboost.init(chartboostmodel.appId, chartboostmodel.appSignature);
-      debugPrint('Chartboost Ads Initialized with App ID: ${chartboostmodel.appId}');
-      _isInitialized = true;
-      _initializeAdManagers();
-      loadAllAds();
+      final success = await Chartboost.start(
+        appId: chartboostmodel.appId,
+        appSignature: chartboostmodel.appSignature,
+      );
+      if (success) {
+        debugPrint('Chartboost Ads Initialized successfully with App ID: ${chartboostmodel.appId}');
+        _isInitialized = true;
+        _initializeAdManagers();
+        loadAllAds();
+      } else {
+        debugPrint('Chartboost Ads Initialization returned false');
+      }
     } catch (e) {
-      debugPrint('Chartboost Ads Initialization Error: $e');
+      debugPrint('Chartboost Ads Initialization Exception: $e');
     }
   }
 

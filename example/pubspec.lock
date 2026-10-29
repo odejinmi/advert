@@ -32,6 +32,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  chartboost_flutter:
+    dependency: transitive
+    description:
+      name: chartboost_flutter
+      sha256: "44bb556d74a8decdbb5535a089eca4b1d19ca324c55a74da007d4eeaeca2cef9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   clock:
     dependency: transitive
     description:
@@ -363,6 +371,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.0"
+  unity_levelplay_mediation:
+    dependency: transitive
+    description:
+      name: unity_levelplay_mediation
+      sha256: ec40cb03bf3dc08658e471b0a2e3a56079bb6228701e948f832ae3e3687b783a
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.4.0"
   vector_math:
     dependency: transitive
     description:

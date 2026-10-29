@@ -132,7 +132,7 @@ class RewardedAdManager {
       },
     );
 
-    final adLoadRequest = RewardedAd.load(
+    RewardedAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: loadCallback,

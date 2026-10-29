@@ -25,8 +25,6 @@ class GoogleAdProvider {
   // Private variables
   final Googlemodel _adConfig;
   final EventReporter _reporter;
-  final Map<String, int> _showPositionMap = {};
-  final Map<String, int> _retryAttemptsMap = {};
 
   // Ad managers
   final Map<String, InterstitialAdManager> _interstitialManagers = {};
