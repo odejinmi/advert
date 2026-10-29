@@ -72,8 +72,7 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   bool enableAppOpenOnResume = true;
   DateTime? _lastAppOpenTime;
   bool _isAnyFullScreenAdShowing = false;
-  bool _isAdLoadingDialogShowing = false;
-  BuildContext? _adLoadingDialogContext;
+  OverlayEntry? _loadingOverlayEntry;
   static const Duration appOpenCooldown = Duration(seconds: 30);
 
   // Constructor
@@ -876,71 +875,69 @@ class AdManager extends GetxController with WidgetsBindingObserver {
   }
 
   void _showAdLoadingDialog(BuildContext context) {
-    if (!context.mounted || _isAdLoadingDialogShowing) return;
-    _isAdLoadingDialogShowing = true;
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        _adLoadingDialogContext = dialogContext;
-        return PopScope(
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) {
-              _isAdLoadingDialogShowing = false;
-              _adLoadingDialogContext = null;
-              isShowingAds.value = false;
-            }
-          },
-          child: AlertDialog(
-            backgroundColor: const Color(0xFF1A1C23),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Color(0xFFF9C304),
+    if (!context.mounted || _loadingOverlayEntry != null) return;
+
+    try {
+      final overlayState = Overlay.maybeOf(context);
+      if (overlayState == null) return;
+
+      _loadingOverlayEntry = OverlayEntry(
+        builder: (context) => Material(
+          color: Colors.black.withOpacity(0.6),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1C23),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFFF9C304),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Text(
-                    "Loading ad...",
-                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      "Loading ad...",
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
                   ),
-                ),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.close, color: Colors.white70, size: 20),
-                  onPressed: () {
-                    _hideAdLoadingDialog();
-                    isShowingAds.value = false;
-                  },
-                ),
-              ],
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () {
+                      _hideAdLoadingDialog();
+                      isShowingAds.value = false;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-      },
-    ).then((_) {
-      _isAdLoadingDialogShowing = false;
-      _adLoadingDialogContext = null;
-    });
+        ),
+      );
+
+      overlayState.insert(_loadingOverlayEntry!);
+    } catch (e) {
+      debugPrint("Error showing ad loading overlay: $e");
+    }
   }
 
   void _hideAdLoadingDialog() {
-    if (_isAdLoadingDialogShowing) {
-      if (_adLoadingDialogContext != null && _adLoadingDialogContext!.mounted) {
-        try {
-          Navigator.of(_adLoadingDialogContext!).pop();
-        } catch (_) {}
-      }
-      _isAdLoadingDialogShowing = false;
-      _adLoadingDialogContext = null;
+    if (_loadingOverlayEntry != null) {
+      try {
+        _loadingOverlayEntry!.remove();
+      } catch (_) {}
+      _loadingOverlayEntry = null;
     }
   }
 

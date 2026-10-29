@@ -1,6 +1,10 @@
 PODS:
   - advert (0.0.1):
     - Flutter
+  - chartboost_flutter (1.0.0):
+    - ChartboostSDK (~> 9.14.2)
+    - Flutter
+  - ChartboostSDK (9.14.2)
   - device_info_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
@@ -11,79 +15,103 @@ PODS:
     - Google-Mobile-Ads-SDK (~> 13.11)
     - webview_flutter_wkwebview
   - GoogleUserMessagingPlatform (3.1.0)
+  - hx_liftoff_ads (0.1.1):
+    - Flutter
+    - VungleAds (~> 7.7)
   - integration_test (0.0.1):
     - Flutter
+  - IronSourceAdQualitySDK (9.10.0)
+  - IronSourceSDK (9.7.0.0):
+    - IronSourceSDK/AdQuality (= 9.7.0.0)
+    - IronSourceSDK/Ads (= 9.7.0.0)
+  - IronSourceSDK/AdQuality (9.7.0.0):
+    - IronSourceAdQualitySDK (~> 9)
+  - IronSourceSDK/Ads (9.7.0.0)
   - package_info_plus (0.4.5):
     - Flutter
   - unity_ads_plugin (0.0.1):
     - Flutter
     - UnityAds (~> 4.20.0)
+  - unity_levelplay_mediation (9.4.0):
+    - Flutter
+    - IronSourceSDK (= 9.7.0.0)
   - UnityAds (4.20.1):
     - UnityCoherenceLib (= 0.1.0)
   - UnityCoherenceLib (0.1.0)
-  - vungle (6.12.2):
-    - Flutter
-    - VungleSDK-iOS
-  - VungleSDK-iOS (6.12.3)
+  - VungleAds (7.7.8)
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
   - advert (from `.symlinks/plugins/advert/ios`)
+  - chartboost_flutter (from `.symlinks/plugins/chartboost_flutter/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - Flutter (from `Flutter`)
   - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
+  - hx_liftoff_ads (from `.symlinks/plugins/hx_liftoff_ads/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - unity_ads_plugin (from `.symlinks/plugins/unity_ads_plugin/ios`)
-  - vungle (from `.symlinks/plugins/vungle/ios`)
+  - unity_levelplay_mediation (from `.symlinks/plugins/unity_levelplay_mediation/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
 SPEC REPOS:
   trunk:
+    - ChartboostSDK
     - Google-Mobile-Ads-SDK
     - GoogleUserMessagingPlatform
+    - IronSourceAdQualitySDK
+    - IronSourceSDK
     - UnityAds
     - UnityCoherenceLib
-    - VungleSDK-iOS
+    - VungleAds
 
 EXTERNAL SOURCES:
   advert:
     :path: ".symlinks/plugins/advert/ios"
+  chartboost_flutter:
+    :path: ".symlinks/plugins/chartboost_flutter/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   Flutter:
     :path: Flutter
   google_mobile_ads:
     :path: ".symlinks/plugins/google_mobile_ads/ios"
+  hx_liftoff_ads:
+    :path: ".symlinks/plugins/hx_liftoff_ads/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   unity_ads_plugin:
     :path: ".symlinks/plugins/unity_ads_plugin/ios"
-  vungle:
-    :path: ".symlinks/plugins/vungle/ios"
+  unity_levelplay_mediation:
+    :path: ".symlinks/plugins/unity_levelplay_mediation/ios"
   webview_flutter_wkwebview:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
 SPEC CHECKSUMS:
   advert: eb59be6d845eb32bb9e41c446060d39c41264de2
+  chartboost_flutter: 28f3152254a5c5a1bcb684d9c504365c631b028e
+  ChartboostSDK: a0a62eeaf756b7315ed53608eb21dcb41c6dcd36
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   Google-Mobile-Ads-SDK: 09d0868abe43b9f851b7b340a245679f0eafc96c
   google_mobile_ads: c8f164ff415b8440e50b0102508d148c7fbea07f
   GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
+  hx_liftoff_ads: a062d20282e6f9df95078103fde2a078b1ba3c9b
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  IronSourceAdQualitySDK: 779fc3754f27b3d5fae8da52c5709a2dbdb502a6
+  IronSourceSDK: 2556ce9318cbf296a5e9c980bca3bb70cde47c56
   package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   unity_ads_plugin: 10418650a07ad903d454ec8d38666b32620e0de8
+  unity_levelplay_mediation: 7c9cb16ea17a0e671aa65d7de87af9483d5bf12b
   UnityAds: 70ddc29f85c2e26967afca937e5379118f435747
   UnityCoherenceLib: d9be08c5b9c2880cb220c7ecd643f97ebda422b7
-  vungle: 7335eeaed096591bba02f2bca31334f1947c5098
-  VungleSDK-iOS: 27725029a42dfb9e39c67956637233fde1ee1797
+  VungleAds: b35408054cb252a1c1df22cedbd0275ed116d79e
   webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4
 
-PODFILE CHECKSUM: 9c46fd01abff66081b39f5fa5767b3f1d0b11d76
+PODFILE CHECKSUM: 29aa8aea1288a3e4d4cdad7c8b23cdf932620618
 
 COCOAPODS: 1.16.2
